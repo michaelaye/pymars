@@ -1,0 +1,36 @@
+syntax: glob
+# hidden Mac OS X files
+.DS_Store
+
+# Backup files left behind by the Emacs editor.
+*~
+
+# Lock files used by the Emacs editor.
+# Notice that the "#" character is quoted with a backslash.
+# This prevents it from being interpreted as starting a comment.
+.\#*
+
+# Temporary files used by the vim editor.
+.*.swp
+
+# Compiled Python files
+*.pyc
+
+# isis log files
+*.log
+
+# metadata folders of eclipse
+.metadata
+.project
+.pydevproject
+*/.directory
+
+# no binaries
+*.png
+*.tiff
+*.jpg
+*.pdf
+
+# nohup.outs from remote operations
+nohup.out
+
