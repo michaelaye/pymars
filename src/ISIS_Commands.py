@@ -84,6 +84,9 @@ class ISIS_cam2map(ISIS_cmd):
         self.lParameters.append('map='+os.environ['HOME']+'/icy_crater_projection.map')
         self.lParameters.append('pixres=MAP')
         self.bInputToDelete = True
+    def setMap(self):
+        ''' this needs to be filled'''
+        pass
     
 
 class ISIS_equalizer(ISIS_cmd):
