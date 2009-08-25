@@ -23,17 +23,24 @@ import sys,os
 import matplotlib
 print "using matplotlib version ", matplotlib.__version__
 #matplotlib.use("WXAgg") # do this before pylab so you don't get the default back end.
-import pylab
+import pylab as plt
 import tkFileDialog as fd
 
 fname = fd.askopenfilename(initialdir='/processed_data/maye')
 
 cube = gdal.Open(fname, GA_ReadOnly )
 
-array = cube.ReadAsArray()
+try:
+    size = int(sys.argv[1])
+except:
+    size = 300
 
+xOff = size/2
+yOff = size/2
 
-pylab.imshow(array, interpolation = None) 
-pylab.colorbar()
-pylab.grid(True)
-pylab.show()
+array = cube.ReadAsArray(xOff, yOff, size, size)
+
+plt.imshow(array, interpolation = None) 
+plt.colorbar()
+plt.grid(True)
+plt.show()
