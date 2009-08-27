@@ -26,8 +26,11 @@ print "using matplotlib version ", matplotlib.__version__
 import pylab as plt
 import tkFileDialog as fd
 
-fname = fd.askopenfilename(initialdir='/processed_data/maye')
-
+try:
+    fname = fd.askopenfilename(initialdir='/processed_data/maye')
+except:
+    fname = fd.askopenfilename()
+    
 cube = gdal.Open(fname, GA_ReadOnly )
 
 try:
