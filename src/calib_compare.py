@@ -26,6 +26,7 @@ print "using matplotlib version ", matplotlib.__version__
 import pylab as plt
 import tkFileDialog as fd
 
+#fname = fd.askopenfilename(initialdir='/processed_data/maye')
 try:
     fname = fd.askopenfilename(initialdir='/processed_data/maye')
 except:
@@ -33,17 +34,44 @@ except:
     
 cube = gdal.Open(fname, GA_ReadOnly )
 
+print cube.GetDescription()
+
 try:
     size = int(sys.argv[1])
 except:
     size = 300
 
-xOff = size/2
-yOff = size/2
+xSize = cube.RasterXSize
+ySize = cube.RasterYSize
 
-array = cube.ReadAsArray(xOff, yOff, size, size)
+print "Cube is {0} pixels in X and {1} pixels in Y".format(xSize, ySize)
+xOff = xSize/2 - size/2 -1
+yOff = ySize/2 - size/2 -1
 
-plt.imshow(array, interpolation = None) 
-plt.colorbar()
+print "reading a {0} sized array at {1},{2} offset".format(size,xOff,yOff)
+arr = cube.ReadAsArray(xOff, yOff, size, size)
+
+print "minimum of array: ", arr.min()
+
+arr[Numeric.where(arr < 0.0)] = Numeric.nan
+
+print "minimum of array: ", arr.min()
+
+fig = plt.figure()
+ax = fig.add_subplot(111)
+
+ax.imshow(arr, interpolation = 'nearest') 
+#plt.colorbar()
 plt.grid(True)
+numrows, numcols = arr.shape
+def format_coord(x, y):
+    col = int(x+0.5)
+    row = int(y+0.5)
+    if col>=0 and col<numcols and row>=0 and row<numrows:
+        z = arr[row,col]
+        return 'x=%1.4f, y=%1.4f, z=%1.4f'%(x, y, z)
+    else:
+        return 'x=%1.4f, y=%1.4f'%(x, y)
+
+ax.format_coord = format_coord
 plt.show()
