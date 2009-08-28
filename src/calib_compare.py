@@ -23,14 +23,14 @@ import sys,os
 import matplotlib
 print "using matplotlib version ", matplotlib.__version__
 #matplotlib.use("WXAgg") # do this before pylab so you don't get the default back end.
-import pylab as plt
+import matplotlib.pyplot as plt
 import tkFileDialog as fd
 
-#fname = fd.askopenfilename(initialdir='/processed_data/maye')
-try:
-    fname = fd.askopenfilename(initialdir='/processed_data/maye')
-except:
-    fname = fd.askopenfilename()
+#try:
+#    fname = fd.askopenfilename(initialdir='/processed_data/maye')
+#except:
+#    fname = fd.askopenfilename()
+fname = '/processed_data/maye/PSP_003092_0985/PSP_003092_0985_RED5.calOld.map.cub'
     
 cube = gdal.Open(fname, GA_ReadOnly )
 
@@ -59,10 +59,11 @@ print "minimum of array: ", arr.min()
 
 fig = plt.figure()
 ax = fig.add_subplot(111)
-
-ax.imshow(arr, interpolation = 'nearest') 
-#plt.colorbar()
+p = ax.patch
+p.set_facecolor('black')
+cax = ax.imshow(arr, interpolation = 'nearest') 
 plt.grid(True)
+cbar = fig.colorbar(cax)
 numrows, numcols = arr.shape
 def format_coord(x, y):
     col = int(x+0.5)
