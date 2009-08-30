@@ -25,8 +25,8 @@ def getRoundedStrFromValue(sValue, iDigits):
 
 def getCSVFromMAPPT(params):
     sMAPPTcmd = ISIS_mappt()
-    sSourcePath = isis_settings.DEST_BASE + '/'  + params.sImageID + '/'
-    sCubePath = sSourcePath + params.sImageID + '_' + params.sCCDColour + sExtensions
+    sSourcePath = isis_settings.DEST_BASE + '/'  + params.sobsID + '/'
+    sCubePath = sSourcePath + params.sobsID + '_' + params.sCCDColour + sExtensions
     sMAPPTcmd.setInputPath(sCubePath)
     print "output-file for scan in prime image:",params.sOutputFileName
     sMAPPTcmd.setOutputPath(params.sOutputFileName)
@@ -76,10 +76,10 @@ def main(params):
         params.extraTargetCode = 'ouk;ohuoenuiuc' #dummy extra target code
     
     print "{0} working.".format(params.sProgName)
-    # get subData in imageID in case i need it later
-    params.sSciencePhase, params.sOrbit, params.sTargetCode = params.sImageID.split('_')
+    # get subData in obsID in case i need it later
+    params.sSciencePhase, params.sOrbit, params.sTargetCode = params.sobsID.split('_')
     
-    params.sOutputFileName = "_".join([params.sImageID,'mappt_output.csv'])
+    params.sOutputFileName = "_".join([params.sobsID,'mappt_output.csv'])
     
     # use mappt on given file to create output file from where to read the lon/lat to search for
     getCSVFromMAPPT(params)
@@ -130,7 +130,7 @@ def main(params):
     for dataTupel in foundFiles:
         print dataTupel[0],dataTupel[1],dataTupel[2]
     print 'Find results in',resultFileName
-    return resultFileName        
+    return foundFiles      
             
             
 if __name__ == "__main__":
@@ -140,14 +140,14 @@ if __name__ == "__main__":
     params.extraTargetCode = ''
     # check if all required input parameters were given, if not, stop program
     try:
-        params.sProgName, params.sImageID, params.sCCDColour, params.sSample, \
+        params.sProgName, params.sobsID, params.sCCDColour, params.sSample, \
         params.sLine, params.sTargetSciencePhase, params.extraTargetCode = sys.argv
     except:
         try:
-            params.sProgName, params.sImageID, params.sCCDColour, params.sSample, \
+            params.sProgName, params.sobsID, params.sCCDColour, params.sSample, \
             params.sLine, params.sTargetSciencePhase = sys.argv
         except:
-            print "Usage: {0} imageID ccdColour sample line targetSciencePhase(PSP/ESP) \
+            print "Usage: {0} obsID ccdColour sample line targetSciencePhase(PSP/ESP) \
     [optional: 2nd targetcode nnnn]".format(sys.argv[0])
             sys.exit()
 
