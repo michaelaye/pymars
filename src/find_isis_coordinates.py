@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python2.6
 
 '''
 Created on Jul 14, 2009
@@ -8,6 +8,10 @@ Created on Jul 14, 2009
 
 import sys, os, csv, glob, string, isis_settings
 from hirise_tools import *
+from ISIS_Commands import ISIS_mappt
+
+# global for this module: which file extensions i should look for:
+sExtensions='.cal.norm.map.equ.mos.cub'
 
    # define an empty class, just to hold a set of parameters
 class Params:
@@ -19,48 +23,34 @@ def getRoundedIntStrFromValue(sValue):
 def getRoundedStrFromValue(sValue, iDigits):
     return str(round(float(sValue), iDigits))
 
-def executeMAPPT(params):
+def getCSVFromMAPPT(params):
+    sMAPPTcmd = ISIS_mappt()
     sSourcePath = isis_settings.DEST_BASE + '/'  + params.sImageID + '/'
-    sExtensions='.cal.norm.map.equ.mos.cub'
     sCubePath = sSourcePath + params.sImageID + '_' + params.sCCDColour + sExtensions
-    # prepare command string for mappt
-    sMAPPT_cmd = ['mappt']
-    sMAPPT_cmd.append('from=' + sCubePath)
-    print "output at first scan:",params.sOutputFileName
-    sMAPPT_cmd.append('to=' + params.sOutputFileName)
-    sMAPPT_cmd.append('sample=' + params.sSample)
-    sMAPPT_cmd.append('line=' + params.sLine)
-    sMAPPT_cmd.append('type=image')
-    sMAPPT_cmd.append('format=flat')
-    sMAPPT_cmd.append('append=false')
+    sMAPPTcmd.setInputPath(sCubePath)
+    print "output-file for scan in prime image:",params.sOutputFileName
+    sMAPPTcmd.setOutputPath(params.sOutputFileName)
+    sMAPPTcmd.addParameters(['sample='+params.sSample,'line='+params.sLine,'type=image'])
     # call mappt. it will create the output csv file that then will be read
-    try:
-        subprocess.call(sMAPPT_cmd)
-    except OSError:
-        print "Had trouble calling mappt program, did you forget to 'start_isis' ?"
-        print "Exiting"
-        sys.exit()
-        
-    return
+    sMAPPTcmd.execute()
 
 def useMAPPT_latlon(params,coords):
-    sMAPPT_cmd = ['mappt']
-    sMAPPT_cmd.append('from=' + params.sPath)
-    sMAPPT_cmd.append('to=' + params.sOutputFileName)
-    sMAPPT_cmd.append('longitude=' + coords.longitude)
-    sMAPPT_cmd.append('latitude=' + coords.latitude)
-    sMAPPT_cmd.append('type=ground')
-    sMAPPT_cmd.append('format=flat')
-    sMAPPT_cmd.append('append=false')
+    sMAPPT_cmd = ISIS_mappt()
+    sMAPPT_cmd.setInputPath(params.sPath)
+    sMAPPT_cmd.setOutputPath(params.sOutputFileName)
+    sMAPPT_cmd.addParameters(['longitude=' + coords.longitude])
+    sMAPPT_cmd.addParameters(['latitude=' + coords.latitude,'type=ground'])
     # call mappt. it will create the output csv file that then will be read
-    subprocess.call(sMAPPT_cmd)
-    return
-    
-def getLatLonFromCSV(params, coords):
+    sMAPPT_cmd.execute()
+  
+def getDicFromCSV(params):
     csvfile = open(params.sOutputFileName)
     dialect = csv.Sniffer().sniff(csvfile.read(2048))
     csvfile.seek(0)
-    reader = csv.DictReader(csvfile, dialect=dialect)
+    return csv.DictReader(csvfile, dialect=dialect)
+        
+def getLatLonFromCSV(params, coords):
+    reader = getDicFromCSV(params)
     myDic = reader.next()
     pixelValue = myDic['PixelValue']
     if pixelValue == "Null":
@@ -72,10 +62,7 @@ def getLatLonFromCSV(params, coords):
     return
 
 def getSampleLineFromCSV(params, coords):
-    csvfile = open(params.sOutputFileName)
-    dialect = csv.Sniffer().sniff(csvfile.read(2048))
-    csvfile.seek(0)
-    reader = csv.DictReader(csvfile, dialect=dialect)
+    reader = getDicFromCSV(params)
     myDic = reader.next()
     coords.pixelValue = myDic['PixelValue']
     coords.sample = myDic['Sample']
@@ -83,36 +70,19 @@ def getSampleLineFromCSV(params, coords):
     csvfile.close()
     return
 
-def main():
-    
-    # create my parameter container
-    params = Params()
-    
-    params.extraTargetCode = ''
-    # check if all required input parameters were given, if not, stop program
-    try:
-        params.sProgName, params.sImageID, params.sCCDColour, params.sSample, \
-        params.sLine, params.sTargetSciencePhase, params.extraTargetCode = sys.argv
-    except:
-        try:
-            params.sProgName, params.sImageID, params.sCCDColour, params.sSample, \
-            params.sLine, params.sTargetSciencePhase = sys.argv
-        except:
-            print "Usage: {0} imageID ccdColour sample line targetSciencePhase(PSP/ESP) \
-    [optional: 2nd targetcode nnnn]".format(sys.argv[0])
-            sys.exit()
-
+def main(params):
     if params.extraTargetCode == '':
         print 'found no extra target code, will only search for target code of obsID \n'
-        params.extraTargetCode = 'ouk;ohuoenuiuc'
+        params.extraTargetCode = 'ouk;ohuoenuiuc' #dummy extra target code
     
     print "{0} working.".format(params.sProgName)
     # get subData in imageID in case i need it later
     params.sSciencePhase, params.sOrbit, params.sTargetCode = params.sImageID.split('_')
     
     params.sOutputFileName = "_".join([params.sImageID,'mappt_output.csv'])
+    
     # use mappt on given file to create output file from where to read the lon/lat to search for
-    executeMAPPT(params)
+    getCSVFromMAPPT(params)
     
     myCoords = Coordinates()
     myCoords.sample = params.sSample
@@ -150,18 +120,36 @@ def main():
                         foundFiles.append((name, \
                                            getRoundedIntStrFromValue(myCoords.sample), \
                                            getRoundedIntStrFromValue(myCoords.line)))
-                        outFile.write(string.join([params.sPath, \
+                        outputString = string.join([params.sPath, \
                                                    getRoundedIntStrFromValue(myCoords.sample), \
-                                                   getRoundedIntStrFromValue(myCoords.line),'\n']))
+                                                   getRoundedIntStrFromValue(myCoords.line),'\n'])
+                        outFile.write(outputString)
+                        print outputString
                     else: zeros.append(name)
     print "Found {0} files with non-zero pixel values and {1} out-liers:".format(len(foundFiles),len(zeros))
     for dataTupel in foundFiles:
         print dataTupel[0],dataTupel[1],dataTupel[2]
     print 'Find results in',resultFileName
-            
+    return resultFileName        
             
             
 if __name__ == "__main__":
+    # create my parameter container
+    params = Params()
+    
+    params.extraTargetCode = ''
+    # check if all required input parameters were given, if not, stop program
+    try:
+        params.sProgName, params.sImageID, params.sCCDColour, params.sSample, \
+        params.sLine, params.sTargetSciencePhase, params.extraTargetCode = sys.argv
+    except:
+        try:
+            params.sProgName, params.sImageID, params.sCCDColour, params.sSample, \
+            params.sLine, params.sTargetSciencePhase = sys.argv
+        except:
+            print "Usage: {0} imageID ccdColour sample line targetSciencePhase(PSP/ESP) \
+    [optional: 2nd targetcode nnnn]".format(sys.argv[0])
+            sys.exit()
 
-    main()
+    main(params)
         

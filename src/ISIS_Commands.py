@@ -20,11 +20,20 @@ class ISIS_cmd:
         self.lOutput.append(psOutputPath)
 
     def addParameters(self, plParameters):
+        "parameter is of type <list>"
         self.lParameters.extend(plParameters)
         
     def getExeList(self):
         return [self.sName, ' '.join(self.lInput + self.lOutput + self.lParameters)]
 
+    def execute(self):
+        try:
+            subprocess.call(self.getExeList())
+        except OSError:
+            print "Had trouble calling {0}, did you forget to start_isis?".format(self.sName)
+            print "exiting..."
+            sys.exit(-1)
+            
     def __str__(self):
         return ' '.join([self.sName] + self.lInput + self.lOutput + self.lParameters) + '\n'
     
@@ -188,3 +197,10 @@ class ISIS_cosi(ISIS_cmd):
     def __init__(self):
         ISIS_cmd.__init__(self)
         self.bInputToDelete = True
+        
+class ISIS_mappt(ISIS_cmd):
+    sName = 'mappt'
+    def __init(self):
+        ISIS_cmd.__init__(self)
+        self.addParameters(['format=flat','append=false'])
+        
