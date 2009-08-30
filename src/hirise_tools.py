@@ -1,7 +1,7 @@
 import isis_settings, os, subprocess, sys
 
 class Coordinates:
-    imageID  = 0
+    obsID  = 0
     sample   = 0
     line     = 0
     latitude = 0
