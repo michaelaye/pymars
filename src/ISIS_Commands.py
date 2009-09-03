@@ -135,18 +135,24 @@ class ISIS_automos(ISIS_cmd):
 
 class ISIS_getkey(ISIS_cmd):
     sName = 'getkey'
+    lParameters = ['recursive=true']
     def __init__(self, psKeyword):
         ISIS_cmd.__init__(self)
         self.lOutput = []
-        self.lParameters.append('keyword='+psKeyword)
-        self.lParameters.append('recursive=true')
+        self.setParameters(psKeyword)
     def getKeyValue(self):
         try:
             return executeIsisCmdWithReturn(self.__str__()).splitlines()[0]
         except IndexError:
+            print "was calling: \n",self.__str__()
             print "Problem with getting key value (getkey). \n" \
                    "Probably error in executing one of ISIS commands before"
             sys.exit()
+    def setParameters(self, psKeyword):
+        self.lParameters = []
+        self.lParameters.append('keyword='+psKeyword)
+        self.lParameters.append('recursive=true')
+        
     
 class ISIS_phocube(ISIS_cmd):
     '''
@@ -200,7 +206,7 @@ class ISIS_cosi(ISIS_cmd):
         
 class ISIS_mappt(ISIS_cmd):
     sName = 'mappt'
-    def __init(self):
+    def __init__(self):
         ISIS_cmd.__init__(self)
-        self.addParameters(['format=flat','append=false'])
+        self.addParameters(['append=false'])
         

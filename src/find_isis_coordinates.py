@@ -8,7 +8,7 @@ Created on Jul 14, 2009
 
 import sys, os, csv, glob, string, isis_settings
 from hirise_tools import *
-from ISIS_Commands import ISIS_mappt
+from ISIS_Commands import *
 
 # global for this module: which file extensions i should look for:
 sExtensions='.cal.norm.map.equ.mos.cub'
@@ -23,7 +23,7 @@ def getRoundedIntStrFromValue(sValue):
 def getRoundedStrFromValue(sValue, iDigits):
     return str(round(float(sValue), iDigits))
 
-def getCSVFromMAPPT(params):
+def executeMAPPT(params):
     sMAPPTcmd = ISIS_mappt()
     sSourcePath = isis_settings.DEST_BASE + '/'  + params.sobsID + '/'
     sCubePath = sSourcePath + params.sobsID + '_' + params.sCCDColour + sExtensions
@@ -32,6 +32,7 @@ def getCSVFromMAPPT(params):
     sMAPPTcmd.setOutputPath(params.sOutputFileName)
     sMAPPTcmd.addParameters(['sample='+params.sSample,'line='+params.sLine,'type=image'])
     # call mappt. it will create the output csv file that then will be read
+    print sMAPPTcmd
     sMAPPTcmd.execute()
 
 def useMAPPT_latlon(params,coords):
@@ -41,33 +42,32 @@ def useMAPPT_latlon(params,coords):
     sMAPPT_cmd.addParameters(['longitude=' + coords.longitude])
     sMAPPT_cmd.addParameters(['latitude=' + coords.latitude,'type=ground'])
     # call mappt. it will create the output csv file that then will be read
+    print sMAPPT_cmd
     sMAPPT_cmd.execute()
   
-def getDicFromCSV(params):
-    csvfile = open(params.sOutputFileName)
-    dialect = csv.Sniffer().sniff(csvfile.read(2048))
-    csvfile.seek(0)
-    return csv.DictReader(csvfile, dialect=dialect)
-        
 def getLatLonFromCSV(params, coords):
-    reader = getDicFromCSV(params)
-    myDic = reader.next()
-    pixelValue = myDic['PixelValue']
+    cmdGetKey = ISIS_getkey('PixelValue')
+    cmdGetKey.setInputPath(params.sOutputFileName)
+    pixelValue = cmdGetKey.getKeyValue()
     if pixelValue == "Null":
         print "Starting Coordinate seems to have no valid pixel-value, please check"
-        sys.exit()
-    coords.longitude = myDic['Longitude']
-    coords.latitude  = myDic['Latitude']
-    csvfile.close()
+        sys.exit(1)
+    cmdGetKey.setParameters('Longitude')
+    coords.longitude = cmdGetKey.getKeyValue()
+    cmdGetKey.setParameters('Latitude')
+    coords.latitude  = cmdGetKey.getKeyValue()
+    print coords.latitude
+    print coords.longitude
     return
 
 def getSampleLineFromCSV(params, coords):
-    reader = getDicFromCSV(params)
-    myDic = reader.next()
-    coords.pixelValue = myDic['PixelValue']
-    coords.sample = myDic['Sample']
-    coords.line  = myDic['Line']
-    csvfile.close()
+    cmd = ISIS_getkey('PixelValue')
+    cmd.setInputPath(params.sOutputFileName)
+    coords.pixelValue = cmd.getKeyValue()
+    cmd.setParameters('Sample')
+    coords.sample = cmd.getKeyValue()
+    cmd.setParameters('Line')
+    coords.line  = cmd.getKeyValue()
     return
 
 def main(params):
@@ -82,7 +82,7 @@ def main(params):
     params.sOutputFileName = "_".join([params.sobsID,'mappt_output.csv'])
     
     # use mappt on given file to create output file from where to read the lon/lat to search for
-    getCSVFromMAPPT(params)
+    executeMAPPT(params)
     
     myCoords = Coordinates()
     myCoords.sample = params.sSample
