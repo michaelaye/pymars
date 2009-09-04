@@ -30,8 +30,9 @@ import tkFileDialog as fd
 #    fname = fd.askopenfilename(initialdir='/processed_data/maye')
 #except:
 #    fname = fd.askopenfilename()
-fname = '/processed_data/maye/PSP_003092_0985/PSP_003092_0985_RED5.calOld.map.cub'
-    
+#fname = '/processed_data/maye/PSP_003092_0985/PSP_003092_0985_RED5.calOld.map.cub'
+fname = '/processed_data/PSP_009978_2265/PSP_009978_2265_BG.cal.norm.map.equ.mos.cub'
+
 cube = gdal.Open(fname, GA_ReadOnly )
 
 print cube.GetDescription()
@@ -41,12 +42,21 @@ try:
 except:
     size = 300
 
+try:
+    xpos, ypos = int(sys.argv[2:4])
+except:
+    print 'something wrong'
+#    xpos = cube.RasterXSize/2
+#    ypos = cube.RasterYSize/2
+    xpos = 4013
+    ypos = 22933
+    
 xSize = cube.RasterXSize
 ySize = cube.RasterYSize
 
 print "Cube is {0} pixels in X and {1} pixels in Y".format(xSize, ySize)
-xOff = xSize/2 - size/2 -1
-yOff = ySize/2 - size/2 -1
+xOff = xpos - size/2 -1
+yOff = ypos - size/2 -1
 
 print "reading a {0} sized array at {1},{2} offset".format(size,xOff,yOff)
 arr = cube.ReadAsArray(xOff, yOff, size, size)
