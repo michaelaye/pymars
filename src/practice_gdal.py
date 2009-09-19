@@ -3,6 +3,10 @@ Created on Aug 16, 2009
 
 @author: aye
 '''
+import site
+
+site.addsitedir('/Library/Frameworks/GDAL.framework/Versions/1.6/Resources')
+
 try:
     from osgeo import gdal
     from osgeo.gdalconst import *
@@ -26,19 +30,34 @@ import sys,os
 import matplotlib
 print "using matplotlib version ", matplotlib.__version__
 #matplotlib.use("WXAgg") # do this before pylab so you don'tget the default back end.
-import pylab
+import matplotlib.pylab as pylab
+import wx
 
-os.chdir('/processed_data/PSP_009978_2265')
+app = wx.App(redirect=False)
+dlg = wx.FileDialog(None, 
+                    message="Choose a file to open",
+                    defaultDir = '/Users/aye/Desktop/cut_jpeg2000/')
 
-cube = gdal.Open('PSP_009978_2265_BG.cal.norm.map.equ.mos.cub', GA_ReadOnly )
+retCode = dlg.ShowModal()
+if retCode == wx.ID_OK:
+    paths = dlg.GetPaths()
+    fName = paths[0]
+elif retCode == wx.ID_CANCEL: 
+    print 'canceled file dialog. exiting'
+    sys.exit(-1)
+else: 
+    print 'unknown error. exiting'
+    sys.exit(-1)
 
-xPos = 3835
-yPos = 22756
+cube = gdal.Open(str(fName), GA_ReadOnly )
+print "have gdal.Open done"
+size = 400
 
-size = int(sys.argv[1])
+xSize = cube.RasterXSize
+ySize = cube.RasterYSize
 
-xOff = xPos - size/2
-yOff = yPos - size/2
+xOff = xSize/2 - size/2 -1
+yOff = ySize/2 - size/2 -1
 
 array = cube.ReadAsArray(xOff, yOff, size, size)
 
