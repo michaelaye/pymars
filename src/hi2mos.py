@@ -50,7 +50,7 @@ executer = ISIS.ISIS_Executer(idString, colour,
                               plProgList = lCommands, 
                               pbDebug = options.debug, 
                               pbFake = options.fake,
-                              mapfile = options.mapfilename)
+                              pMapfile = options.mapfilename)
 executer.process()
 
 if lCommands == None: lCommands = ['all']
