@@ -32,8 +32,6 @@ parser.add_option("-c", "--command-list", dest="commandList",
 
 (options, args) = parser.parse_args()
 
-print 'args:',args
-
 try:
     idString = args[0]
     colour = args[1]
