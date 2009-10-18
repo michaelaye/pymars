@@ -1,5 +1,8 @@
 import isis_settings, os, subprocess, sys
 
+FROM_BASE = "/imgdata/"
+DEST_BASE = "/processed_data/"
+
 class Coordinates:
     obsID  = 0
     sample   = 0
@@ -26,13 +29,13 @@ def getEDRFolder(orbitNumber):
     return "_".join(["EDRgen", str(lower).zfill(6), str(lower+999).zfill(6)])
 
 def getUsersProcessedPath():
-    path = isis_settings.DEST_BASE
+    path = DEST_BASE
     path += os.environ['LOGNAME'] + '/'
     return path
 
 def getSourcePathFromID(idString):
     sciencePhase, orbitString, targetCode = idString.split("_")
-    path = isis_settings.FROM_BASE
+    path = FROM_BASE
     path += getEDRFolder(int(orbitString)) + '/'
     path += getUpperOrbitFolder(int(orbitString)) + '/' + idString + '/'
     return path
