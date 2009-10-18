@@ -46,6 +46,9 @@ def getDestPathFromID(idString):
     return path
 
 def executeIsisCmd(args):
+    """as we are using check_call here, the input should be a list with strings,
+        like ['ls','-l','-a']
+    """
     try:
         p = subprocess.check_call(args)
     except OSError:
