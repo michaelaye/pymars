@@ -1,4 +1,4 @@
-import isis_settings, os, subprocess, sys
+import os, subprocess, sys
 
 FROM_BASE = "/imgdata/"
 DEST_BASE = "/processed_data/"
