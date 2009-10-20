@@ -93,7 +93,7 @@ class ISIS_cam2map(ISIS_cmd):
     sName = 'cam2map'
     def __init__(self):
         ISIS_cmd.__init__(self)
-        self.mapfilePath='/usr/local/isis3/data/base/templates/maps/polarstereographic.map'
+        self.mapfilePath='/processed_data/polar_map_projection.map'
         self.useDefaultMap = True
         self.lParameters.append('pixres=MAP')
         self.bInputToDelete = True
