@@ -2,6 +2,8 @@
 
 from gdal_imports import *
 import matplotlib.colors as colors
+import scipy.ndimage as nd
+import numpy as np
 
 #from scipy import optimize
 #from numpy import *
@@ -64,44 +66,58 @@ print "minimum of array after NaN determination: ", arr_big.min()
 arr = arr_big[:200,:200]
 
 
-fig = plt.figure()
-ax = fig.add_subplot(111)
-ax.patch.set_facecolor('black')
-cax = ax.imshow(arr_big, cmap= plt.cm.gray, origin='lower') 
-cbar = fig.colorbar(cax)
-
-fig2 = plt.figure()
-ax2 = fig2.add_subplot(111)
-ax2.patch.set_facecolor('black')
-cax2 = ax2.imshow(arr, origin='lower')
-cbar2 = fig2.colorbar(cax2)
-
-fig3 = plt.figure()
-data = arr[90,:]
-lower = data.mean()-2*data.std()
-supper = plt.ma.masked_where(data < lower, data)
-slower = plt.ma.masked_where(data > lower, data)
-plt.plot(slower, 'r', supper, 'b')
-
-fig4 = plt.figure()
-pdf, bins, patches = plt.hist(arr_big.reshape(arr_big.size), 30, normed=1)
+fig1 = plt.figure(1)
+ax1 = fig1.add_subplot(111)
+#ax1.set_yscale('log')
+pdf, bins, patches = ax1.hist(arr_big.reshape(arr_big.size), 30, color='g')
+plt.xlabel('I/F')
 maxpos = pdf.argmax()
-print bins[maxpos]
+print "most frequent I/F value: ",bins[maxpos]
 
-fig5 = plt.figure()
+fig2 = plt.figure(2)
+ax2 = fig2.add_subplot(111)
 palette = plt.cm.gray
 palette.set_under('g',1.0)
 palette.set_bad('b',1.0)
 palette.set_over('r',1.0)
-arr_masked = plt.ma.masked_where(arr_big < 0.06, arr_big)
-im = plt.imshow(arr_masked, cmap=palette,
-                origin = 'lower',
+threshold = 0.065
+#arr_masked = plt.ma.masked_where(arr_big < 0.06, arr_big)
+arr_masked = plt.ma.masked_where(arr_big < threshold, arr_big)
+im = ax2.imshow(arr_masked, cmap=palette,
                 norm = colors.Normalize(vmin = arr_big.min(),
                                         vmax = arr_big.max(),
                                         clip = True ))
 
-print
-plt.colorbar(im)
+plt.colorbar(im, shrink=0.7)
+
+arr_bin = plt.where(arr_big < threshold, 1, 0)
+struc8 = np.ones((3,3))
+labels, n = nd.label(arr_bin, struc8)
+slices = nd.find_objects(labels)
+print len(slices)
+print slices[0]
+print slices[1]
+
+print labels[slices[0]]
+print arr_bin[slices[0]].sum()
+print arr_bin[slices[1]]
+print arr_bin[slices[1]].sum()
+print arr_bin[slices[2]]
+print arr_bin[slices[2]].sum()
+
+plt.figure(2)
+plt.title("I/F threshold at {0}, {1} fans found.".format(threshold,n))
+for i in range(n):
+    y1 = slices[i][0].start
+    y2 = slices[i][0].stop
+    x1 = slices[i][1].start
+    x2 = slices[i][1].stop
+    area = arr_bin[slices[i]].sum()*0.25
+    x = (x2-x1)/2+x1
+    y = (y2-y1)/2+y1
+    print x,y
+    ax2.annotate(str(i)+'\n'+str(area)+' m^2',xy=(x,y),xycoords='data')
+
 plt.show()
 
 
