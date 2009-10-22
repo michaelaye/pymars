@@ -28,8 +28,4 @@ except ImportError:
     import gdalnumeric
 
 import sys,os
-import matplotlib
-print "using matplotlib version ", matplotlib.__version__
-matplotlib.use("WX") # do this before pylab so you don't get the default back end.
 import pylab as plt
-print 'should have imported everything'
