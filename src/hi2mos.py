@@ -6,14 +6,16 @@ from production_notifier import *
 from optparse import OptionParser
 
 parser = OptionParser()
-usage = "usage: %prog obsID CCDColour [options]"
+usage = "usage: %prog obsID CCDColour mapfile [options]"
 descript = "obsID should be in the official form XSP_oooooo_tttt , with XSP = PSP or ESP,"\
               "oooooo the 6-digit orbit number and tttt the 4-digit target code."\
-              "CCDColour should be one of RED, BG, or IR."
+              "CCDColour should be one of RED, BG, or IR."\
+              "mapfile is the path to the mapping file that contains the required information"\
+              "for the mapping, like mapping central coordinate and desired resolution."\
+              "Note that for a mosaic, all elements of the mosaic need to be mapped to the same"\
+              "resolution. See the ISIS website for more info."
               
 parser = OptionParser(usage=usage,description=descript)
-parser.add_option("-m", "--mapfile", dest="mapfilename",
-                  help="MAPFILE is the mapping file to be used", metavar="MAPFILE")
 parser.add_option("-d", "--debug",
                   action="store_true", dest="debug", default=False,
                   help="print debug messages")
@@ -35,6 +37,7 @@ parser.add_option("-c", "--command-list", dest="commandList",
 try:
     idString = args[0]
     colour = args[1]
+    mapfile = args[2]
 except:
     parser.print_help()
     sys.exit(0)
@@ -50,7 +53,7 @@ executer = ISIS.ISIS_Executer(idString, colour,
                               plProgList = lCommands, 
                               pbDebug = options.debug, 
                               pbFake = options.fake,
-                              pMapfile = options.mapfilename)
+                              pMapfile = mapfile)
 executer.process()
 
 if lCommands == None: lCommands = ['all']
