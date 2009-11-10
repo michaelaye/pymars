@@ -7,6 +7,7 @@ def getUpperOrbitFolder(orbitNumber):
 # input: orbitNumber(int)
 #===============================================================================
     """Return the upper folder name where the given orbit folder is residing on the hisync server.
+    inputParamter: positive orbit number
     
     >>> getUpperOrbitFolder(3456)
     'ORB_003400_003499'
