@@ -1,11 +1,9 @@
 from rsync_parameters import *
 import subprocess
 
+# TODO check for write rights 
+
 def getUpperOrbitFolder(orbitNumber):
-#===============================================================================
-# get the upper folder name where the given orbit folder is residing on the hisync server
-# input: orbitNumber(int)
-#===============================================================================
     """Return the upper folder name where the given orbit folder is residing on the hisync server.
     inputParamter: positive orbit number
     
