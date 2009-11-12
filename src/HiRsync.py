@@ -5,26 +5,32 @@ import subprocess
 class HiRsync:
     SOURCE = "hisync.lpl.arizona.edu::hirise_data"
     #  !!remove 'n' here to go hot!!
-    PARAM1 = "-avnLh"
-    PARAM2 = "--progress"
+    PARAM_TEST = "-avnLh"
+    PARAM_REAL = "-avLh"
+    PROGRESS = "--progress"
     DEST_FOLDER_JP2 = "/imgdata/RDRgen/JP2s/"
     DEST_FOLDER_IMG = "/imgdata"
     EXCLUDES = [ ".*" ]
     RSYNC = "/usr/bin/rsync"
     
-    def __init__(self, dataType, obsID):
+    def __init__(self, dataType, obsID, runForReal=False):
         sciencePhase, orbitString, targetCode = obsID.split("_")
         orbitFolder = self.getUpperOrbitFolder(orbitString)
-        if dataType == "JP2":
+        if dataType.upper() == "JP2":
             dataCat = "RDRgen"
             destFolder = self.DEST_FOLDER_JP2
-        elif dataType == "IMG":
+        elif dataType.upper() == "IMG":
             dataCat = "EDRgen"
             destFolder = self.DEST_FOLDER_IMG + '/' + orbitFolder
+        else:
+            raise ValueError('Only jp2 or img are allowed as dataType')
         cmd = [self.RSYNC]
-        cmd.append(self.PARAM1)
-        cmd.append(self.PARAM2)
-        for exclude in EXCLUDES:
+        if not runForReal:
+            cmd.append(self.PARAM_TEST)
+        else:
+            cmd.append(self.PARAM_REAL)
+        cmd.append(self.PROGRESS)
+        for exclude in self.EXCLUDES:
           cmd.append("--exclude=%s" % exclude)
         paraString = "/".join([self.SOURCE, dataCat, orbitFolder, obsID])
         cmd.append(paraString.encode())
