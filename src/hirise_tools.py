@@ -4,29 +4,30 @@ FROM_BASE = "/imgdata/"
 DEST_BASE = "/processed_data/"
 
 class Coordinates:
-    obsID  = 0
-    sample   = 0
-    line     = 0
+    obsID = 0
+    sample = 0
+    line = 0
     latitude = 0
-    longitude= 0
-    x        = 0
-    y        = 0
+    longitude = 0
+    x = 0
+    y = 0
  
 def getUpperOrbitFolder(orbitNumber):
     '''
-    get the upper folder name where the given orbit folder is residing on the hisync server
+    get the upper folder name where the given orbit folder is residing on the 
+    hisync server
     input: orbitNumber(int)
     '''
-    lower = int(orbitNumber)/100*100
-    return "_".join(["ORB", str(lower).zfill(6), str(lower+99).zfill(6)])
+    lower = int(orbitNumber) / 100 * 100
+    return "_".join(["ORB", str(lower).zfill(6), str(lower + 99).zfill(6)])
 
 def getEDRFolder(orbitNumber):
     '''
-    get the upper folder name where the given orbit folder is residing on the hisync server
+    get the upper folder name where the given orbit folder is stored on hirise
     input: orbitNumber(int)
     '''
-    lower = int(orbitNumber)/1000*1000
-    return "_".join(["EDRgen", str(lower).zfill(6), str(lower+999).zfill(6)])
+    lower = int(orbitNumber) / 1000 * 1000
+    return "_".join(["EDRgen", str(lower).zfill(6), str(lower + 999).zfill(6)])
 
 def getUsersProcessedPath():
     path = DEST_BASE
