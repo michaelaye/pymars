@@ -1,5 +1,7 @@
 import subprocess
 
+# TODO: check for write rights
+
 class HiRsync:
     SOURCE = "hisync.lpl.arizona.edu::hirise_data"
     #  !!remove 'n' here to go hot!!
@@ -33,8 +35,10 @@ class HiRsync:
         return "\n".join(self.cmd)
 
     def getUpperOrbitFolder(selff, orbitNumber):
-        """Return the upper folder name where the given orbit folder is residing on the hisync server.
-        inputParamter: positive orbit number, negative number will raise an error.
+        """Return the upper folder name where the given orbit folder is 
+        residing on the hisync server.
+        inputParamter: positive orbit number, negative number will raise an 
+        error.
         
         >>> HiRsync.getUpperOrbitFolder(3456)
         'ORB_003400_003499'
@@ -50,11 +54,12 @@ class HiRsync:
         """
         if orbitNumber < 0:
             raise ValueError('Orbit number must be > 0 ! ')
-        lower = int(orbitNumber)/100*100
-        return "_".join(["ORB", str(lower).zfill(6), str(lower+99).zfill(6)])
+        lower = int(orbitNumber) / 100 * 100
+        return "_".join(["ORB", str(lower).zfill(6), str(lower + 99).zfill(6)])
 
     def executeCmd(self):
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                                  stderr=subprocess.PIPE)
         stdout, stderr = p.communicate()
         print "StdOut:", stdout
         return
