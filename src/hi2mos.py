@@ -1,8 +1,7 @@
 #!/usr/bin/python
 
 import ISIS, sys
-from production_notifier import *
-
+import twitter
 from optparse import OptionParser
 
 parser = OptionParser()
@@ -15,7 +14,7 @@ descript = "obsID should be in the official form XSP_oooooo_tttt , with XSP = PS
               "Note that for a mosaic, all elements of the mosaic need to be mapped to the same"\
               "resolution. See the ISIS website for more info."
               
-parser = OptionParser(usage=usage,description=descript)
+parser = OptionParser(usage=usage, description=descript)
 parser.add_option("-d", "--debug",
                   action="store_true", dest="debug", default=False,
                   help="print debug messages")
@@ -49,12 +48,13 @@ else:
     print "Found no command instruction, Doing all."
     lCommands = None
     
-executer = ISIS.ISIS_Executer(idString, colour, 
-                              plProgList = lCommands, 
-                              pbDebug = options.debug, 
-                              pbFake = options.fake,
-                              pMapfile = mapfile)
+executer = ISIS.ISIS_Executer(idString, colour,
+                              plProgList=lCommands,
+                              pbDebug=options.debug,
+                              pbFake=options.fake,
+                              pMapfile=mapfile)
 executer.process()
 
 if lCommands == None: lCommands = ['all']
-sendMail(' '.join([idString, colour, 'finished']),' '.join(lCommands))
+api = twitter.Api('hirise_bern', 'hiRISE_BERN')
+api.PostUpdate()(' '.join([idString, colour, 'finished']) + ' '.join(lCommands))
