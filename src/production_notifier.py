@@ -15,9 +15,9 @@ from email.MIMEImage import MIMEImage
 from email.Encoders import encode_base64
 
 def sendMail(subject, text, *attachmentFilePaths):
-      gmailUser = 'kmichael.aye@gmail.com'
-      gmailPassword = 'Time123!'
-      recipient = 'michael.aye@space.unibe.ch'
+      gmailUser = '@'
+      gmailPassword = '!'
+      recipient = '@'
     
       msg = MIMEMultipart()
       msg['From'] = gmailUser
@@ -53,9 +53,9 @@ def getAttachment(attachmentFilePath):
       elif mainType == 'message':
         attachment = email.message_from_file(file)
       elif mainType == 'image':
-        attachment = MIMEImage(file.read(),_subType=subType)
+        attachment = MIMEImage(file.read(), _subType=subType)
       elif mainType == 'audio':
-        attachment = MIMEAudio(file.read(),_subType=subType)
+        attachment = MIMEAudio(file.read(), _subType=subType)
       else:
         attachment = MIMEBase(mainType, subType)
       attachment.set_payload(file.read())
@@ -63,7 +63,7 @@ def getAttachment(attachmentFilePath):
     
       file.close()
     
-      attachment.add_header('Content-Disposition', 'attachment',   filename=os.path.basename(attachmentFilePath))
+      attachment.add_header('Content-Disposition', 'attachment', filename=os.path.basename(attachmentFilePath))
       return attachment
   
   
