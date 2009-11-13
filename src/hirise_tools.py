@@ -1,38 +1,42 @@
-import isis_settings, os, subprocess, sys
+import os, subprocess, sys
+
+FROM_BASE = "/imgdata/"
+DEST_BASE = "/processed_data/"
 
 class Coordinates:
-    obsID  = 0
-    sample   = 0
-    line     = 0
+    obsID = 0
+    sample = 0
+    line = 0
     latitude = 0
-    longitude= 0
-    x        = 0
-    y        = 0
+    longitude = 0
+    x = 0
+    y = 0
  
 def getUpperOrbitFolder(orbitNumber):
     '''
-    get the upper folder name where the given orbit folder is residing on the hisync server
+    get the upper folder name where the given orbit folder is residing on the 
+    hisync server
     input: orbitNumber(int)
     '''
-    lower = int(orbitNumber)/100*100
-    return "_".join(["ORB", str(lower).zfill(6), str(lower+99).zfill(6)])
+    lower = int(orbitNumber) / 100 * 100
+    return "_".join(["ORB", str(lower).zfill(6), str(lower + 99).zfill(6)])
 
 def getEDRFolder(orbitNumber):
     '''
-    get the upper folder name where the given orbit folder is residing on the hisync server
+    get the upper folder name where the given orbit folder is stored on hirise
     input: orbitNumber(int)
     '''
-    lower = int(orbitNumber)/1000*1000
-    return "_".join(["EDRgen", str(lower).zfill(6), str(lower+999).zfill(6)])
+    lower = int(orbitNumber) / 1000 * 1000
+    return "_".join(["EDRgen", str(lower).zfill(6), str(lower + 999).zfill(6)])
 
 def getUsersProcessedPath():
-    path = isis_settings.DEST_BASE
+    path = DEST_BASE
     path += os.environ['LOGNAME'] + '/'
     return path
 
 def getSourcePathFromID(idString):
     sciencePhase, orbitString, targetCode = idString.split("_")
-    path = isis_settings.FROM_BASE
+    path = FROM_BASE
     path += getEDRFolder(int(orbitString)) + '/'
     path += getUpperOrbitFolder(int(orbitString)) + '/' + idString + '/'
     return path
@@ -43,6 +47,9 @@ def getDestPathFromID(idString):
     return path
 
 def executeIsisCmd(args):
+    """as we are using check_call here, the input should be a list with strings,
+        like ['ls','-l','-a']
+    """
     try:
         p = subprocess.check_call(args)
     except OSError:

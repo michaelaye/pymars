@@ -14,17 +14,22 @@ class ISIS_cmd:
         self.lParameters = []
         
     def setInputPath(self,psInputPath):
-        self.lInput.append(psInputPath)
+#        self.lInput.append(psInputPath)
+        self.lInput[0] += psInputPath
 
     def setOutputPath(self, psOutputPath):
-        self.lOutput.append(psOutputPath)
+        self.lOutput[0] += psOutputPath
 
     def addParameters(self, plParameters):
         "parameter is of type <list>"
         self.lParameters.extend(plParameters)
         
     def getExeList(self):
-        return [self.sName, ' '.join(self.lInput + self.lOutput + self.lParameters)]
+        argList = [self.sName]
+        for parList in [self.lInput, self.lOutput, self.lParameters]:
+            for item in parList:
+                argList.append(item)
+        return argList
 
     def execute(self):
         try:
@@ -71,10 +76,8 @@ class ISIS_histitch(ISIS_cmd):
         self.lInput = ['from1=', 'from2=']
         self.lParameters.append('balance=true')
         self.bInputToDelete = True
-            
     def setInputPath(self, psInputPath1):
         self.lInput[0] += psInputPath1
-
     def setInputPath2(self, psInputPath2):
         self.lInput[1] += psInputPath2
 
@@ -90,12 +93,16 @@ class ISIS_cam2map(ISIS_cmd):
     sName = 'cam2map'
     def __init__(self):
         ISIS_cmd.__init__(self)
-        self.lParameters.append('map='+os.environ['HOME']+'/icy_crater_projection.map')
+        self.mapfilePath='/processed_data/polar_map_projection.map'
+        self.useDefaultMap = True
         self.lParameters.append('pixres=MAP')
         self.bInputToDelete = True
-    def setMap(self):
-        ''' this needs to be filled'''
-        pass
+    def setMap(self,pMapFilePath):
+        self.mapfilePath = pMapFilePath
+        self.useDefaultMap = False
+    def getExeList(self):
+        self.lParameters.append('map='+self.mapfilePath)
+        return ISIS_cmd.getExeList(self)
     
 
 class ISIS_equalizer(ISIS_cmd):
@@ -103,12 +110,12 @@ class ISIS_equalizer(ISIS_cmd):
     def __init__(self):
         ISIS_cmd.__init__(self)
         self.lInput = ['fromlist=']
-        self.lParameters.append('apply=true')
+        self.lOutput = ['outstats=']
     def setHoldList(self, psPathToHoldList= None):
         if psPathToHoldList:
             self.lParameters.append('holdlist='+psPathToHoldList)
         else:
-            inputListNamePath = self.lInput[1]
+            inputListNamePath = self.lInput[0].split('=')[1]
             dirname, basename = os.path.split(inputListNamePath)
             phase, orbit, targetCode, detec = basename.split("_")[:4]
             fIn = open(inputListNamePath)

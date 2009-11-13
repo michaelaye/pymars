@@ -25,7 +25,7 @@ def getRoundedStrFromValue(sValue, iDigits):
 
 def executeMAPPT(params):
     sMAPPTcmd = ISIS_mappt()
-    sSourcePath = isis_settings.DEST_BASE + '/'  + params.sobsID + '/'
+    sSourcePath = DEST_BASE + '/'  + params.sobsID + '/' # DEST_BASE set in hirise_tools
     sCubePath = sSourcePath + params.sobsID + '_' + params.sCCDColour + sExtensions
     sMAPPTcmd.setInputPath(sCubePath)
     print "output-file for scan in prime image:",params.sOutputFileName
@@ -100,7 +100,7 @@ def main(params):
 
     foundFiles = []
     zeros = []
-    procPath = isis_settings.DEST_BASE
+    procPath = DEST_BASE # DEST_BASE set in hirise_tools
     resultFileName = "_".join(["Coordinates", \
                                params.sTargetSciencePhase, \
                                "lat", \

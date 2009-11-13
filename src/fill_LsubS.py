@@ -22,7 +22,7 @@ def main():
         print "something went wrong during reading csv - file"
         sys.exit()
         
-    procPath = isis_settings.DEST_BASE
+    procPath = DEST_BASE # set in hirise_tools
     for myDic in reader:
         sObsId = myDic['Observation_id']
         if not sObsId.endswith('_0815'): continue

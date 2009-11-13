@@ -118,10 +118,10 @@ class ISIS_Executer:
                          sEqualizer:    sCalExt + sNormExt + sMapExt + sEquStats, \
                          sMosaicer:     sCalExt + sNormExt + sMapExt + sEquExt + sMosExt + sCubExt}
     
-    def __init__(self, psObsID, psColour, plProgList = None, pbFake = False, pbDebug = False):
+    def __init__(self, psObsID, psColour, plProgList = None, pbFake = False, pbDebug = False, pMapfile = None):
         '''
         The constructor of the executer class requires the ObsID and the to be
-        processed CCD colour (determines loop ranges).
+        processed CCD colour (determines loop ranges and file names to be used).
         Also a debug and a faking flag can be set to 
         1. let the object print more infos during operation
         2. let the object only fake the execution by printing the commands
@@ -139,8 +139,9 @@ class ISIS_Executer:
         
         self.bDebug  = pbDebug
         self.bFake   = pbFake
-        # only hi2isis works from raw sources, all others from tmp working place
-        # exception for hi2isis is set in run-function
+        self.mapfile = pMapfile
+        # only hi2isis works from raw sources, all others from the place where intermediate data was saved
+        # exception for hi2isis is coded in self.process function
         self.sSourcePath = self.sDestPath = getDestPathFromID(self.sObsID)
         
     def generateInputBasename(self, psProgName, psDetector):
@@ -215,9 +216,15 @@ class ISIS_Executer:
             inputPath = self.sSourcePath + inputFileBaseName
         cmdGetKey.setInputPath(inputPath)
         samples = long(cmdGetKey.getKeyValue())
+        if self.bDebug: 
+            print "tried to get number of Samples now."
+            print "Samples: ",samples
         cmdGetKey = ISIS_getkey('Lines')
         cmdGetKey.setInputPath(self.sSourcePath + inputFileBaseName)
         lines = long(cmdGetKey.getKeyValue())
+        if self.bDebug: 
+            print "tried to get number of Lines now."
+            print "Lines: ",lines
         cropCmd = ISIS_crop()        
         cropCmd.setInputPath(self.sSourcePath + self.generateInputBasename(self.sCropper, detec))
         croppedName = self.sSourcePath + self.generateOutputBasename(self.sCropper, detec)
@@ -225,8 +232,8 @@ class ISIS_Executer:
         sampPar = "samp={0}".format(samples/2)
         linePar = "line={0}".format(lines/2)
         cropCmd.addParameters([sampPar,linePar])
-        if self.bDebug: print "Calling crop with \n",cropCmd
-        subprocess.call(cropCmd.getExeList())
+        if self.bDebug: print "Calling crop with \n",cropCmd.getExeList()
+        cropCmd.execute()
         phocmd = self.dIsisProgs[self.sPhocube](['incidence'])
         phocmd.setInputPath(croppedName)
         phocmd.setOutputPath(self.sDestPath + self.generateOutputBasename(self.sPhocube, detec))
@@ -254,6 +261,7 @@ class ISIS_Executer:
             else:
                 if self.bDebug: print "generating ccd id iterator" 
                 myIter = self.ccd.generateCCDID()
+            # if we need to process phocube, call it and jump to next program afterwards
             if prog == self.sPhocube:
                 self.processPhoCube(myIter)
                 continue
@@ -263,7 +271,9 @@ class ISIS_Executer:
                 if self.bDebug: print "In loop for multiple inputs"
                 bFoundAny = False
                 for i,detector in enumerate(myIter):
+                    # get the ISIS command object
                     cmd = self.dIsisProgs[prog]()
+                    # now check for any special settings
                     inputFileBaseName = self.generateInputBasename(prog, detector)
                     if self.bDebug: print "inputFileBaseName: ",inputFileBaseName
                     if prog == self.sStitcher:
@@ -287,12 +297,14 @@ class ISIS_Executer:
                         cmd.setInputPath2(sSourcePath + inputFileBaseName2)
                         if cmd.bInputToDelete: toDelete.append(sSourcePath + inputFileBaseName2)
                     cmd.setOutputPath(sDestPath + outputFileBaseName)
+                    if (prog == self.sMapper) and self.mapfile: cmd.setMap(self.mapfile)
+                    # time to execute
                     if self.bFake: 
                         print cmd
                     elif not prog in self.lExecuteSingle:
                         if self.bDebug: 
                             print "before multiprocess-call"
-                            print cmd
+                            print cmd.getExeList()
                         p = Process(target=executeIsisCmd, args=(cmd.getExeList(),))
                         procs.append(p)
                         p.start()
