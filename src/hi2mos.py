@@ -57,4 +57,4 @@ executer.process()
 
 if lCommands == None: lCommands = ['all']
 api = twitter.Api('hirise_bern', 'hiRISE_BERN')
-api.PostUpdate()(' '.join([idString, colour, 'finished']) + ' '.join(lCommands))
+api.PostUpdate(' '.join([idString, colour, 'finished']) + ' '.join(lCommands))
