@@ -101,7 +101,8 @@ if __name__ == "__main__":
 Arizona. So far, only the automatic download of EDR IMGs and RDR JP2s have 
 been implemented. Image files will be placed in the correct folders, wherever
 you use this utility. The correct folders will be determined by the 
-observationID."""
+observationID. Please note, that without the -d (=DO) flag, it will only make a
+test run."""
               
     parser = OptionParser(usage=usage, description=descript)
     parser.add_option("-d", "--do",
@@ -131,7 +132,8 @@ observationID."""
             datatype = args[0]
             obsid = args[1]
         except:
-            print('something went wrong at assignment of parameters')
+            print('\n Something went wrong at assignment of parameters! \n')
+            parser.print_help()
             sys.exit(-1)
         else:
             hirsync = HiRsync(dataType=datatype,
