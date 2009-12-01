@@ -33,17 +33,27 @@ def load_cube_data():
 def grey_processing(inputImg):
     return inputImg
 
-def binary_processing(inputImg, neighbours):
+def get_struc(coeff):
+    pass
+
+def binary_processing(inputImg, neighbours, iterations=1):
     struc8 = np.ones((3, 3))
-    struc4 = [[0, 1, 0], [1, 1, 1], [0, 1, 0]]
+    struc4 = [[0, 1, 0], [0, 1, 0], [0, 1, 0]]
+    struc0 = np.zeros((3, 3))
+    struc0 = struc8.copy()
+    struc0[0] = [1, 0, 1]
     if neighbours == 4:
         struc = struc4
     elif neighbours == 8:
         struc = struc8
+    elif neighbours == 0:
+        struc = struc0
+    elif neighbours == -1:
+        return inputImg
     else:
         raise ValueError("numbers of neighbours either 4 or 8")
         sys.exit(-1)
-    outputImg = nd.morphology.binary_opening(inputImg, struc4)
+    outputImg = nd.morphology.binary_opening(inputImg, struc, iterations)
     return outputImg
 
 def create_palette():
@@ -59,7 +69,7 @@ def labeling(data):
     return (labels, n)
 
 def show_masked(data, palette):
-    myFig = plt.figure(1)
+    myFig = plt.figure()
     ax = myFig.add_subplot(111)
     im = ax.imshow(data, cmap=palette,
                    norm=colors.Normalize(vmin=data.min(),
@@ -69,7 +79,7 @@ def show_masked(data, palette):
     return (myFig, ax)
   
 def show_binary(data):
-    myFig = plt.figure(1)
+    myFig = plt.figure()
     ax = myFig.add_subplot(111)
     im = ax.imshow(data)
     return (myFig, ax)
@@ -107,14 +117,24 @@ def main():
     
     arr_bin = plt.where(preprocced_img < threshold, 1, 0)
 
+    arr_bin0 = binary_processing(arr_bin, 0)
     arr_bin1 = binary_processing(arr_bin, 4)
-    labels, n = labeling(arr_bin1)
+    arr_bin2 = binary_processing(arr_bin, 8)
+    
+    labels0, n0 = labeling(arr_bin0)
+    labels1, n1 = labeling(arr_bin1)
+    labels2, n2 = labeling(arr_bin2)
+    fig0, ax0 = show_binary(arr_bin0)
     fig1, ax1 = show_binary(arr_bin1)
-    
-    plt.figure(1)
-    plt.title("I/F threshold at {0}, {1} fans found.".format(threshold, n))
-    
-    annotating(arr_bin1, labels, n , ax1)
+    fig2, ax2 = show_binary(arr_bin2)
+
+    ax0.set_title("I/F threshold at {0}, {1} fans found.".format(threshold, n0))
+    ax1.set_title("I/F threshold at {0}, {1} fans found.".format(threshold, n1))
+    ax2.set_title("I/F threshold at {0}, {1} fans found.".format(threshold, n2))
+
+    annotating(arr_bin0, labels0, n0 , ax0)
+    annotating(arr_bin1, labels1, n1 , ax1)
+    annotating(arr_bin2, labels2, n2 , ax2)
     
     plt.show()
 
