@@ -30,45 +30,60 @@ def load_cube_data():
     print "minimum of array after NaN determination: ", img.min()
     return img
 
-def preprocessing(inputImg):
-    pass
+def grey_processing(inputImg):
+    return inputImg
 
-def main():
-    arr_big = load_cube_data()
-    arr = arr_big[:200, :200]
-    
-    fig2 = plt.figure(2)
-    ax2 = fig2.add_subplot(111)
+def binary_processing(inputImg):
+    return inputImg
+
+def create_palette():
     palette = plt.cm.gray
     palette.set_under('g', 1.0)
     palette.set_bad('b', 1.0)
     palette.set_over('r', 1.0)
+    return palette
+    
+def labeling():
+    pass
+
+def show_masked(myFigure, data, palette):
+    ax = myFigure.add_subplot(111)
+    im = ax.imshow(data, cmap=palette,
+                   norm=colors.Normalize(vmin=data.min(),
+                                         vmax=data.max(),
+                                         clip=True))
+    plt.colorbar(im, shrink=0.7)
+    return ax
+    
+def main():
+    arr_big = load_cube_data()
+    arr_big = arr_big[:200, :200]
+    
+    arr_big = grey_processing(arr_big)
+    
+    fig1 = plt.figure(1)
+    ax1 = fig1.add_subplot(111)
+    
     threshold = find_threshold(arr_big)
     
-    arr_masked = plt.ma.masked_where(arr_big < threshold, arr_big)
-    im = ax2.imshow(arr_masked, cmap=palette,
-                    norm=colors.Normalize(vmin=arr_big.min(),
-                                            vmax=arr_big.max(),
-                                            clip=True))
+    palette = create_palette()
     
-    plt.colorbar(im, shrink=0.7)
+    arr_masked = plt.ma.masked_where(arr_big < threshold, arr_big)
+#    im = ax1.imshow(arr_masked, cmap=palette,
+#                    norm=colors.Normalize(vmin=arr_big.min(),
+#                                          vmax=arr_big.max(),
+#                                          clip=True))
+#    
+#    plt.colorbar(im, shrink=0.7)
+    
+    ax1 = show_masked(fig1, arr_masked, palette)
     
     arr_bin = plt.where(arr_big < threshold, 1, 0)
     struc8 = np.ones((3, 3))
     labels, n = nd.label(arr_bin, struc8)
     slices = nd.find_objects(labels)
-    print len(slices)
-    print slices[0]
-    print slices[1]
-    
-    print labels[slices[0]]
-    print arr_bin[slices[0]].sum()
-    print arr_bin[slices[1]]
-    print arr_bin[slices[1]].sum()
-    print arr_bin[slices[2]]
-    print arr_bin[slices[2]].sum()
-    
-    plt.figure(2)
+        
+    plt.figure(1)
     plt.title("I/F threshold at {0}, {1} fans found.".format(threshold, n))
     areas = []
     for i in range(n):
@@ -81,11 +96,9 @@ def main():
         x = (x2 - x1) / 2 + x1
         y = (y2 - y1) / 2 + y1
         print x, y
-        ax2.annotate(str(i) + '\n' + str(area) + ' m^2', xy=(x, y), xycoords='data')
+        ax1.annotate(str(i), xy=(x, y), xycoords='data')
+#        ax1.annotate(str(i) + '\n' + str(area) + ' m^2', xy=(x, y), xycoords='data')
     
-    plt.figure(3)
-    
-    plt.hist(areas, 65)
     plt.show()
 
 if __name__ == '__main__':
