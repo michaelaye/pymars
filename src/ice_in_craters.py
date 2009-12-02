@@ -4,27 +4,7 @@ Created on Aug 16, 2009
 
 @author: aye
 '''
-try:
-    from osgeo import gdal
-    from osgeo.gdalconst import *
-    gdal.TermProgress = gdal.TermProgress_nocb
-except ImportError:
-    import gdal
-    from gdalconst import *
-
-try:
-    import numpy as Numeric
-    Numeric.arrayrange = Numeric.arange
-except ImportError:
-    import Numeric
-
-try:
-    from osgeo import gdal_array as gdalnumeric
-except ImportError:
-    import gdalnumeric
-
-import sys,os,csv,glob,math
-import pylab as plt
+from gdal_imports import *
 from hirise_tools import *
 
 reader = csv.reader(open('Crater_coordinates.csv'))
