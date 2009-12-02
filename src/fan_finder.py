@@ -34,27 +34,10 @@ def grey_processing(inputImg):
     return inputImg
 
 def get_struc(coeff):
-    pass
-
-def binary_processing(inputImg, neighbours, iterations=1):
-    struc8 = np.ones((3, 3))
-    struc4 = [[0, 1, 0], [0, 1, 0], [0, 1, 0]]
-    struc0 = np.zeros((3, 3))
-    struc0 = struc8.copy()
-    struc0[0] = [1, 0, 1]
-    if neighbours == 4:
-        struc = struc4
-    elif neighbours == 8:
-        struc = struc8
-    elif neighbours == 0:
-        struc = struc0
-    elif neighbours == -1:
-        return inputImg
-    else:
-        raise ValueError("numbers of neighbours either 4 or 8")
-        sys.exit(-1)
-    outputImg = nd.morphology.binary_opening(inputImg, struc, iterations)
-    return outputImg
+    arr = np.zeros(9)
+    for i in range(coeff):
+        arr[i] = 1
+    return arr.reshape((3, 3))
 
 def create_palette():
     palette = plt.cm.gray
@@ -101,6 +84,24 @@ def annotating(data, labels, n, myAx):
         myAx.annotate(str(i) + '\n' + str(area) + ' m^2',
                       xy=(x, y), xycoords='data', color='white')
     
+def binary_processing(inputImg, neighbours, iterations=1):
+    if neighbours > 8 or neighbours < -1:
+        raise ValueError("neighbours between -1 and 8")
+        sys.exit(-1)
+    struc8 = np.ones((3, 3))
+    struc4 = [[0, 1, 0], [1, 1, 1], [0, 1, 0]]
+    if neighbours == 4:
+        struc = struc4
+    elif neighbours == 8:
+        struc = struc8
+    elif neighbours == -1:
+        return inputImg
+    else:
+        struc = get_struc(neighbours)
+        
+    outputImg = nd.morphology.binary_opening(inputImg, struc, iterations)
+    return outputImg
+
 def main():
     orig_img = load_cube_data()
     small_img = orig_img[:200, :200]
@@ -117,24 +118,12 @@ def main():
     
     arr_bin = plt.where(preprocced_img < threshold, 1, 0)
 
-    arr_bin0 = binary_processing(arr_bin, 0)
-    arr_bin1 = binary_processing(arr_bin, 4)
-    arr_bin2 = binary_processing(arr_bin, 8)
-    
-    labels0, n0 = labeling(arr_bin0)
-    labels1, n1 = labeling(arr_bin1)
-    labels2, n2 = labeling(arr_bin2)
-    fig0, ax0 = show_binary(arr_bin0)
-    fig1, ax1 = show_binary(arr_bin1)
-    fig2, ax2 = show_binary(arr_bin2)
-
-    ax0.set_title("I/F threshold at {0}, {1} fans found.".format(threshold, n0))
-    ax1.set_title("I/F threshold at {0}, {1} fans found.".format(threshold, n1))
-    ax2.set_title("I/F threshold at {0}, {1} fans found.".format(threshold, n2))
-
-    annotating(arr_bin0, labels0, n0 , ax0)
-    annotating(arr_bin1, labels1, n1 , ax1)
-    annotating(arr_bin2, labels2, n2 , ax2)
+    for i in [-1, 4, 8]:
+        data = binary_processing(arr_bin, i)
+        labels, n = labeling(data)
+        fig, ax = show_binary(data)
+        ax.set_title('I/F threshold at {0}, {1} fans found.'.format(threshold, n))
+        annotating(data, labels, n , ax)
     
     plt.show()
 
