@@ -16,16 +16,18 @@ except ImportError:
     import gdal
     from gdalconst import *
 
-try:
-    import numpy as Numeric
-    Numeric.arrayrange = Numeric.arange
-except ImportError:
-    import Numeric
+#try:
+#    import numpy as Numeric
+#    Numeric.arrayrange = Numeric.arange
+#except ImportError:
+#    import Numeric
+
+import numpy as np
 
 try:
     from osgeo import gdal_array as gdalnumeric
 except ImportError:
     import gdalnumeric
 
-import sys,os
+import sys, os
 import pylab as plt

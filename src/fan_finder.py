@@ -79,10 +79,10 @@ def annotating(data, labels, n, myAx):
         areas.append(area)
         x = (x2 - x1) / 2 + x1
         y = (y2 - y1) / 2 + y1
-#        print x, y
-#        myAx.annotate(str(i), xy=(x, y), xycoords='data', color='white')
-        myAx.annotate(str(i) + '\n' + str(area) + ' m^2',
-                      xy=(x, y), xycoords='data', color='white')
+        myAx.annotate(str(i), xy=(x, y), xycoords='data', color='white')
+#        myAx.annotate(str(i) + '\n' + str(area) + ' m^2',
+#                      xy=(x, y), xycoords='data', color='white')
+    return areas
     
 def binary_processing(inputImg, neighbours, iterations=1):
     if neighbours > 8 or neighbours < -1:
@@ -100,13 +100,14 @@ def binary_processing(inputImg, neighbours, iterations=1):
         struc = get_struc(neighbours)
         
     outputImg = nd.morphology.binary_opening(inputImg, struc, iterations)
+#    outputImg = nd.morphology.binary_closing(inputImg, struc4, iterations)
     return outputImg
 
 def main():
     orig_img = load_cube_data()
     small_img = orig_img[:200, :200]
     
-    preprocced_img = grey_processing(small_img)
+    preprocced_img = grey_processing(orig_img)
     
     threshold = find_threshold(preprocced_img)
     
@@ -118,13 +119,27 @@ def main():
     
     arr_bin = plt.where(preprocced_img < threshold, 1, 0)
 
-    for i in [-1, 4, 8]:
-        data = binary_processing(arr_bin, i)
+    rois = []
+    totalArea = []
+    structs = [2]
+    for i in structs:
+        data = binary_processing(arr_bin, i, 1)
         labels, n = labeling(data)
         fig, ax = show_binary(data)
-        ax.set_title('I/F threshold at {0}, {1} fans found.'.format(threshold, n))
-        annotating(data, labels, n , ax)
+        ax.set_title('Coefficiant {0}, {1} fans found.'.format(i, n))
+        areas = annotating(data, labels, n , ax)
+        totalArea.append(sum(areas))
+        rois.append(n)
+        
     
+    print rois, totalArea
+    fig = plt.figure()
+    fig.add_subplot(211)
+    plt.plot(structs, rois, 'ro', label='rois')
+    plt.legend()
+    fig.add_subplot(212)
+    plt.plot(structs, totalArea, 'bo', label='total')
+    plt.legend()
     plt.show()
 
 if __name__ == '__main__':
