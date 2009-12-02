@@ -30,4 +30,4 @@ except ImportError:
     import gdalnumeric
 
 import sys, os
-import pylab as plt
+import matplotlib.pyplot as plt
