@@ -9,12 +9,12 @@ from numpy import arange, sin, pi
 import matplotlib
 
 # uncomment the following to use wx rather than wxagg
-#matplotlib.use('WX')
-#from matplotlib.backends.backend_wx import FigureCanvasWx as FigureCanvas
+matplotlib.use('WX')
+from matplotlib.backends.backend_wx import FigureCanvasWx as FigureCanvas
 
 # comment out the following to use wx rather than wxagg
-matplotlib.use('WXAgg')
-from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
+#matplotlib.use('WXAgg')
+#from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg
 
 from matplotlib.backends.backend_wx import _load_bitmap
@@ -45,7 +45,7 @@ class MyNavigationToolbar(NavigationToolbar2WxAgg):
         ax = self.canvas.figure.axes[0]
 
         # generate a random location can color
-        x,y = tuple(rand(2))
+        x, y = tuple(rand(2))
         rgb = tuple(rand(3))
 
         # add the text and draw
@@ -59,17 +59,17 @@ class MyNavigationToolbar(NavigationToolbar2WxAgg):
 class CanvasFrame(Frame):
 
     def __init__(self):
-        Frame.__init__(self,None,-1,
-                         'CanvasFrame',size=(550,350))
+        Frame.__init__(self, None, -1,
+                         'CanvasFrame', size=(550, 350))
 
         self.SetBackgroundColour(NamedColor("WHITE"))
 
-        self.figure = Figure(figsize=(5,4), dpi=100)
+        self.figure = Figure(figsize=(5, 4), dpi=100)
         self.axes = self.figure.add_subplot(111)
-        t = arange(0.0,3.0,0.01)
-        s = sin(2*pi*t)
+        t = arange(0.0, 3.0, 0.01)
+        s = sin(2 * pi * t)
 
-        self.axes.plot(t,s)
+        self.axes.plot(t, s)
 
         self.canvas = FigureCanvas(self, -1, self.figure)
 
