@@ -1,8 +1,6 @@
 #!/usr/bin/python
 
 from gdal_imports import *
-import matplotlib.colors as colors
-import scipy.ndimage as nd
 import numpy as np
 
 #from scipy import optimize
