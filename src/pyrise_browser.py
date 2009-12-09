@@ -7,16 +7,59 @@ from gdal_imports import *
 from matplotlib.widgets import Button
 from cube_loader import *
 
-
-def rebin_factor(a, factor):
+def rebin(a, newshape):
         '''Rebin an array to a new shape.
-        factor is the decrease-factor. So factor = 3 will reduce shape by 3.
         '''
         assert len(a.shape) == len(newshape)
-        assert not sometrue(mod(a.shape, newshape))
+
+        slices = [ slice(0, old, float(old) / new) for old, new in zip(a.shape, newshape) ]
+        coordinates = np.mgrid[slices]
+        indices = coordinates.astype('i')   #choose the biggest smaller integer index
+        return a[tuple(indices)]
+
+def rebin_factor(a, newshape):
+        '''Rebin an array to a new shape.    
+        newshape must be a factor of a.shape.        
+        '''
+        assert len(a.shape) == len(newshape)
+        assert not np.sometrue(np.mod(a.shape, newshape))
 
         slices = [ slice(None, None, old / new) for old, new in zip(a.shape, newshape) ]
         return a[slices]
+    
+def downsample(band):
+    maxsize = 2000
+    cols = band.XSize
+    rows = band.YSize
+    factorX = cols / maxsize
+    factorY = rows / maxsize
+    factor = max(factorX, factorY)
+#    maxsize = maxsize / factor * factor # integer cut-off trick to find largest common factor
+    xShrinked = []
+    yShrinked = []
+    for yOff in range(0, rows, maxsize):
+        print "{0:2.1f} % done.".format(100.0 * yOff / rows)
+        if yOff + maxsize < rows:
+            numrows = maxsize
+        else:
+            numrows = rows - yOff
+        for xOff in range(0, cols, maxsize):
+            if xOff + maxsize < cols:
+                numcols = maxsize
+            else:
+                numcols = cols - xOff
+            data = band.ReadAsArray(xOff, yOff, numcols, numrows)
+            oldY, oldX = data.shape
+            newX = oldX / factor
+            newY = oldY / factor
+            data = rebin(data, (newY, newX))
+            xShrinked.append(data)
+        data = np.hstack(xShrinked)
+        xShrinked = []
+        yShrinked.append(data)
+    imData = np.vstack(yShrinked)
+    yShrinked = None
+    return imData
     
 class Cube:
     displaySize = 512
