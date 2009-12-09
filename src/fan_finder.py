@@ -1,7 +1,9 @@
-#!/usr/bin/python
+#!/Library/Frameworks/Python.framework/Versions/2.6/bin/python
 
 from gdal_imports import *
+import matplotlib.pyplot as plt
 import matplotlib.colors as colors
+import numpy.ma as ma
 import scipy.ndimage as nd
 
 def find_threshold(imgArray):
@@ -10,7 +12,7 @@ def find_threshold(imgArray):
     return 0.065
 
 def load_cube_data():
-    fname = '/Users/aye/Data/hirise/PSP_003092_0985_RED.cal.norm.map.equ.mos.cub'
+    fname = '/Users/aye/Data/hirise/PSP_003092_0985/PSP_003092_0985_RED.cal.norm.map.equ.mos.cub'
     cube = gdal.Open(fname, GA_ReadOnly)
     print cube.GetDescription()
     # get subframe
@@ -113,11 +115,11 @@ def main():
     
     palette = create_palette()
     
-    arr_masked = plt.ma.masked_where(preprocced_img < threshold, preprocced_img)
+    arr_masked = ma.masked_where(preprocced_img < threshold, preprocced_img)
 
 #    fig1, ax1 = show_masked(arr_masked, palette)
     
-    arr_bin = plt.where(preprocced_img < threshold, 1, 0)
+    arr_bin = np.where(preprocced_img < threshold, 1, 0)
 
     rois = []
     totalArea = []
