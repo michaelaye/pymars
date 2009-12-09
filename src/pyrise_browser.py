@@ -4,6 +4,7 @@ Created on Aug 16, 2009
 @author: aye
 '''
 from gdal_imports import *
+import matplotlib.pyplot as plt
 from matplotlib.widgets import Button
 from cube_loader import *
 
@@ -134,7 +135,7 @@ class Cube:
         ax.set_title(' '.join([str(self.xInd), str(self.yInd)]))
         plt.draw()
 
-fname = '/Users/aye/Data/hirise/PSP_003092_0985_RED.cal.norm.map.equ.mos.cub'
+fname = '/Users/aye/Data/hirise/PSP_003092_0985/PSP_003092_0985_RED.cal.norm.map.equ.mos.cub'
 
 callback = Cube(fname)
 
