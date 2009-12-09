@@ -28,6 +28,3 @@ try:
     from osgeo import gdal_array as gdalnumeric
 except ImportError:
     import gdalnumeric
-
-import sys, os
-import matplotlib.pyplot as plt
