@@ -4,32 +4,38 @@ from gdal_imports import *
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-
+import pickle
 import os.path
 
 
 def main():
-    coordFile = open("Coordinates_ESP_lat_-81.386_lon_295.667.txt")
-    lines = coordFile.readlines()
+    coordFile = open('subframes.pkl', 'r')
+    bigList, index = pickle.load(coordFile)
     coordFile.close()
-    xOff = 6849
-    xEnd = 7826
-    yOff = 18426
-    yEnd = 18957
+#    xOff = 6849
+#    xEnd = 7826
+#    yOff = 18426
+#    yEnd = 18957
     
-    xSize = xEnd - xOff
-    ySize = yEnd - yOff
+#    xSize = xEnd - xOff
+#    ySize = yEnd - yOff
+#    fixedList = [fname1, fixed_obsID, mainX, mainY, xSize, ySize, coregX, coregY]
+#                   0         1          2     3       4      5       6       7
 
-
-    for line in lines:
-        if line.split()[0].split('_')[-1].split('.')[0] != 'RED':
+    for i, obs in enumerate(bigList):
+        if i != 0 and (obs[6] == 0 and obs[7] == 0):
+            print 'skipping {0} with no offsets'.format(obs[1])
             continue
-        fname, x, y = line.split()[:3]
+        fname, x, y = obs[0], obs[2], obs[3]
+        xSize, ySize = obs[4], obs[5]
+        coregX, coregY = obs[6], obs[7]
         print("found {0}".format(fname))
         cube = gdal.Open(fname, GA_ReadOnly)
         inBand = cube.GetRasterBand(1)
         try:
-            data = inBand.ReadAsArray(int(x), int(y), xSize, ySize)
+            data = inBand.ReadAsArray(int(x) + int(coregX),
+                                      int(y) + int(coregY),
+                                      xSize, ySize)
         except ValueError:
             print('probably out of range..')
             continue
