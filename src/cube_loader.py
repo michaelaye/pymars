@@ -7,7 +7,7 @@ import numpy as np
 #from numpy import *
 
 
-fname = '/Users/aye/Data/hirise/PSP_003092_0985_RED.cal.norm.map.equ.mos.cub'
+fname = '/Users/aye/Data/hirise/PSP_003092_0985/PSP_003092_0985_RED.cal.norm.map.equ.mos.cub'
     
 cube = gdal.Open(fname, GA_ReadOnly)
 
