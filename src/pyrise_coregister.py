@@ -1,26 +1,71 @@
 #!/usr/bin/python
 
 from gdal_imports import *
-#import matplotlib
-#matplotlib.use('WxAgg')
+import matplotlib
+matplotlib.use('WxAgg')
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Button
 import matplotlib.cm as cm
 import os.path
+import pickle
 
-class Coreg:
-    def __init__(self, fname1, fname2, resultTuple):
-    
-        xOff = 6849
-        xEnd = 7826
-        yOff = 18426
-        yEnd = 18957
+class CoordFinder_Results:
+    def __init__(self, inputFile=None):
+        self.obsFileNames = []
+        self.xOffSets = []
+        self.yOffSets = []
+        self.CCDCol = []
+        self.obsID = []
+        if inputFile:
+            self.read_file(inputFile)
         
-        xSize = xEnd - xOff
-        ySize = yEnd - yOff
+    def parse_line(self, line):
+        fname, xOff, yOff = line.split()
+        bname = os.path.basename(fname)
+        obsID_col, exts = bname.split('.')[:2]
+        obsID, colour = obsID_col.split('_')[:2]
+        if colour != 'RED':
+            print 'only REDs taken so far'
+            return
+        self.obsFileNames.append(fname)
+        self.xOffSets.append(int(xOff))
+        self.yOffSets.append(int(yOff))
+        self.CCDCol.append(colour)
+        self.obsID.append(obsID)
+        
+    def read_file(self, fname):
+        f = open(fname, 'r')
+        for line in f:
+            self.parse_line(line)
+        f.close()
+        
+        
+class SubFrame:
+    def __init__(self, fname, x1, y1, xSize, ySize):
+        self.fname = fname
+        self.x1 = x1
+        self.x2 = x1 + xSize
+        self.y1 = y1
+        self.y2 = y1 + xSize
+        self.xSize = xSize
+        self.ySize = ySize
+        self.obsID = os.path.basename(fname).split('.')[0]
+        self.coregX = 0
+        self.coregY = 0
+        
+        
+class Coreg:
+    def __init__(self, sub1, sub2):
     
-        xOff2 = 7443
-        yOff2 = 19801
+        fname1 = sub1.fname
+        fname2 = sub2.fname
+        xOff = sub1.x1
+        xSize = sub1.xSize
+        yOff = sub1.y1
+        ySize = sub1.ySize
+        xOff2 = sub2.x1
+        yOff2 = sub2.y1
+                
         inDs1 = gdal.Open(fname1, GA_ReadOnly)
         inDs2 = gdal.Open(fname2, GA_ReadOnly)
         inBand1 = inDs1.GetRasterBand(1)
@@ -30,6 +75,7 @@ class Coreg:
             data2 = inBand2.ReadAsArray(xOff2, yOff2, xSize, ySize)
         except ValueError:
             print('probably out of range..')
+            sys.exit(-1)
     
         data1[np.where(data1 < 0)] = np.NaN
         data2[np.where(data2 < 0)] = np.NaN
@@ -69,7 +115,7 @@ class Coreg:
         self.inBand2 = inBand2
         self.xOff2Old = xOff2
         self.yOff2Old = yOff2
-        self.result = resultTuple
+        self.sub2 = sub2
         
         plt.show()
 
@@ -80,8 +126,8 @@ class Coreg:
                                             self.ySize)
         
     def done(self, event):
-        print self.xOff2, self.yOff2
-        self.result = (self.xOff2, self.yOff2)
+        self.sub2.coregX, self.sub2.coregY = (self.xOff2, self.yOff2)
+        
         plt.close(self.fig)
     
     def up(self, event):
@@ -113,12 +159,31 @@ class Coreg:
         self.fig.canvas.draw()
 
 
-if __name__ == '__main__':
+if __name__ == '__main__':    
     #basefolder = 'processed_data'
     basefolder = '/Users/aye/Data/hirise'
     fname1 = os.path.join(basefolder, 'PSP_003092_0985/PSP_003092_0985_RED.cal.norm.map.equ.mos.cub')
     fname2 = os.path.join(basefolder, 'PSP_003158_0985/PSP_003158_0985_RED.cal.norm.map.equ.mos.cub')
+    output = open('subframes_pickle', 'rw')
+    
+    xSize = 977
+    ySize = 531
+    mainX = 6849 
+    mainY = 18426
+    
+    t
+    fan_subframes = []
+    fixedSub = SubFrame(fname1, mainX, mainY, xSize, ySize)
+    fan_subframes[0] = fixedSub
 
-    result = 0
-    callback = Coreg(fname1, fname2, result)
-    print 'now here', callback.result
+
+    infile = 'Coordinates_PSP_lat_-81.386_lon_295.667.txt'
+    coords = CoordFinder_Results(infile)
+    
+    shiftSub = SubFrame(fname2, xOff, yOff, xSize, ySize)
+    result = []
+    callback = Coreg(fixedSub, shiftSub, result)
+    try:
+        print 'Total Offset: ', callback.result
+    except AttributeError:
+        print 'no attribute "result"'
