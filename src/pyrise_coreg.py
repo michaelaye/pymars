@@ -245,10 +245,8 @@ So a complete call would look like
         callback = Coreg(fixedSub, shiftSub)
     except ValueError:
         print 'out of range'
-    print 'Total Offset: ', shiftSub.coregX, shiftSub.coregY
+    print 'Total Offset for {0} with respect to {1}:\n {2} samples \n {3} lines'\
+        .format(shiftSub.obsID, fixedSub.obsID, shiftSub.coregX, shiftSub.coregY)
     shiftList = [shiftSub.fname, shiftSub.obsID,
                  shiftSub.x1, shiftSub.y1, shiftSub.xSize, shiftSub.ySize,
                  shiftSub.coregX, shiftSub.coregY]
-    print 'Coregister results: '
-    for item in shiftList:
-        print item
