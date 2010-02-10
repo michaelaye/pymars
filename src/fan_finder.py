@@ -35,8 +35,15 @@ def grey_processing(inputImg):
 
 def get_struc(coeff):
     arr = np.zeros(9)
-    for i in range(coeff):
-        arr[i] = 1
+    if coeff == 1:
+        arr[4] = 1
+    if coeff == 2:
+        arr[1] = arr[7] = 1
+    if coeff == 3:
+        arr[1] = arr[4] = arr[7] = 1
+    else:
+        for i in range(coeff):
+            arr[i] = 1
     return arr.reshape((3, 3))
 
 def create_palette():
@@ -84,7 +91,7 @@ def annotating(data, labels, n, myAx):
 #                      xy=(x, y), xycoords='data', color='white')
     return areas
     
-def binary_processing(inputImg, neighbours, iterations=1):
+def binary_processing(inputImg, neighbours=4, iterations=1):
     if neighbours > 8 or neighbours < -1:
         raise ValueError("neighbours between -1 and 8")
         sys.exit(-1)
@@ -100,7 +107,7 @@ def binary_processing(inputImg, neighbours, iterations=1):
         struc = get_struc(neighbours)
         
     outputImg = nd.morphology.binary_opening(inputImg, struc, iterations)
-#    outputImg = nd.morphology.binary_closing(inputImg, struc4, iterations)
+    outputImg = nd.morphology.binary_closing(outputImg, struc,)
     return outputImg
 
 def main():
@@ -113,21 +120,24 @@ def main():
     
     palette = create_palette()
     
-    arr_masked = plt.ma.masked_where(preprocced_img < threshold, preprocced_img)
+    arr_masked = np.ma.masked_where(preprocced_img < threshold, preprocced_img)
 
 #    fig1, ax1 = show_masked(arr_masked, palette)
     
-    arr_bin = plt.where(preprocced_img < threshold, 1, 0)
+    arr_bin = np.where(preprocced_img < threshold, 1, 0)
 
+    
     rois = []
     totalArea = []
-    structs = [2]
+    all_areas = []
+    structs = range(-1, 9)
     for i in structs:
         data = binary_processing(arr_bin, i, 1)
         labels, n = labeling(data)
         fig, ax = show_binary(data)
         ax.set_title('Coefficiant {0}, {1} fans found.'.format(i, n))
         areas = annotating(data, labels, n , ax)
+        all_areas.append(areas)
         totalArea.append(sum(areas))
         rois.append(n)
         
@@ -140,6 +150,10 @@ def main():
     fig.add_subplot(212)
     plt.plot(structs, totalArea, 'bo', label='total')
     plt.legend()
+    
+    fig = plt.figure()
+    plt.hist(all_areas[5], 20)
+    
     plt.show()
 
 if __name__ == '__main__':
