@@ -4,8 +4,14 @@ Created on Aug 16, 2009
 
 @author: aye
 '''
+from osgeo.gdalconst import GA_ReadOnly
 from gdal_imports import *
 from hirise_tools import *
+import matplotlib as plt
+import math
+import csv
+import glob
+
 
 reader = csv.reader(open('Crater_coordinates.csv'))
 
@@ -18,7 +24,7 @@ except:
     vmin = None
     print "taking default size of ",size
 
-def genPlot(array, vmin, vmax, figNumber=1):
+def generate_plot(array, vmin, vmax, figNumber=1):
     plt.figure(figNumber)
     plt.subplot(2,3,i)
     print i
@@ -56,18 +62,18 @@ for i,row in enumerate(reader):
     yOff = int(eye_line) - size/2 -1
     array = cube.ReadAsArray(xOff, yOff, size, size)
     array = array / math.cos(incAnglerad)
-    means.append(Numeric.mean(array))
+    means.append(array.mean())
     if i == 1 and vmin == None:
-        vmin = Numeric.min(array)
-        vmax = Numeric.max(array)
+        vmin = array.min()
+        vmax = array.max()
         print vmin,vmax
-    genPlot(array, vmin, vmax)
+    generate_plot(array, vmin, vmax)
     xOff = int(nose_sample) - size/2 -1
     yOff = int(nose_line) - size/2 -1
     array = cube.ReadAsArray(xOff, yOff, size, size)
     array = array/math.cos(incAnglerad)
-    means2.append(Numeric.mean(array))
-    genPlot(array, vmin,vmax, 3)
+    means2.append(array.mean())
+    generate_plot(array, vmin,vmax, 3)
     
 
 plt.figure(2)
