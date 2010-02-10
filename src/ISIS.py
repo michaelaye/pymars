@@ -5,7 +5,10 @@ Created on Jul 17, 2009
 '''
 from hirise_tools import *
 from multiprocessing import Process
-import subprocess, time, glob, os , sys
+import subprocess
+import glob
+import os
+import sys
 from ISIS_Commands import *
 
 class HiRiseCCD:
