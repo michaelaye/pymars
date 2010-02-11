@@ -33,7 +33,3 @@ syntax: glob
 
 # nohup.outs from remote operations
 nohup.out
-
-
-syntax: regexp
-^src/practice_classes\.py$
