@@ -25,4 +25,7 @@ class ROI():
     def write_out(self):
         sOutputFileName = "_".join([self.roi_name,
                                     self.CCDColour])
+        outFile = open(resultFileName, 'wb')
+        resultFileName = ""
     def writeRow(self,):
+        pass
