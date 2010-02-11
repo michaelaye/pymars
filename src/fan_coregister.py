@@ -41,11 +41,14 @@ def main():
             continue
         data[np.where(data < 0)] = np.NaN
         fig = plt.figure()
-        ax = fig.add_subplot(111)
-#        im = ax.imshow(data, vmin=0.0, vmax=0.27)
+        ax = fig.add_subplot(211)
         im = ax.imshow(data)
         ax.set_title(os.path.basename(fname))
         plt.colorbar(im)
+        ax2 = fig.add_subplot(212)
+        im2 = ax2.imshow(data, vmin=0.0, vmax=0.3)
+        ax2.set_title(os.path.basename(fname) + ', fixed stretch')
+        plt.colorbar(im2)
         fig.savefig(os.path.basename(fname) + '.png', dpi=100)
         fig = plt.figure()
         ax = fig.add_subplot(111)
