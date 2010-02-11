@@ -23,7 +23,6 @@ if __name__ == "__main__":
     import sys
     from optparse import OptionParser
     
-    parser = OptionParser()
     usage = "usage: %prog [jp2|img] inputExcelFile.xls [-d (for execution!)]"
 
     descript = """Utility to download datafiles from the hisync server in 
