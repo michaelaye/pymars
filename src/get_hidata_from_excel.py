@@ -41,6 +41,7 @@ stored."""
 
 
     (options, args) = parser.parse_args()
+    # this comes as extra info, without the below error message
     if len(args) == 0:
         parser.print_help()
         sys.exit(-1)
