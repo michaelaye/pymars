@@ -94,7 +94,6 @@ if __name__ == "__main__":
     import sys
     from optparse import OptionParser
     
-    parser = OptionParser()
     usage = "usage: %prog [jp2|img] obsID [-d | -t ]"
 
     descript = """Utility to download datafiles from the hisync server in 

@@ -23,7 +23,6 @@ if __name__ == "__main__":
     import sys
     from optparse import OptionParser
     
-    parser = OptionParser()
     usage = "usage: %prog [jp2|img] inputExcelFile.xls [-d (for execution!)]"
 
     descript = """Utility to download datafiles from the hisync server in 
@@ -42,6 +41,7 @@ stored."""
 
 
     (options, args) = parser.parse_args()
+    # this comes as extra info, without the below error message
     if len(args) == 0:
         parser.print_help()
         sys.exit(-1)

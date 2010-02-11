@@ -5,10 +5,13 @@ Created on Jul 14, 2009
 
 @author: aye
 '''
+import parser
 
-import sys, os, csv, glob, string
+import sys
+import os
 from hirise_tools import *
 from ISIS_Commands import *
+import roi
 
 # global for this module: which file extensions i should look for:
 sExtensions = '.cal.norm.map.equ.mos.cub'
@@ -70,18 +73,17 @@ def getSampleLineFromCSV(params, coords):
     coords.line = cmd.getKeyValue()
     return
 
-def main(params):
+def find_coords(params):
     if params.extraTargetCode == '':
         print """found no extra target code, will only search for target code 
                 of obsID \n"""
         params.extraTargetCode = 'ouk;ohuoenuiuc' #dummy extra target code
     
-    print "{0} working.".format(params.sProgName)
+    print "searching..."
     # get subData in obsID in case i need it later
     params.sSciencePhase, params.sOrbit, params.sTargetCode = \
         params.sobsID.split('_')
     
-    params.sOutputFileName = "_".join([params.sobsID, 'mappt_output.csv'])
     
     # use mappt on given file to create output file from where to read the 
     # lon/lat to search for
@@ -113,7 +115,8 @@ def main(params):
                                "lon",
                                getRoundedStrFromValue(myCoords.longitude,
                                                        3)]) + '.txt' 
-    outFile = open(resultFileName, 'w')
+    outFile = open(resultFileName, 'wb')
+    csv_writer = csv.write(outFile)
     for folder in os.listdir(procPath):
         if folder.endswith((params.sTargetCode,
                             params.extraTargetCode)) and \
@@ -128,11 +131,14 @@ def main(params):
                         foundFiles.append((name,
                                            getRoundedIntStrFromValue(myCoords.sample),
                                            getRoundedIntStrFromValue(myCoords.line)))
-                        outputString = string.join([params.sPath,
-                                                   getRoundedIntStrFromValue(myCoords.sample),
-                                                   getRoundedIntStrFromValue(myCoords.line), '\n'])
-                        outFile.write(outputString)
-                        print outputString
+                        output = [params.sObsID,
+                                  params.sCCDColour,
+                                  getRoundedIntStrFromValue(myCoords.sample),
+                                  getRoundedIntStrFromValue(myCoords.line),
+                                  -10000,
+                                  -10000]
+                        csv_writer.writerow(output)
+                        print output
                     else: zeros.append(name)
     print "Found {0} files with non-zero pixel values and {1} out-liers:"\
             .format(len(foundFiles), len(zeros))
@@ -143,22 +149,39 @@ def main(params):
             
             
 if __name__ == "__main__":
-    # create my parameter container
-    params = Params()
+    from optparse import OptionParser
     
-    params.extraTargetCode = ''
+    usage = "Usage: {0} roiName obsID ccdColour sample line (PSP or ESP) \
+    [optional: 2nd targetcode nnnn]"
+
+    descript = """Utility to find all data cubes containing a given coordinate
+    of a sample/line pair given. This coordinate is only searched within data
+    with the same target code as the initial file. Optionally, a 2nd target code
+    can be provided to include it in the search.
+    The roiName that is required will be used for the resulting csv data file."""
+
+    parser = OptionParser(usage=usage, description=descript)
+    parser.add_option("-t", "--target", dest="extraTargetCode",
+                      help="optional 2nd targetcode to search")
+
+
+    (options,args)=parser.parse_args()
+    if len(args) == 0:
+        parser.print_help()
+        sys.exit(1)
+    # create my parameter container
+    params = roi.ROI()
+    
+    params.extraTargetCode = options.extraTargetCode
+    
     # check if all required input parameters were given, if not, stop program
     try:
-        params.sProgName, params.sobsID, params.sCCDColour, params.sSample, \
-        params.sLine, params.sTargetSciencePhase, params.extraTargetCode = sys.argv
+        params.sRoiName, params.sobsID, params.sCCDColour, params.sSample, \
+        params.sLine, params.sTargetSciencePhase = sys.argv[1:]
     except:
-        try:
-            params.sProgName, params.sobsID, params.sCCDColour, params.sSample, \
-            params.sLine, params.sTargetSciencePhase = sys.argv
-        except:
-            print "Usage: {0} obsID ccdColour sample line targetSciencePhase(PSP/ESP) \
-    [optional: 2nd targetcode nnnn]".format(sys.argv[0])
-            sys.exit()
+        print('\n Something wrong with parameters.')
+        parser.print_help()
+        sys.exit(1)
 
-    main(params)
+    find_coords(params)
         
