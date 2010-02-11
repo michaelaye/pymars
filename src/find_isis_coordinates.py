@@ -20,37 +20,37 @@ sExtensions = '.cal.norm.map.equ.mos.cub'
 class Params:
     pass
  
-def getRoundedIntStrFromValue(sValue):
+def get_rounded_int_str_from_value(sValue):
     return str(int(round(float(sValue))))
 
-def getRoundedStrFromValue(sValue, iDigits):
+def get_rounded_str_from_value(sValue, iDigits):
     return str(round(float(sValue), iDigits))
 
-def executeMAPPT(params):
+def execute_mappt(params):
+    """function to determine ground coords from sample/line.
+    Results will be given in csv output file from ISIS mappt program."""
     sMAPPTcmd = ISIS_mappt()
-    sSourcePath = DEST_BASE + '/' + params.sobsID + '/' # DEST_BASE set in hirise_tools
+    sSourcePath = getStoredPathFromID(params.sobsID) # DEST_BASE set in hirise_tools
     sCubePath = sSourcePath + params.sobsID + '_' + params.sCCDColour + sExtensions
     sMAPPTcmd.setInputPath(sCubePath)
-    print "output-file for scan in prime image:", params.sOutputFileName
-    sMAPPTcmd.setOutputPath(params.sOutputFileName)
+    print "output-file for scan in prime image:", params.sMAPPTFile
+    sMAPPTcmd.setOutputPath(params.sMAPPTFile)
     sMAPPTcmd.addParameters(['sample=' + params.sSample, 'line=' + params.sLine, 'type=image'])
-    # call mappt. it will create the output csv file that then will be read
     print sMAPPTcmd
     sMAPPTcmd.execute()
 
-def useMAPPT_latlon(params, coords):
-    sMAPPT_cmd = ISIS_mappt()
-    sMAPPT_cmd.setInputPath(params.sPath)
-    sMAPPT_cmd.setOutputPath(params.sOutputFileName)
-    sMAPPT_cmd.addParameters(['longitude=' + coords.longitude])
-    sMAPPT_cmd.addParameters(['latitude=' + coords.latitude, 'type=ground'])
-    # call mappt. it will create the output csv file that then will be read
-    print sMAPPT_cmd
-    sMAPPT_cmd.execute()
+def use_mappt_latlon(params, coords):
+    sMAPPTcmd = ISIS_mappt()
+    sMAPPTcmd.setInputPath(params.sPath)
+    sMAPPTcmd.setOutputPath(params.sMAPPTFile)
+    sMAPPTcmd.addParameters(['longitude=' + coords.longitude])
+    sMAPPTcmd.addParameters(['latitude=' + coords.latitude, 'type=ground'])
+    print sMAPPTcmd
+    sMAPPTcmd.execute()
   
-def getLatLonFromCSV(params, coords):
+def get_latlon_from_csv(params, coords):
     cmdGetKey = ISIS_getkey('PixelValue')
-    cmdGetKey.setInputPath(params.sOutputFileName)
+    cmdGetKey.setInputPath(params.sMAPPTFile)
     pixelValue = cmdGetKey.getKeyValue()
     if pixelValue == "Null":
         print "Starting Coordinate seems to have no valid pixel-value, please check"
@@ -59,19 +59,15 @@ def getLatLonFromCSV(params, coords):
     coords.longitude = cmdGetKey.getKeyValue()
     cmdGetKey.setParameters('Latitude')
     coords.latitude = cmdGetKey.getKeyValue()
-    print coords.latitude
-    print coords.longitude
-    return
 
-def getSampleLineFromCSV(params, coords):
+def get_sample_line_from_csv(params, coords):
     cmd = ISIS_getkey('PixelValue')
-    cmd.setInputPath(params.sOutputFileName)
+    cmd.setInputPath(params.sMAPPTFile)
     coords.pixelValue = cmd.getKeyValue()
     cmd.setParameters('Sample')
     coords.sample = cmd.getKeyValue()
     cmd.setParameters('Line')
     coords.line = cmd.getKeyValue()
-    return
 
 def find_coords(params):
     if params.extraTargetCode == '':
@@ -87,14 +83,15 @@ def find_coords(params):
     
     # use mappt on given file to create output file from where to read the 
     # lon/lat to search for
-    executeMAPPT(params)
+    params.sMAPPTFile = params.sobsID + '_mappt.csv'
+    execute_mappt(params)
     print "done mapping"
     
     myCoords = Coordinates()
     myCoords.sample = params.sSample
     myCoords.line = params.sLine
     
-    getLatLonFromCSV(params, myCoords)
+    get_latlon_from_csv(params, myCoords)
     print "\n Your input \n sample: {0} \n line: {1} \n was determined to be "\
           "\n latitude: \
         {2} \n longitude: {3}".format(params.sSample,
@@ -108,57 +105,54 @@ def find_coords(params):
     foundFiles = []
     zeros = []
     procPath = DEST_BASE # DEST_BASE set in hirise_tools
-    resultFileName = "_".join(["Coordinates",
-                               params.sTargetSciencePhase,
-                               "lat",
-                               getRoundedStrFromValue(myCoords.latitude, 3),
-                               "lon",
-                               getRoundedStrFromValue(myCoords.longitude,
-                                                       3)]) + '.txt' 
-    outFile = open(resultFileName, 'wb')
-    csv_writer = csv.write(outFile)
-    for folder in os.listdir(procPath):
-        if folder.endswith((params.sTargetCode,
-                            params.extraTargetCode)) and \
-           folder.startswith(params.sTargetSciencePhase):
-            for name in os.listdir(os.path.join(procPath, folder)):
+    # creating t (=search tuple) to remove potential 'None' type (=not defined)
+    l = [params.sTargetCode,params.extraTargetCode]
+    l.remove(None)
+    t = tuple(l)
+    for root,dirs,files in os.walk(procPath):
+        # if folder has either target code as obsID or optional one:
+        if root.endswith(t):
+            for name in files:
                 if name.endswith('.mos.cub'):
                     print 'Scanning', name
-                    params.sPath = os.path.join(procPath, folder, name)
-                    useMAPPT_latlon(params, myCoords)
-                    getSampleLineFromCSV(params, myCoords)
+                    params.sPath = os.path.join(root, name)
+                    use_mappt_latlon(params, myCoords)
+                    get_sample_line_from_csv(params, myCoords)
                     if not myCoords.pixelValue == "Null" : 
                         foundFiles.append((name,
-                                           getRoundedIntStrFromValue(myCoords.sample),
-                                           getRoundedIntStrFromValue(myCoords.line)))
+                                           get_rounded_int_str_from_value(myCoords.sample),
+                                           get_rounded_int_str_from_value(myCoords.line)))
                         output = [params.sObsID,
                                   params.sCCDColour,
-                                  getRoundedIntStrFromValue(myCoords.sample),
-                                  getRoundedIntStrFromValue(myCoords.line),
+                                  get_rounded_int_str_from_value(myCoords.sample),
+                                  get_rounded_int_str_from_value(myCoords.line),
                                   -10000,
                                   -10000]
-                        csv_writer.writerow(output)
+                        params.write_row(output)
                         print output
                     else: zeros.append(name)
     print "Found {0} files with non-zero pixel values and {1} out-liers:"\
             .format(len(foundFiles), len(zeros))
     for dataTupel in foundFiles:
         print dataTupel[0], dataTupel[1], dataTupel[2]
-    print 'Find results in', resultFileName
+    print 'Find results in', params.something
     return foundFiles      
             
             
 if __name__ == "__main__":
     from optparse import OptionParser
     
-    usage = "Usage: {0} roiName obsID ccdColour sample line (PSP or ESP) \
-    [optional: 2nd targetcode nnnn]"
+    usage = """Usage: %prog roiName obsID ccdColour sample line
+    [optional: -t 2nd_targetcode_nnnn]"""
 
-    descript = """Utility to find all data cubes containing a given coordinate
-    of a sample/line pair given. This coordinate is only searched within data
-    with the same target code as the initial file. Optionally, a 2nd target code
-    can be provided to include it in the search.
-    The roiName that is required will be used for the resulting csv data file."""
+    descript = """Utility to 1. calculate ground coordinates for a given
+    sample/line pair for a given obsID. 2. find all mosaic data cubes on the hirise
+    server with the same target code (optional: 2nd additional target code)
+    as the given obsID, that also have this point inside (negative results mean
+    outside, positive might still lie in black part of map-projected mosaic).
+    The roiName that is required will be used for the resulting csv data file.
+    The created data file will contain calculated sample/line pairs for the
+    found data cube mosaics"""
 
     parser = OptionParser(usage=usage, description=descript)
     parser.add_option("-t", "--target", dest="extraTargetCode",
@@ -173,11 +167,12 @@ if __name__ == "__main__":
     params = roi.ROI()
     
     params.extraTargetCode = options.extraTargetCode
+    print 'extra:', params.extraTargetCode
     
     # check if all required input parameters were given, if not, stop program
     try:
         params.sRoiName, params.sobsID, params.sCCDColour, params.sSample, \
-        params.sLine, params.sTargetSciencePhase = sys.argv[1:]
+        params.sLine = sys.argv[1:]
     except:
         print('\n Something wrong with parameters.')
         parser.print_help()
