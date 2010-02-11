@@ -99,9 +99,9 @@ class Coreg:
         axup = plt.axes([0.59, 0.05, 0.1, 0.075])
         axdown = plt.axes([0.48, 0.05, 0.1, 0.075])
         axdone = plt.axes([0.30, 0.05, 0.1, 0.075])
-        bnext = Button(axnext, 'Next')
+        bnext = Button(axnext, 'Right')
         bnext.on_clicked(self.next)
-        bprev = Button(axprev, 'Previous')
+        bprev = Button(axprev, 'Left')
         bprev.on_clicked(self.prev)
         bup = Button(axup, 'Up')
         bup.on_clicked(self.up)
@@ -130,6 +130,7 @@ class Coreg:
         self.xOff2Old = xOff2
         self.yOff2Old = yOff2
         self.sub2 = sub2
+        self.multiplier = 1
         
         plt.show()
 
@@ -177,39 +178,75 @@ class Coreg:
     def prev(self, event):
         self.xOff2 += 1 * self.multiplier
         self.im2.set_data(self.read_data())
-        self.ax.set_title('{2}, deltaX: {0}, deltaY: {1}'.format(self.xOff2 - self.xOff2Old,
-                                                             self.yOff2 - self.yOff2Old,
-                                                             self.sub2.obsID))
+        self.ax.set_title('{2}, deltaX: {0}, deltaY: {1}'.\
+                          format(self.xOff2 - self.xOff2Old,
+                                 self.yOff2 - self.yOff2Old,
+                                 self.sub2.obsID))
         self.fig.canvas.draw()
 
 
 if __name__ == '__main__':    
+    import sys
+    
     #basefolder = '/processed_data'
     basefolder = '/Users/aye/Data/hirise'
-    fname1 = os.path.join(basefolder, 'PSP_003092_0985/PSP_003092_0985_RED.cal.norm.map.equ.mos.cub')
-    fname2 = os.path.join(basefolder, 'PSP_003158_0985/PSP_003158_0985_RED.cal.norm.map.equ.mos.cub')
+    fname1 = os.path.join(basefolder,
+                          'PSP_003092_0985/\
+                           PSP_003092_0985_RED.cal.norm.map.equ.mos.cub')
+    fname2 = os.path.join(basefolder,
+                          'PSP_003158_0985/\
+                           PSP_003158_0985_RED.cal.norm.map.equ.mos.cub')
     
-    fixed_obsID = 'PSP_003092_0985'
-            
-    xSize = 977
-    ySize = 531
-    mainX = 6849 
-    mainY = 18426
-    fixedList = [fname1, fixed_obsID, mainX, mainY, xSize, ySize, 0, 0]
-    
-    fixedSub = SubFrame(fname1, mainX, mainY, xSize, ySize)
+    args = sys.argv
+    try:
+        finder_output_file = args[1]
+        fixed = args[2]
+        tobeShifted = args[3]
+        samples = int(args[4])
+        lines = int(args[5])
+    except IndexError:
+        print "Usage: {0} finder_output_file fixed tobeShifted samples "\
+               "lines".format(args[0])
+        print """\nfixed and tobeShifted should be given as the line 
+numbers of the images you want to co-register as seen in the output file from
+the coordinate finder (counted human-way from 1), so for example '5 2', if you
+want the delta-samples and lines of image 2 based on image 2.
 
-    xOff = 7443
-    yOff = 19801
-    shiftSub = SubFrame(fname2, xOff, yOff, xSize, ySize)
+samples and lines are the size parameters of the window you want to 
+shift around. It will be put symmetrically around the sample and line coordinates
+given in the output of the coordinate finder.
+
+So a complete call would look like
+
+{0} Coordinates_bla.txt 5 2 200 200""".format(args[0])
+        sys.exit(1)
+    
+#    xSize = 977
+#    ySize = 531
+#    mainX = 6849 
+#    mainY = 18426
+    with open(finder_output_file, 'r') as f:
+        infile = f.readlines()
+
+    for i, pos in enumerate([fixed, tobeShifted]):
+        inputLine = infile[int(pos) - 1].rstrip('\n')
+        fname, centerX, centerY = inputLine.split()
+        xOff = int(centerX) - samples / 2
+        yOff = int(centerY) - lines / 2
+        if i == 0:
+            fixedSub = SubFrame(fname, xOff, yOff, samples, lines)
+        else:
+            shiftSub = SubFrame(fname, xOff, yOff, samples, lines)
+
+    xSize = samples
+    ySize = lines
+
     try:
         callback = Coreg(fixedSub, shiftSub)
     except ValueError:
         print 'out of range'
-    print 'Total Offset: ', shiftSub.coregX, shiftSub.coregY
+    print 'Total Offset for {0} with respect to {1}:\n {2} samples \n {3} lines'\
+        .format(shiftSub.obsID, fixedSub.obsID, shiftSub.coregX, shiftSub.coregY)
     shiftList = [shiftSub.fname, shiftSub.obsID,
                  shiftSub.x1, shiftSub.y1, shiftSub.xSize, shiftSub.ySize,
                  shiftSub.coregX, shiftSub.coregY]
-    print 'Coregister results: '
-    for item in shiftList:
-        print item
