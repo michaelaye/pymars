@@ -46,6 +46,10 @@ def getDestPathFromID(idString):
     path += idString + '/'
     return path
 
+def getStoredPathFromID(idString):
+    path = DEST_BASE + idString + '/'
+    return path
+
 def executeIsisCmd(args):
     """as we are using check_call here, the input should be a list with strings,
         like ['ls','-l','-a']
