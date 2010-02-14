@@ -50,7 +50,6 @@ def get_values_from_csv(params, coords, key1, key2):
     cmd = ISIS_getkey('PixelValue')
     cmd.setInputPath(params.mapptFile)
     coords.pixelValue = cmd.getKeyValue()
-    print "\n pixel value: {0} \n".format(coords.pixelValue)
     result1 = cmd.getKeyValue(key1)
     result2 = cmd.getKeyValue(key2)
     return [result1, result2]
@@ -109,9 +108,8 @@ def find_coords(params):
     t = tuple(l)
      # get list of all folders that match the targetcode(s)
     tobeScanned = []
-    os.chdir(DEST_BASE)
     for elem in t:
-        tobeScanned.extend(glob.glob('*_' + elem))
+        tobeScanned.extend(glob.glob(os.path.join(DEST_BASE,'*_' + elem)))
     for folder in tobeScanned:
         fpath = os.path.join(DEST_BASE, folder)
         # there shouldn't be a FILE (!) that ends with just a target code
@@ -136,7 +134,8 @@ def find_coords(params):
                 params.map_line_offset = \
                     get_rounded_int_str_from_value(myCoords.line)
                 params.store_row()
-            else: zeros.append(mosaic)
+            else:
+		zeros.append(mosaic)
     print "Found {0} files with non-zero pixel values and {1} out-liers:"\
             .format(len(params.data), len(zeros))
     params.write_out()
