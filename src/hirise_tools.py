@@ -83,8 +83,7 @@ def executeIsisCmdWithReturn(psArgs):
     return: text output of the command
     '''
     try:
-#        output = subprocess.Popen(psArgs, shell=True, stdout=subprocess.PIPE).communicate()[0]
-        output = subprocess.Popen(psArgs, shell=True).communicate()[0]
+        output = subprocess.Popen(psArgs, shell=True, stdout=subprocess.PIPE).communicate()[0]
     except OSError:
         print "Caught OSError. Did you forget to start_isis?"
         sys.exit()
