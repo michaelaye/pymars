@@ -13,6 +13,11 @@ class Coordinates:
     x = 0
     y = 0
 
+def getCCDColourFromMosPath(path):
+    basename = os.path.basename(path)
+    firstpart = basename.partition('.')[0]
+    return firstpart.split('_')[3]
+
 def getObsIDFromPath(path):
     basename = os.path.basename(path)
     obsID = basename[:15]

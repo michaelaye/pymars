@@ -109,7 +109,7 @@ def find_coords(params):
      # get list of all folders that match the targetcode(s)
     tobeScanned = []
     for elem in t:
-        tobeScanned.extend(glob.glob(os.path.join(DEST_BASE,'*_' + elem)))
+        tobeScanned.extend(glob.glob(os.path.join(DEST_BASE, '*_' + elem)))
     for folder in tobeScanned:
         fpath = os.path.join(DEST_BASE, folder)
         # there shouldn't be a FILE (!) that ends with just a target code
@@ -121,7 +121,7 @@ def find_coords(params):
             print 'Scanning', mosaic
             params.mosaicPath = os.path.join(fpath, mosaic)
 	    params.obsID = getObsIDFromPath(fpath)
-	    params.ccdColour = params.obsID.split('_')[2]
+	    params.ccdColour = getCCDColourFromMosPath(fpath)
             get_image_from_ground(params, myCoords)
             myCoords.sample, myCoords.line = \
                 get_values_from_csv(params,
