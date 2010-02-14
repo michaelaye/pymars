@@ -186,7 +186,7 @@ if __name__ == "__main__":
     else:
         try:
             params.roiName, params.obsID, params.ccdColour, params.inputSample, \
-            params.inputLine = sys.argv[1:]
+            params.inputLine = args
         except:
             print('\n Something wrong with parameters.')
             parser.print_help()
