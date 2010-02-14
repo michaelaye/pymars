@@ -21,7 +21,7 @@ class ROI():
              'NSAMPLES',
              'NLINES']
     def __init__(self):
-        self.data = {}
+        self.data = []
         self.roiName = ''
         self.obsID = ''
         self.ccdColour = ''
