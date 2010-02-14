@@ -13,7 +13,7 @@ class ISIS_cmd:
         self.lOutput = ['to=']
         self.lParameters = []
         
-    def setInputPath(self,psInputPath):
+    def setInputPath(self, psInputPath):
 #        self.lInput.append(psInputPath)
         self.lInput[0] += psInputPath
 
@@ -93,15 +93,15 @@ class ISIS_cam2map(ISIS_cmd):
     sName = 'cam2map'
     def __init__(self):
         ISIS_cmd.__init__(self)
-        self.mapfilePath='/processed_data/polar_map_projection.map'
+        self.mapfilePath = '/processed_data/polar_map_projection.map'
         self.useDefaultMap = True
         self.lParameters.append('pixres=MAP')
         self.bInputToDelete = True
-    def setMap(self,pMapFilePath):
+    def setMap(self, pMapFilePath):
         self.mapfilePath = pMapFilePath
         self.useDefaultMap = False
     def getExeList(self):
-        self.lParameters.append('map='+self.mapfilePath)
+        self.lParameters.append('map=' + self.mapfilePath)
         return ISIS_cmd.getExeList(self)
     
 
@@ -111,9 +111,9 @@ class ISIS_equalizer(ISIS_cmd):
         ISIS_cmd.__init__(self)
         self.lInput = ['fromlist=']
         self.lOutput = ['outstats=']
-    def setHoldList(self, psPathToHoldList= None):
+    def setHoldList(self, psPathToHoldList=None):
         if psPathToHoldList:
-            self.lParameters.append('holdlist='+psPathToHoldList)
+            self.lParameters.append('holdlist=' + psPathToHoldList)
         else:
             inputListNamePath = self.lInput[0].split('=')[1]
             dirname, basename = os.path.split(inputListNamePath)
@@ -122,8 +122,8 @@ class ISIS_equalizer(ISIS_cmd):
             # get first file of inputfile list
             holdFile = fIn.readline()
             # write it as holdlist-file
-            outFileNamePath = os.path.join(dirname, "_".join([phase,orbit,targetCode,detec,"toHold.lis"])) 
-            fOut = open(outFileNamePath,'w')
+            outFileNamePath = os.path.join(dirname, "_".join([phase, orbit, targetCode, detec, "toHold.lis"])) 
+            fOut = open(outFileNamePath, 'w')
             fOut.write(holdFile)
             fIn.close()
             fOut.close()
@@ -147,17 +147,19 @@ class ISIS_getkey(ISIS_cmd):
         ISIS_cmd.__init__(self)
         self.lOutput = []
         self.setParameters(psKeyword)
-    def getKeyValue(self):
+    def getKeyValue(self, psKeyword=None):
+        if psKeyword:
+            self.setParameters(psKeyword)
         try:
             return executeIsisCmdWithReturn(self.__str__()).splitlines()[0]
         except IndexError:
-            print "was calling: \n",self.__str__()
+            print "was calling: \n", self.__str__()
             print "Problem with getting key value (getkey). \n" \
                    "Probably error in executing one of ISIS commands before"
             sys.exit()
     def setParameters(self, psKeyword):
         self.lParameters = []
-        self.lParameters.append('keyword='+psKeyword)
+        self.lParameters.append('keyword=' + psKeyword)
         self.lParameters.append('recursive=true')
         
     
@@ -202,7 +204,7 @@ class ISIS_crop(ISIS_cmd):
     sName = 'crop'
     def __init__(self):
         ISIS_cmd.__init__(self)
-        self.lParameters = ['nsamp=5','nline=5']
+        self.lParameters = ['nsamp=5', 'nline=5']
         
         
 class ISIS_cosi(ISIS_cmd):
