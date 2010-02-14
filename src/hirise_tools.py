@@ -16,7 +16,10 @@ class Coordinates:
 def getCCDColourFromMosPath(path):
     basename = os.path.basename(path)
     firstpart = basename.partition('.')[0]
-    return firstpart.split('_')[3]
+    try:
+        return firstpart.split('_')[3]
+    except:
+        print path
 
 def getObsIDFromPath(path):
     basename = os.path.basename(path)
