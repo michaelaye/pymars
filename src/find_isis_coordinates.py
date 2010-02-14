@@ -137,11 +137,9 @@ def find_coords(params):
                 params.store_row()
             else: zeros.append(mosaic)
     print "Found {0} files with non-zero pixel values and {1} out-liers:"\
-            .format(len(foundFiles), len(zeros))
-    for dataTupel in foundFiles:
-        print dataTupel[0], dataTupel[1], dataTupel[2]
+            .format(len(params.data), len(zeros))
+    params.write_out()
     print 'Find results in', params.outputFileName
-    return foundFiles
 
 
 if __name__ == "__main__":
