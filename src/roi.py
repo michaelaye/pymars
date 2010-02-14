@@ -38,9 +38,9 @@ class ROI():
         self.mosaicPath = ''
 
     def write_out(self):
-        outputFileName = "_".join([self.roiName,
+        self.outputFileName = "_".join([self.roiName,
                                     self.ccdColour])
-        outFile = open(outputFileName, 'wb')
+        outFile = open(self.outputFileName, 'wb')
         csvWriter = csv.writer(outFile)
         csvWriter.writerow(self.keys)
         csvWriter.writerows(self.data)
