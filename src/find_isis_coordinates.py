@@ -173,7 +173,6 @@ if __name__ == "__main__":
     params = roi.ROI()
 
     params.extraTargetCode = options.extraTargetCode
-
     if options.testing:
         params.roiName = 'IncaCity'
         params.obsID = 'PSP_003092_0985'
