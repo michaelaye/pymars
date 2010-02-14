@@ -39,7 +39,7 @@ class ROI():
 
     def write_out(self):
         self.outputFileName = "_".join([self.roiName,
-                                    self.ccdColour])
+                                    self.ccdColour]) + '.csv'
         outFile = open(self.outputFileName, 'wb')
         csvWriter = csv.writer(outFile)
         csvWriter.writerow(self.keys)
