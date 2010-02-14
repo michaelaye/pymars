@@ -50,6 +50,7 @@ def get_values_from_csv(params, coords, key1, key2):
     cmd = ISIS_getkey('PixelValue')
     cmd.setInputPath(params.mapptFile)
     coords.pixelValue = cmd.getKeyValue()
+    print "\n pixel value: {0} \n".format(coords.pixelValue)
     result1 = cmd.getKeyValue(key1)
     result2 = cmd.getKeyValue(key2)
     return [result1, result2]
