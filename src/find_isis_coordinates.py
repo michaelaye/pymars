@@ -82,7 +82,7 @@ def find_coords(params):
                                                                myCoords,
                                                                'Longitude',
                                                                'Latitude')
-    if myCoords.pixelValue == "Null":
+    if myCoords.pixelValue == "NULL":
         print "Given Coordinates do not seem to have a valid pixel value. Check!"
         sys.exit(1)
 
@@ -128,7 +128,7 @@ def find_coords(params):
                                     myCoords,
                                     'Sample',
                                     'Line')
-            if not myCoords.pixelValue == "Null" :
+            if not myCoords.pixelValue == "NULL" :
                 if any([myCoords.sample < 0, myCoords.line < 0]):
                     zeros.append(mosaic)
                 params.map_sample_offset = \
