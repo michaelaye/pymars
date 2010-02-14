@@ -4,6 +4,7 @@ FROM_BASE = "/imgdata/"
 DEST_BASE = "/processed_data/"
 
 class Coordinates:
+    path = ''
     obsID = 0
     sample = 0
     line = 0
@@ -11,7 +12,16 @@ class Coordinates:
     longitude = 0
     x = 0
     y = 0
- 
+
+def getObsIDFromPath(path):
+    basename = os.path.basename(path)
+    obsID = basename[:15]
+    try:
+        phase, orbit, targetcode = obsID.split('_')
+    except ValueError:
+        print("Path does not have standard ObsID, returning first 15 characters.")
+    return obsID
+
 def getUpperOrbitFolder(orbitNumber):
     '''
     get the upper folder name where the given orbit folder is residing on the 
