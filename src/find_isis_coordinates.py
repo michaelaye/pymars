@@ -119,9 +119,10 @@ def find_coords(params):
         mosaics = glob.glob(os.path.join(fpath, "*.mos.cub"))
         for mosaic in mosaics:
             print 'Scanning', mosaic
-            params.mosaicPath = os.path.join(fpath, mosaic)
-	    params.obsID = getObsIDFromPath(fpath)
-	    params.ccdColour = getCCDColourFromMosPath(fpath)
+            fpath = os.path.join(fpath, mosaic)
+            params.mosaicPath = fpath
+            params.obsID = getObsIDFromPath(fpath)
+            params.ccdColour = getCCDColourFromMosPath(fpath)
             get_image_from_ground(params, myCoords)
             myCoords.sample, myCoords.line = \
                 get_values_from_csv(params,
@@ -139,7 +140,7 @@ def find_coords(params):
             else:
 		zeros.append(mosaic)
     print "Found {0} files with non-zero pixel values and {1} out-liers:"\
-            .format(len(params.data), len(zeros))
+            .format(len(params.dict), len(zeros))
     params.write_out()
     print 'Find results in', params.outputFileName
 
@@ -170,15 +171,15 @@ if __name__ == "__main__":
     (options, args) = parser.parse_args()
 
      # create my parameter container
-    params = roi.ROI()
+    params = roi.ROI_Data()
 
     params.extraTargetCode = options.extraTargetCode
     if options.testing:
         params.roiName = 'IncaCity'
         params.obsID = 'PSP_003092_0985'
         params.ccdColour = 'RED'
-        params.inputSample = '5000'
-        params.inputLine = '18000'
+        params.inputSample = '6849'
+        params.inputLine = '18426'
         params.extraTargetCode = '0815'
     elif len(args) == 0:
         parser.print_help()

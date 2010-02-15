@@ -10,7 +10,7 @@ import csv
 import os
 from hirise_tools import Coordinates
 
-class ROI():
+class ROI_Data():
     """region of interest meta-data collector"""
     keys = ['ObsID',
              'CCDColour',
@@ -21,7 +21,7 @@ class ROI():
              'NSAMPLES',
              'NLINES']
     def __init__(self):
-        self.data = []
+        self.dict = {}
         self.roiName = ''
         self.obsID = ''
         self.ccdColour = ''
@@ -38,17 +38,50 @@ class ROI():
         self.mosaicPath = ''
 
     def write_out(self):
+        """important: self.keys is a list of keys for each row,
+        self.dict.keys() are the obsIDs that have been stored in 
+        the data dictionary self.dict, using obsIDs as the 
+        referencing key."""
         self.outputFileName = self.roiName + '.csv'
-        csvWriter = csv.writer(open(self.outputFileName,'wb'))
-        csvWriter.writerow(self.keys)
-        csvWriter.writerows(self.data)
-        
+        csvWriter = csv.DictWriter(open(self.outputFileName, 'wb'),
+                                   self.keys)
+        csvWriter.writerow(dict(zip(self.keys, self.keys)))
+        for obsID in sorted(self.dict.keys()):
+            csvWriter.writerow(self.dict[obsID])
+
+
     def store_row(self):
-        self.data.append([self.obsID,
-                          self.ccdColour,
-                          self.mapSampleOffset,
-                          self.mapLineOffset,
-                          self.coregSampleOffset,
-                          self.coregLineOffset,
-                          self.nsamples,
-                          self.nlines])
+        self.dict[self.obsID] = dict(zip(self.keys, [self.obsID,
+                                                  self.ccdColour,
+                                                  self.mapSampleOffset,
+                                                  self.mapLineOffset,
+                                                  self.coregSampleOffset,
+                                                  self.coregLineOffset,
+                                                  self.nsamples,
+                                                  self.nlines]))
+
+
+    def read_in(self, fname):
+        self.roiName = fname.rstrip('.csv')
+        self.data = []
+        self.dict = {}
+        self.inputFileName = fname
+        csvReader = csv.DictReader(open(fname, 'rb'))
+        for row in csvReader:
+            self.dict[row['ObsID']] = row
+
+    def set_dict_value(self, obsID, key, value):
+        if self.dict.has_key(obsID):
+            try:
+                self.dict[obsID][key] = value
+            except KeyError:
+                print 'Key {0} was not found in data set for {1}'\
+                        .format(key, obsID)
+        else:
+            print 'no data found for ', obsID
+
+    def __str__(self):
+        for row in self.data:
+            for element in row:
+                print str(element),
+            print '\n'
