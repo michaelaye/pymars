@@ -9,6 +9,7 @@ import matplotlib.cm as cm
 import os.path
 import pickle
 import sys
+import roi
 
 class CoordFinder_Results:
     def __init__(self, inputFile=None):
@@ -19,7 +20,7 @@ class CoordFinder_Results:
         self.obsID = []
         if inputFile:
             self.read_file(inputFile)
-        
+
     def parse_line(self, line):
         fname, xOff, yOff = line.split()
         bname = os.path.basename(fname)
@@ -32,14 +33,14 @@ class CoordFinder_Results:
         self.yOffSets.append(int(yOff))
         self.CCDCol.append(colour)
         self.obsID.append(obsID)
-        
+
     def read_file(self, fname):
         f = open(fname, 'r')
         for line in f:
             self.parse_line(line)
         f.close()
-        
-        
+
+
 class SubFrame:
     def __init__(self, fname, x1, y1, xSize, ySize):
         self.fname = fname
@@ -55,11 +56,11 @@ class SubFrame:
         self.d = {self.obsID: [self.fname,
                                self.x1, self, y1, self.xSize, self.ySize,
                                self.coregX, self.coregY]}
-        
-        
+
+
 class Coreg:
     def __init__(self, sub1, sub2):
-    
+
         fname1 = sub1.fname
         fname2 = sub2.fname
         xOff = sub1.x1
@@ -68,7 +69,7 @@ class Coreg:
         ySize = sub1.ySize
         xOff2 = sub2.x1
         yOff2 = sub2.y1
-                
+
         inDs1 = gdal.Open(fname1, GA_ReadOnly)
         inDs2 = gdal.Open(fname2, GA_ReadOnly)
         inBand1 = inDs1.GetRasterBand(1)
@@ -79,17 +80,17 @@ class Coreg:
         except ValueError:
             print('probably out of range..')
             raise ValueError('out of range')
-    
+
         data1[np.where(data1 < 0)] = np.NaN
         data2[np.where(data2 < 0)] = np.NaN
 
         fig = plt.figure()
         ax = fig.add_subplot(111)
         fig.subplots_adjust(bottom=0.2)
-        
+
         im1 = ax.imshow(data1, cmap=cm.gray)
         im2 = ax.imshow(data2, alpha=0.5)
-        
+
         axcolor = 'lightgoldenrodyellow'
         rax = plt.axes([0.05, 0.05, 0.15, 0.15], axisbg=axcolor)
         radio = RadioButtons(rax, ('x1', 'x5', 'x10'))
@@ -109,13 +110,13 @@ class Coreg:
         bdown.on_clicked(self.down)
         bdone = Button(axdone, 'Done')
         bdone.on_clicked(self.done)
-    
+
         fig2 = plt.figure()
         ax2 = fig2.add_subplot(211)
         ax2.imshow(data1)
         ax3 = fig2.add_subplot(212)
         ax3.imshow(data2)
-        
+
         # save objects and variables for later
         self.fig = fig
         self.fig2 = fig2
@@ -131,26 +132,26 @@ class Coreg:
         self.yOff2Old = yOff2
         self.sub2 = sub2
         self.multiplier = 1
-        
+
         plt.show()
 
     def set_multiplier(self, label):
         multiDict = {'x1':1, 'x5':5, 'x10':10}
         self.multiplier = multiDict[label]
-        
+
     def read_data(self):
         return self.inBand2.ReadAsArray(self.xOff2,
                                             self.yOff2,
                                             self.xSize,
                                             self.ySize)
-        
+
     def done(self, event):
         self.sub2.coregX, self.sub2.coregY = (self.xOff2 - self.xOff2Old,
                                               self.yOff2 - self.yOff2Old)
-        
+
         plt.close(self.fig)
         plt.close(self.fig2)
-    
+
     def up(self, event):
         self.yOff2 += 1 * self.multiplier
         self.im2.set_data(self.read_data())
@@ -158,7 +159,7 @@ class Coreg:
                                                              self.yOff2 - self.yOff2Old,
                                                              self.sub2.obsID))
         self.fig.canvas.draw()
-        
+
     def down(self, event):
         self.yOff2 -= 1 * self.multiplier
         self.im2.set_data(self.read_data())
@@ -166,7 +167,7 @@ class Coreg:
                                                              self.yOff2 - self.yOff2Old,
                                                              self.sub2.obsID))
         self.fig.canvas.draw()
-        
+
     def next(self, event):
         self.xOff2 -= 1 * self.multiplier
         self.im2.set_data(self.read_data())
@@ -185,9 +186,9 @@ class Coreg:
         self.fig.canvas.draw()
 
 
-if __name__ == '__main__':    
+if __name__ == '__main__':
     import sys
-    
+
     #basefolder = '/processed_data'
     basefolder = '/Users/aye/Data/hirise'
     fname1 = os.path.join(basefolder,
@@ -196,7 +197,7 @@ if __name__ == '__main__':
     fname2 = os.path.join(basefolder,
                           'PSP_003158_0985/\
                            PSP_003158_0985_RED.cal.norm.map.equ.mos.cub')
-    
+
     args = sys.argv
     try:
         finder_output_file = args[1]
@@ -220,11 +221,13 @@ So a complete call would look like
 
 {0} Coordinates_bla.txt 5 2 200 200""".format(args[0])
         sys.exit(1)
-    
+
 #    xSize = 977
 #    ySize = 531
 #    mainX = 6849 
 #    mainY = 18426
+    roidata = roi.ROI_Data()
+
     with open(finder_output_file, 'r') as f:
         infile = f.readlines()
 
