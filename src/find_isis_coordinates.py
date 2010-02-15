@@ -69,7 +69,7 @@ def find_coords(params):
 
     # use mappt on given file to create output file from where to read the 
     # lon/lat to search for
-    params.mapptFile = params.obsID + '_mappt.csv'
+    params.mapptFile = params.obsID + '_mappt.pvl'
     get_ground_from_image(params)
     print "done mapping"
 
