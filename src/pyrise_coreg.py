@@ -22,7 +22,7 @@ class SubFrame:
         self.y2 = y1 + xSize
         self.xSize = xSize
         self.ySize = ySize
-        self.obsID = os.path.basename(fname).split('.')[0]
+        self.obsID = hirise_tools.getObsIDFromPath(fname)
         self.coregX = 0
         self.coregY = 0
         self.d = {self.obsID: [self.fname,
@@ -31,31 +31,30 @@ class SubFrame:
 
 
 class Coreg:
-    def __init__(self, sub1, sub2):
+    def __init__(self, sub1, subframes):
+
+        self.sub1 = sub1
+        self.subframes = subframes
+        self.sub2iter = self.get_next_subframe()
 
         fname1 = sub1.fname
-        fname2 = sub2.fname
         xOff = sub1.x1
         xSize = sub1.xSize
         yOff = sub1.y1
         ySize = sub1.ySize
-        xOff2 = sub2.x1
-        yOff2 = sub2.y1
+        self.xSize = xSize
+        self.ySize = ySize
 
         inDs1 = gdal.Open(fname1, GA_ReadOnly)
-        inDs2 = gdal.Open(fname2, GA_ReadOnly)
         inBand1 = inDs1.GetRasterBand(1)
-        inBand2 = inDs2.GetRasterBand(1)
         data1 = inBand1.ReadAsArray(xOff, yOff, xSize, ySize)
-        try:
-            data2 = inBand2.ReadAsArray(xOff2, yOff2, xSize, ySize)
-        except ValueError:
-            print('probably out of range..')
-            raise ValueError('out of range')
-
         data1[np.where(data1 < 0)] = np.NaN
-        data2[np.where(data2 < 0)] = np.NaN
 
+        self.sub2 = self.sub2iter.next()
+        data2 = self.get_data2()
+#==============================================================================
+# coreg window
+#==============================================================================
         fig = plt.figure()
         ax = fig.add_subplot(111)
         fig.subplots_adjust(bottom=0.2)
@@ -63,6 +62,61 @@ class Coreg:
         im1 = ax.imshow(data1, cmap=cm.gray)
         im2 = ax.imshow(data2, alpha=0.5)
 
+        ax.set_title(sub1.obsID + ' vs ' + self.sub2.obsID)
+        self.make_buttons()
+
+#==============================================================================
+# overview window
+#==============================================================================
+        fig2 = plt.figure()
+        ax2 = fig2.add_subplot(211)
+        ax2.imshow(data1)
+        ax3 = fig2.add_subplot(212)
+        ax3.imshow(data2)
+
+#==============================================================================
+# save objects and variables for later
+#==============================================================================
+        self.fig = fig
+        self.fig2 = fig2
+        self.ax = ax
+        self.ax2 = ax2
+        self.ax3 = ax3
+        self.multiplier = 1
+        self.im1 = im1
+        self.im2 = im2
+        self.data1 = data1
+
+        plt.show()
+
+    def get_data2(self):
+        sub2 = self.sub2
+        fname2 = sub2.fname
+        xOff2 = sub2.x1
+        yOff2 = sub2.y1
+        inDs2 = gdal.Open(fname2, GA_ReadOnly)
+        inBand2 = inDs2.GetRasterBand(1)
+        try:
+            data2 = inBand2.ReadAsArray(xOff2, yOff2, self.xSize, self.ySize)
+        except ValueError:
+            print('probably out of range..')
+            raise ValueError('out of range')
+        data2[np.where(data2 < 0)] = np.NaN
+        self.xOff2 = xOff2
+        self.yOff2 = yOff2
+        self.inBand2 = inBand2
+        self.xOff2Old = xOff2
+        self.yOff2Old = yOff2
+        self.data2 = data2
+        self.sub2 = sub2
+        self.inDs2 = inDs2
+        return data2
+
+    def get_next_subframe(self):
+            for subframe in self.subframes:
+                yield subframe
+
+    def make_buttons(self):
         axcolor = 'lightgoldenrodyellow'
         rax = plt.axes([0.05, 0.05, 0.15, 0.15], axisbg=axcolor)
         radio = RadioButtons(rax, ('x1', 'x5', 'x10'))
@@ -83,35 +137,12 @@ class Coreg:
         bdone = Button(axdone, 'Done')
         bdone.on_clicked(self.done)
 
-        fig2 = plt.figure()
-        ax2 = fig2.add_subplot(211)
-        ax2.imshow(data1)
-        ax3 = fig2.add_subplot(212)
-        ax3.imshow(data2)
-
-        # save objects and variables for later
-        self.fig = fig
-        self.fig2 = fig2
-        self.ax = ax
-        self.im1 = im1
-        self.im2 = im2
-        self.xOff2 = xOff2
-        self.yOff2 = yOff2
-        self.xSize = xSize
-        self.ySize = ySize
-        self.inBand2 = inBand2
-        self.xOff2Old = xOff2
-        self.yOff2Old = yOff2
-        self.sub2 = sub2
-        self.multiplier = 1
-
-        plt.show()
-
     def set_multiplier(self, label):
         multiDict = {'x1':1, 'x5':5, 'x10':10}
         self.multiplier = multiDict[label]
 
     def read_data(self):
+        self.inBand2 = self.inDs2.GetRasterBand(1)
         return self.inBand2.ReadAsArray(self.xOff2,
                                             self.yOff2,
                                             self.xSize,
@@ -120,7 +151,27 @@ class Coreg:
     def done(self, event):
         self.sub2.coregX, self.sub2.coregY = (self.xOff2 - self.xOff2Old,
                                               self.yOff2 - self.yOff2Old)
+        print 'Sample Offset for {0}: {1}'.format(self.sub2.obsID,
+                                                  self.sub2.coregX)
+        print 'Line Offset for {0}: {1}'.format(self.sub2.obsID,
+                                                  self.sub2.coregY)
 
+        try:
+            self.sub2 = self.sub2iter.next()
+        except StopIteration:
+            self.end()
+        else:
+            data2 = self.get_data2()
+            self.ax.cla()
+            self.im1 = self.ax.imshow(self.data1, cmap=cm.gray)
+            self.im2 = self.ax.imshow(data2, alpha=0.5)
+            self.ax.set_title(self.sub1.obsID + ' vs ' + self.sub2.obsID)
+            self.fig.canvas.draw()
+            self.ax3.cla()
+            self.ax3.imshow(data2)
+            self.fig2.canvas.draw()
+
+    def end(self):
         plt.close(self.fig)
         plt.close(self.fig2)
 
@@ -173,15 +224,6 @@ def get_subframe_from_roidata(roidata, obsID):
 if __name__ == '__main__':
     import sys
 
-    #basefolder = '/processed_data'
-    basefolder = '/Users/aye/Data/hirise'
-    fname1 = os.path.join(basefolder,
-                          'PSP_003092_0985/\
-                           PSP_003092_0985_RED.cal.norm.map.equ.mos.cub')
-    fname2 = os.path.join(basefolder,
-                          'PSP_003158_0985/\
-                           PSP_003158_0985_RED.cal.norm.map.equ.mos.cub')
-
     args = sys.argv
     try:
         finder_output_file = args[1]
@@ -204,32 +246,33 @@ if __name__ == '__main__':
     tobeShifted = raw_input("""Number of obsID to be shifted (=co-registered)
     or type 0 (=zero) for all: """)
 
-    fixedObsID = sKeys[int(fixed) - 1]
+    fixed = int(fixed) - 1 # for human display i added 1 in line 232
+    tobeShifted = int(tobeShifted) - 1
+
+    fixedObsID = sKeys[fixed]
     fixedSub = get_subframe_from_roidata(roidata, fixedObsID)
     roidata.dict[fixedObsID]['CoReg_Sample_Offset'] = 0
     roidata.dict[fixedObsID]['CoReg_Line_Offset'] = 0
 
     targets = []
-    if not int(tobeShifted) == 0:
-        targets.append(int(tobeShifted))
+    if not tobeShifted == -1:
+        targets.append(tobeShifted)
     else:
         targets = range(len(roidata.dict))
-        targets.remove(int(fixed) - 1) # fixed was defined as human readable
+        targets.remove(fixed) # fixed was defined as human readable
 
+    shiftSubFrames = []
     for target in targets:
         inputObsID = sKeys[target] # no -1 here b/c targets were created from 0
         shiftSub = get_subframe_from_roidata(roidata, inputObsID)
+        shiftSubFrames.append(shiftSub)
 
-        print 'Co-registering {0} with {1}'.format(fixedSub.obsID,
-                                                   shiftSub.obsID)
+    callback = Coreg(fixedSub, shiftSubFrames)
 
-        try:
-            callback = Coreg(fixedSub, shiftSub)
-        except ValueError:
-            print 'out of range'
+    for shiftSub in shiftSubFrames:
         print 'Total Offset for {0} with respect to {1}:\n {2} samples \n {3} lines'\
             .format(shiftSub.obsID, fixedSub.obsID, shiftSub.coregX, shiftSub.coregY)
-        roidata.dict[inputObsID]['CoReg_Sample_Offset'] = shiftSub.coregX,
-        roidata.dict[inputObsID]['CoReg_Line_Offset'] = shiftSub.coregY
+        roidata.dict[shiftSub.obsID]['CoReg_Sample_Offset'] = shiftSub.coregX
+        roidata.dict[shiftSub.obsID]['CoReg_Line_Offset'] = shiftSub.coregY
 
     roidata.write_out()
