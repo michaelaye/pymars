@@ -206,6 +206,8 @@ if __name__ == '__main__':
 
     fixedObsID = sKeys[int(fixed) - 1]
     fixedSub = get_subframe_from_roidata(roidata, fixedObsID)
+    roidata.dict[fixedObsID]['CoReg_Sample_Offset'] = 0
+    roidata.dict[fixedObsID]['CoReg_Line_Offset'] = 0
 
     targets = []
     if not int(tobeShifted) == 0:
@@ -218,13 +220,8 @@ if __name__ == '__main__':
         inputObsID = sKeys[target] # no -1 here b/c targets were created from 0
         shiftSub = get_subframe_from_roidata(roidata, inputObsID)
 
-        print fixedSub.obsID, shiftSub.obsID
-        continue
-    #==========================================================================
-    # 
-    #==========================================================================
-        xSize = samples
-        ySize = lines
+        print 'Co-registering {0} with {1}'.format(fixedSub.obsID,
+                                                   shiftSub.obsID)
 
         try:
             callback = Coreg(fixedSub, shiftSub)
@@ -232,6 +229,7 @@ if __name__ == '__main__':
             print 'out of range'
         print 'Total Offset for {0} with respect to {1}:\n {2} samples \n {3} lines'\
             .format(shiftSub.obsID, fixedSub.obsID, shiftSub.coregX, shiftSub.coregY)
-        shiftList = [shiftSub.fname, shiftSub.obsID,
-                     shiftSub.x1, shiftSub.y1, shiftSub.xSize, shiftSub.ySize,
-                     shiftSub.coregX, shiftSub.coregY]
+        roidata.dict[inputObsID]['CoReg_Sample_Offset'] = shiftSub.coregX,
+        roidata.dict[inputObsID]['CoReg_Line_Offset'] = shiftSub.coregY
+
+    roidata.write_out()
