@@ -2,13 +2,17 @@
 
 from gdal_imports import *
 import numpy as np
-
+import sys
 #from scipy import optimize
 #from numpy import *
 
+if sys.platform == 'darwin':
+    base = '/Users/aye/Data/hirise/'
+else:
+    base = '/processed_data/'
 
-fname = '/Users/aye/Data/hirise/PSP_003092_0985/PSP_003092_0985_RED.cal.norm.map.equ.mos.cub'
-    
+fname = base + 'PSP_003092_0985/PSP_003092_0985_RED.cal.norm.map.equ.mos.cub'
+
 cube = gdal.Open(fname, GA_ReadOnly)
 
 print cube.GetDescription()
