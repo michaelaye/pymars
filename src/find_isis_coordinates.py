@@ -14,9 +14,8 @@ import glob
 from hirise_tools import *
 from ISIS_Commands import *
 import roi
+from hirise_tools import mosaic_extensions as extensions
 
-# global for this module: which file extensions i should look for:
-extensions = '.cal.norm.map.equ.mos.cub'
 
 def get_rounded_int_str_from_value(sValue):
     return str(int(round(float(sValue))))

@@ -3,6 +3,8 @@ import os, subprocess, sys
 FROM_BASE = "/imgdata/"
 DEST_BASE = "/processed_data/"
 
+mosaic_extensions = '.cal.norm.map.equ.mos.cub'
+
 class Coordinates:
     path = ''
     obsID = 0
@@ -67,6 +69,9 @@ def getDestPathFromID(idString):
 def getStoredPathFromID(idString):
     path = DEST_BASE + idString + '/'
     return path
+
+def getMosaicPathFromObsID(obsID):
+    root = getStoredPathFromID(obsID)
 
 def executeIsisCmd(args):
     """as we are using check_call here, the input should be a list with strings,
