@@ -2,10 +2,12 @@
 '''
 Created on Aug 16, 2009
 
-@auth
-or: aye
+@author: aye
 '''
+
 from gdal_imports import *
+import matplotlib
+matplotlib.use('Tkagg')
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Button
 import sys
@@ -149,9 +151,10 @@ else:
 
 callback = Cube(fname)
 
-ax = plt.subplot(111)
-plt.subplots_adjust(bottom=0.2)
-im = plt.imshow(callback.data)
+fig = plt.figure()
+ax = fig.add_subplot(111)
+fig.subplots_adjust(bottom=0.2)
+im = ax.imshow(callback.data)
 
 axprev = plt.axes([0.7, 0.05, 0.1, 0.075])
 axnext = plt.axes([0.81, 0.05, 0.1, 0.075])
