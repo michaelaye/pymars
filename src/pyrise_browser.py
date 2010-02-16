@@ -1,12 +1,15 @@
+#!/usr/bin/python
 '''
 Created on Aug 16, 2009
 
-@author: aye
+@auth
+or: aye
 '''
 from gdal_imports import *
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Button
-from cube_loader import *
+import sys
+import tkFileDialog as fd
 
 def rebin(a, newshape):
         '''Rebin an array to a new shape.
@@ -27,7 +30,7 @@ def rebin_factor(a, newshape):
 
         slices = [ slice(None, None, old / new) for old, new in zip(a.shape, newshape) ]
         return a[slices]
-    
+
 def downsample(band):
     maxsize = 2000
     cols = band.XSize
@@ -61,7 +64,7 @@ def downsample(band):
     imData = np.vstack(yShrinked)
     yShrinked = None
     return imData
-    
+
 class Cube:
     displaySize = 512
     overlap = 2 # 1 block is 128, keep 2*128 = 256 in FOV when shifting
@@ -81,7 +84,7 @@ class Cube:
         self.xInd = len(self.xOffsets) / 2
         self.yInd = len(self.yOffsets) / 2
         self.read_data()
-    
+
     def read_data(self, rows=None, cols=None):
         if rows == None:
             rows = self.displaySize
@@ -91,16 +94,16 @@ class Cube:
                                             self.yOffsets[self.yInd],
                                             rows,
                                             cols)
-        
+
     def up(self, event):
         self.yInd -= self.overlap
         self.yInd = max(self.yInd, 0)
         self.read_data()
-        
+
         im.set_data(self.data)
         ax.set_title(' '.join([str(self.xInd), str(self.yInd)]))
         plt.draw()
-        
+
     def down(self, event):
         self.yInd += self.overlap
         self.yInd = min(self.yInd, len(self.yOffsets) - 1)
@@ -109,11 +112,11 @@ class Cube:
         else:
             numRows = self.rows - self.yOffsets[self.yInd]
         self.read_data(rows=numRows)
-        
+
         im.set_data(self.data)
         ax.set_title(' '.join([str(self.xInd), str(self.yInd)]))
         plt.draw()
-        
+
     def next(self, event):
         self.xInd += self.overlap
         self.xInd = min(self.xInd, len(self.xOffsets) - 1)
@@ -135,7 +138,14 @@ class Cube:
         ax.set_title(' '.join([str(self.xInd), str(self.yInd)]))
         plt.draw()
 
-fname = '/Users/aye/Data/hirise/PSP_003092_0985/PSP_003092_0985_RED.cal.norm.map.equ.mos.cub'
+
+
+if sys.platform == 'darwin':
+    fname = '/Users/aye/Data/hirise/PSP_003092_0985/PSP_003092_0985_RED.cal.norm.map.equ.mos.cub'
+else:
+    options = {}
+    options['filetypes'] = [('mosaic cubes', '.mos.cub'), ('all cubes', '.cub')]
+    fname = fd.askopenfilename(initialdir='/processed_data', **options)
 
 callback = Cube(fname)
 
