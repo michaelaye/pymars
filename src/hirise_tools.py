@@ -70,8 +70,10 @@ def getStoredPathFromID(idString):
     path = DEST_BASE + idString + '/'
     return path
 
-def getMosaicPathFromObsID(obsID):
+def getMosPathFromIDandCCD(obsID, ccd):
     root = getStoredPathFromID(obsID)
+    path = os.path.join(root, '_'.join([obsID, ccd]) + mosaic_extensions)
+    return path
 
 def executeIsisCmd(args):
     """as we are using check_call here, the input should be a list with strings,

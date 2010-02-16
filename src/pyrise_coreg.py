@@ -10,35 +10,7 @@ import os.path
 import pickle
 import sys
 import roi
-
-class CoordFinder_Results:
-    def __init__(self, inputFile=None):
-        self.obsFileNames = []
-        self.xOffSets = []
-        self.yOffSets = []
-        self.CCDCol = []
-        self.obsID = []
-        if inputFile:
-            self.read_file(inputFile)
-
-    def parse_line(self, line):
-        fname, xOff, yOff = line.split()
-        bname = os.path.basename(fname)
-        obsID_col, exts = bname.split('.')[:2]
-        obsID, colour = obsID_col[:15], obsID_col[16:]
-        if colour != 'RED':
-            return
-        self.obsFileNames.append(fname)
-        self.xOffSets.append(int(xOff))
-        self.yOffSets.append(int(yOff))
-        self.CCDCol.append(colour)
-        self.obsID.append(obsID)
-
-    def read_file(self, fname):
-        f = open(fname, 'r')
-        for line in f:
-            self.parse_line(line)
-        f.close()
+import hirise_tools
 
 
 class SubFrame:
@@ -212,14 +184,21 @@ if __name__ == '__main__':
     roidata = roi.ROI_Data()
     roidata.read_in(finder_output_file)
 
-    for i, obsID in enumerate(sorted(roidata.dict.keys())):
+    sKeys = sorted(roidata.dict.keys())
+    for i, obsID in enumerate(sKeys):
         print i + 1, obsID
 
     fixed = raw_input('Number of obsID for reference: ')
-    tobeShifted = raw_input('Number of obsID to be shifted (=co-registered): ')
+    tobeShifted = raw_input("""Number of obsID to be shifted (=co-registered)
+    or type 0 (=zero) for all: """)
 
+    fixedInputLine = roidata.dict[sKeys[fixed - 1]] # minus 1 for human readable
+    fixedPath = hirise_tools.get
+#==============================================================================
+# for the single run case
+#==============================================================================
     for i, pos in enumerate([fixed, tobeShifted]):
-        inputLine = infile[int(pos) - 1].rstrip('\n')
+        inputLine = roidata.dict[sKeys[pos - 1]]
         fname, centerX, centerY = inputLine.split()
         xOff = int(centerX) - samples / 2
         yOff = int(centerY) - lines / 2
