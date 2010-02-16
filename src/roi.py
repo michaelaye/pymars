@@ -49,7 +49,6 @@ class ROI_Data():
         for obsID in sorted(self.dict.keys()):
             csvWriter.writerow(self.dict[obsID])
 
-
     def store_row(self):
         self.dict[self.obsID] = dict(zip(self.keys, [self.obsID,
                                                   self.ccdColour,
@@ -60,7 +59,6 @@ class ROI_Data():
                                                   self.nsamples,
                                                   self.nlines]))
 
-
     def read_in(self, fname):
         self.roiName = fname.rstrip('.csv')
         self.data = []
@@ -69,16 +67,6 @@ class ROI_Data():
         csvReader = csv.DictReader(open(fname, 'rb'))
         for row in csvReader:
             self.dict[row['ObsID']] = row
-
-    def set_dict_value(self, obsID, key, value):
-        if self.dict.has_key(obsID):
-            try:
-                self.dict[obsID][key] = value
-            except KeyError:
-                print 'Key {0} was not found in data set for {1}'\
-                        .format(key, obsID)
-        else:
-            print 'no data found for ', obsID
 
     def __str__(self):
         for row in self.data:
