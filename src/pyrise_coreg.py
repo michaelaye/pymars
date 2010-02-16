@@ -201,25 +201,8 @@ if __name__ == '__main__':
     args = sys.argv
     try:
         finder_output_file = args[1]
-        fixed = args[2]
-        tobeShifted = args[3]
-        samples = int(args[4])
-        lines = int(args[5])
     except IndexError:
-        print "Usage: {0} finder_output_file fixed tobeShifted samples "\
-               "lines".format(args[0])
-        print """\nfixed and tobeShifted should be given as the line 
-numbers of the images you want to co-register as seen in the output file from
-the coordinate finder (counted human-way from 1), so for example '5 2', if you
-want the delta-samples and lines of image 2 based on image 2.
-
-samples and lines are the size parameters of the window you want to 
-shift around. It will be put symmetrically around the sample and line coordinates
-given in the output of the coordinate finder.
-
-So a complete call would look like
-
-{0} Coordinates_bla.txt 5 2 200 200""".format(args[0])
+        print "Usage: {0} finder_output_file".format(args[0])
         sys.exit(1)
 
 #    xSize = 977
@@ -227,9 +210,13 @@ So a complete call would look like
 #    mainX = 6849 
 #    mainY = 18426
     roidata = roi.ROI_Data()
+    roidata.read_in(finder_output_file)
 
-    with open(finder_output_file, 'r') as f:
-        infile = f.readlines()
+    for i, obsID in enumerate(sorted(roidata.dict.keys())):
+        print i + 1, obsID
+
+    fixed = raw_input('Number of obsID for reference: ')
+    tobeShifted = raw_input('Number of obsID to be shifted (=co-registered): ')
 
     for i, pos in enumerate([fixed, tobeShifted]):
         inputLine = infile[int(pos) - 1].rstrip('\n')
