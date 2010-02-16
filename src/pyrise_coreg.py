@@ -157,6 +157,18 @@ class Coreg:
                                  self.sub2.obsID))
         self.fig.canvas.draw()
 
+def get_subframe_from_roidata(roidata, obsID):
+    indict = roidata.dict[obsID]
+    ccd = indict['CCDColour']
+    fname = hirise_tools.getMosPathFromIDandCCD(obsID, ccd)
+    centerX = int(indict['Map_Sample_Offset'])
+    centerY = int(indict['Map_Line_Offset'])
+    samples = int(indict['NSAMPLES'])
+    lines = int(indict ['NLINES'])
+    xOff = int(centerX) - samples / 2
+    yOff = int(centerY) - lines / 2
+    return SubFrame(fname, xOff, yOff, samples, lines)
+
 
 if __name__ == '__main__':
     import sys
@@ -188,34 +200,38 @@ if __name__ == '__main__':
     for i, obsID in enumerate(sKeys):
         print i + 1, obsID
 
-    fixed = raw_input('Number of obsID for reference: ')
+    fixed = raw_input('Number of obsID to be used as reference: ')
     tobeShifted = raw_input("""Number of obsID to be shifted (=co-registered)
     or type 0 (=zero) for all: """)
 
-    fixedInputLine = roidata.dict[sKeys[fixed - 1]] # minus 1 for human readable
-    fixedPath = hirise_tools.get
-#==============================================================================
-# for the single run case
-#==============================================================================
-    for i, pos in enumerate([fixed, tobeShifted]):
-        inputLine = roidata.dict[sKeys[pos - 1]]
-        fname, centerX, centerY = inputLine.split()
-        xOff = int(centerX) - samples / 2
-        yOff = int(centerY) - lines / 2
-        if i == 0:
-            fixedSub = SubFrame(fname, xOff, yOff, samples, lines)
-        else:
-            shiftSub = SubFrame(fname, xOff, yOff, samples, lines)
+    fixedObsID = sKeys[int(fixed) - 1]
+    fixedSub = get_subframe_from_roidata(roidata, fixedObsID)
 
-    xSize = samples
-    ySize = lines
+    targets = []
+    if not int(tobeShifted) == 0:
+        targets.append(int(tobeShifted))
+    else:
+        targets = range(len(roidata.dict))
+        targets.remove(int(fixed) - 1) # fixed was defined as human readable
 
-    try:
-        callback = Coreg(fixedSub, shiftSub)
-    except ValueError:
-        print 'out of range'
-    print 'Total Offset for {0} with respect to {1}:\n {2} samples \n {3} lines'\
-        .format(shiftSub.obsID, fixedSub.obsID, shiftSub.coregX, shiftSub.coregY)
-    shiftList = [shiftSub.fname, shiftSub.obsID,
-                 shiftSub.x1, shiftSub.y1, shiftSub.xSize, shiftSub.ySize,
-                 shiftSub.coregX, shiftSub.coregY]
+    for target in targets:
+        inputObsID = sKeys[target] # no -1 here b/c targets were created from 0
+        shiftSub = get_subframe_from_roidata(roidata, inputObsID)
+
+        print fixedSub.obsID, shiftSub.obsID
+        continue
+    #==========================================================================
+    # 
+    #==========================================================================
+        xSize = samples
+        ySize = lines
+
+        try:
+            callback = Coreg(fixedSub, shiftSub)
+        except ValueError:
+            print 'out of range'
+        print 'Total Offset for {0} with respect to {1}:\n {2} samples \n {3} lines'\
+            .format(shiftSub.obsID, fixedSub.obsID, shiftSub.coregX, shiftSub.coregY)
+        shiftList = [shiftSub.fname, shiftSub.obsID,
+                     shiftSub.x1, shiftSub.y1, shiftSub.xSize, shiftSub.ySize,
+                     shiftSub.coregX, shiftSub.coregY]
