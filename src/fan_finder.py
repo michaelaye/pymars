@@ -5,12 +5,20 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import numpy.ma as ma
 import scipy.ndimage as nd
+import pickle
+from canny import *
 
 def find_threshold(imgArray):
     #pdf, bins = np.histogram(imgArray, 30)
     # returning known value for now
     return 0.065
 
+def load_pickle():
+    fname = '/Users/aye/Documents/hirise/fans/PSP_003092_0985_RED.cal.norm.map.equ.mos.cub.pickled_array'
+    with open(fname) as f:
+        data = pickle.load(f)
+    return data
+    
 def load_cube_data():
     fname = '/Users/aye/Data/hirise/PSP_003092_0985/PSP_003092_0985_RED.cal.norm.map.equ.mos.cub'
     cube = gdal.Open(fname, GA_ReadOnly)
@@ -31,9 +39,6 @@ def load_cube_data():
     img[np.where(img < 0.0)] = np.nan
     print "minimum of array after NaN determination: ", img.min()
     return img
-
-def grey_processing(inputImg):
-    return inputImg
 
 def get_struc(coeff):
     arr = np.zeros(9)
@@ -70,8 +75,8 @@ def show_masked(data, palette):
     plt.colorbar(im, shrink=0.7)
     return (myFig, ax)
   
-def show_binary(data):
-    myFig = plt.figure()
+def show_data(data):
+    myFig = plt.figure(figsize=(14, 10))
     ax = myFig.add_subplot(111)
     im = ax.imshow(data)
     return (myFig, ax)
@@ -93,67 +98,58 @@ def annotating(data, labels, n, myAx):
 #                      xy=(x, y), xycoords='data', color='white')
     return areas
     
-def binary_processing(inputImg, neighbours=4, iterations=1):
-    if neighbours > 8 or neighbours < -1:
-        raise ValueError("neighbours between -1 and 8")
-        sys.exit(-1)
+def binary_processing(inputImg):
+    data = inputImg.copy()
     struc8 = np.ones((3, 3))
     struc4 = [[0, 1, 0], [1, 1, 1], [0, 1, 0]]
-    if neighbours == 4:
-        struc = struc4
-    elif neighbours == 8:
-        struc = struc8
-    elif neighbours == -1:
-        return inputImg
-    else:
-        struc = get_struc(neighbours)
-        
-    outputImg = nd.morphology.binary_opening(inputImg, struc, iterations)
-    outputImg = nd.morphology.binary_closing(outputImg, struc,)
-    return outputImg
+    struc1 = np.zeros((3, 3))
+    struc1[1, 1] = 1
+    struc25 = np.ones((5, 5))
+    struc36 = np.ones((6, 6))
+    data = nd.morphology.binary_opening(data, struc4)
+    data = nd.morphology.binary_closing(data, struc4)
+
+    return data
+   
+def grey_processing(inputImg):
+    fp = [[0, 1, 0], [1, 1, 1], [0, 1, 0]]
+    return nd.filters.median_filter(inputImg, size=1)
 
 def main():
-    orig_img = load_cube_data()
-    small_img = orig_img[:200, :200]
     
+    orig_img = load_pickle()
     preprocced_img = grey_processing(orig_img)
-    
     threshold = find_threshold(preprocced_img)
-    
     palette = create_palette()
-    
-    arr_masked = ma.masked_where(preprocced_img < threshold, preprocced_img)
+#    arr_masked = ma.masked_where(preprocced_img < threshold, preprocced_img)
 
-#    fig1, ax1 = show_masked(arr_masked, palette)
+    fig1, ax1 = show_data(orig_img)
     
     arr_bin = np.where(preprocced_img < threshold, 1, 0)
+#    arr_bin = (canny(preprocced_img, 0.05, 0))[2]
+#    rois = []
+#    totalArea = []
+#    all_areas = []
 
-    rois = []
-    totalArea = []
-    all_areas = []
-    structs = range(-1, 9)
-    for i in structs:
-        data = binary_processing(arr_bin, i, 1)
-        labels, n = labeling(data)
-        fig, ax = show_binary(data)
-        ax.set_title('Coefficiant {0}, {1} fans found.'.format(i, n))
-        areas = annotating(data, labels, n , ax)
-        all_areas.append(areas)
-        totalArea.append(sum(areas))
-        rois.append(n)
+    data = binary_processing(arr_bin)
+    labels, n = labeling(data)
+    fig2, ax2 = show_data(data)
+    ax2.set_title('{0} fans found.'.format(n))
+    areas = annotating(data, labels, n , ax2)
+#    all_areas.append(areas)
+#    totalArea.append(sum(areas))
+#    rois.append(n)
         
+#    fig = plt.figure()
+#    fig.add_subplot(211)
+#    plt.plot(structs, rois, 'ro', label='rois')
+#    plt.legend()
+#    fig.add_subplot(212)
+#    plt.plot(structs, totalArea, 'bo', label='total')
+#    plt.legend()
     
-    print rois, totalArea
-    fig = plt.figure()
-    fig.add_subplot(211)
-    plt.plot(structs, rois, 'ro', label='rois')
-    plt.legend()
-    fig.add_subplot(212)
-    plt.plot(structs, totalArea, 'bo', label='total')
-    plt.legend()
-    
-    fig = plt.figure()
-    plt.hist(all_areas[5], 20)
+#    fig = plt.figure()
+#    plt.hist(all_areas[5], 20)
     
     plt.show()
 
