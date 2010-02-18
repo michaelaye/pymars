@@ -7,39 +7,22 @@ import numpy.ma as ma
 import scipy.ndimage as nd
 import pickle
 from canny import *
+import roi
 
-def find_threshold(imgArray):
-    #pdf, bins = np.histogram(imgArray, 30)
-    # returning known value for now
-    return 0.065
+def find_threshold(thresholds, obsID):
+    return thresholds[obsID]
 
-def load_pickle():
-    fname = '/Users/aye/Documents/hirise/fans/PSP_003092_0985_RED.cal.norm.map.equ.mos.cub.pickled_array'
+def load_thresholds():
+    with open('/Users/aye/Desktop/hist_thresholds.pkl') as f:
+        data = pickle.load(f)
+    return data
+
+def load_pickle(obsID):
+    fname = '/Users/aye/Documents/hirise/fans/' + obsID + '_RED.cal.norm.map.equ.mos.cub.pickled_array'
     with open(fname) as f:
         data = pickle.load(f)
     return data
     
-def load_cube_data():
-    fname = '/Users/aye/Data/hirise/PSP_003092_0985/PSP_003092_0985_RED.cal.norm.map.equ.mos.cub'
-    cube = gdal.Open(fname, GA_ReadOnly)
-    print cube.GetDescription()
-    # get subframe
-    xOff = 6849
-    xEnd = 7826
-    yOff = 18426
-    yEnd = 18957
-    
-    xSize = xEnd - xOff
-    ySize = yEnd - yOff
-    
-    print "reading {0} at {1},{2} offset".format(fname, xOff, yOff)
-    img = cube.ReadAsArray(xOff, yOff, xSize, ySize)
-    
-    print "minimum of array: ", img.min()
-    img[np.where(img < 0.0)] = np.nan
-    print "minimum of array after NaN determination: ", img.min()
-    return img
-
 def get_struc(coeff):
     arr = np.zeros(9)
     if coeff == 1:
@@ -81,7 +64,7 @@ def show_data(data):
     im = ax.imshow(data)
     return (myFig, ax)
 
-def annotating(data, labels, n, myAx):
+def annotating(data, labels, n):#, myAx):
     slices = nd.find_objects(labels)
     areas = []
     for i in range(n):
@@ -93,7 +76,7 @@ def annotating(data, labels, n, myAx):
         areas.append(area)
         x = (x2 - x1) / 2 + x1
         y = (y2 - y1) / 2 + y1
-        myAx.annotate(str(i), xy=(x, y), xycoords='data', color='white')
+#        myAx.annotate(str(i), xy=(x, y), xycoords='data', color='white')
 #        myAx.annotate(str(i) + '\n' + str(area) + ' m^2',
 #                      xy=(x, y), xycoords='data', color='white')
     return areas
@@ -106,47 +89,95 @@ def binary_processing(inputImg):
     struc1[1, 1] = 1
     struc25 = np.ones((5, 5))
     struc36 = np.ones((6, 6))
-    data = nd.morphology.binary_opening(data, struc4)
-    data = nd.morphology.binary_closing(data, struc4)
+    data = nd.morphology.binary_opening(data, struc8)
+    data = nd.morphology.binary_closing(data, struc8)
 
     return data
    
 def grey_processing(inputImg):
     fp = [[0, 1, 0], [1, 1, 1], [0, 1, 0]]
-    return nd.filters.median_filter(inputImg, size=1)
+    fp = np.ones((3, 3))
+#    return nd.filters.median_filter(inputImg, size=30)
+    data = nd.morphology.grey_opening(inputImg, footprint=fp)
+    return nd.morphology.grey_closing(data, footprint=fp)
 
+def get_l_s():
+    l_s = [174.477,
+            196.233,
+            206.654,
+            209.771,
+            213.527,
+            223.683,
+            230.75,
+            241.121,
+            254.811,
+            285.757,
+            295.784,
+            312.21,
+            318.703]
+    obsIDs = ['PSP_002380_0985',
+                'PSP_002868_0985',
+                'PSP_003092_0985',
+                'PSP_003158_0985',
+                'PSP_003237_0985',
+                'PSP_003448_0985',
+                'PSP_003593_0985',
+                'PSP_003804_0985',
+                'PSP_004081_0985',
+                'PSP_004714_0985',
+                'PSP_004925_0985',
+                'PSP_005281_0985',
+                'PSP_005426_0985']
+    ls_dict = dict(zip(obsIDs, l_s))
+    return ls_dict
+   
 def main():
-    
-    orig_img = load_pickle()
-    preprocced_img = grey_processing(orig_img)
-    threshold = find_threshold(preprocced_img)
+
+    lsdict = get_l_s()
+    roidata = roi.ROI_Data()
+    roidata.read_in('IncaCity_cleaned.csv')
+    roidict = roidata.dict
+    thresholds = load_thresholds()
+    all_areas = []
+    fan_counts = []
+    total = []
+    lsds = []
+    actual_obs = []
     palette = create_palette()
-#    arr_masked = ma.masked_where(preprocced_img < threshold, preprocced_img)
-
-    fig1, ax1 = show_data(orig_img)
+    for obsID in roidict:
+        if obsID.startswith('ESP'): continue
+        print 'doing ', obsID
+        orig_img = load_pickle(obsID)
+        preprocced_img = grey_processing(orig_img)
+        threshold = find_threshold(thresholds, obsID)
+    #    arr_masked = ma.masked_where(preprocced_img < threshold, preprocced_img)
     
-    arr_bin = np.where(preprocced_img < threshold, 1, 0)
-#    arr_bin = (canny(preprocced_img, 0.05, 0))[2]
-#    rois = []
-#    totalArea = []
-#    all_areas = []
-
-    data = binary_processing(arr_bin)
-    labels, n = labeling(data)
-    fig2, ax2 = show_data(data)
-    ax2.set_title('{0} fans found.'.format(n))
-    areas = annotating(data, labels, n , ax2)
-#    all_areas.append(areas)
-#    totalArea.append(sum(areas))
-#    rois.append(n)
+#        fig1, ax1 = show_data(preprocced_img)
         
-#    fig = plt.figure()
-#    fig.add_subplot(211)
-#    plt.plot(structs, rois, 'ro', label='rois')
-#    plt.legend()
-#    fig.add_subplot(212)
-#    plt.plot(structs, totalArea, 'bo', label='total')
-#    plt.legend()
+        arr_bin = np.where(preprocced_img < threshold, 1, 0)
+    #    arr_bin = (canny(preprocced_img, 0.05, 0))[2]
+    
+        data = binary_processing(arr_bin)
+        labels, n = labeling(data)
+#        fig2, ax2 = show_data(data)
+#        ax2.set_title('{0} fans found.'.format(n))
+#===============================================================================
+# changed!!! here and in annotating
+#===============================================================================
+        areas = annotating(data, labels, n)# , ax2)
+        all_areas.append(areas)
+        total.append(sum(areas))
+        fan_counts.append(n)
+        lsds.append(lsdict[obsID])
+        actual_obs.append(int(obsID.split('_')[1]))
+        
+    fig = plt.figure()
+    fig.add_subplot(211)
+    plt.plot(actual_obs, fan_counts, 'ro', label='fans')
+    plt.legend()
+    fig.add_subplot(212)
+    plt.plot(lsds, total, 'bo', label='total')
+    plt.legend()
     
 #    fig = plt.figure()
 #    plt.hist(all_areas[5], 20)
