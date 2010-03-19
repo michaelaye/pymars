@@ -141,33 +141,35 @@ class Cube:
         plt.draw()
 
 
-
-if sys.platform == 'darwin':
+def main():
+    if sys.platform == 'darwin':
     fname = '/Users/aye/Data/hirise/PSP_003092_0985/PSP_003092_0985_RED.cal.norm.map.equ.mos.cub'
-else:
+    else:
     options = {}
     options['filetypes'] = [('mosaic cubes', '.mos.cub'), ('all cubes', '.cub')]
     fname = fd.askopenfilename(initialdir='/processed_data', **options)
+    
+    callback = Cube(fname)
+    
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    fig.subplots_adjust(bottom=0.2)
+    im = ax.imshow(callback.data)
+    
+    axprev = plt.axes([0.7, 0.05, 0.1, 0.075])
+    axnext = plt.axes([0.81, 0.05, 0.1, 0.075])
+    axup = plt.axes([0.59, 0.05, 0.1, 0.075])
+    axdown = plt.axes([0.48, 0.05, 0.1, 0.075])
+    bnext = Button(axnext, 'Next')
+    bnext.on_clicked(callback.next)
+    bprev = Button(axprev, 'Previous')
+    bprev.on_clicked(callback.prev)
+    bup = Button(axup, 'Up')
+    bup.on_clicked(callback.up)
+    bdown = Button(axdown, 'Down')
+    bdown.on_clicked(callback.down)
+    
+    plt.show()
 
-callback = Cube(fname)
-
-fig = plt.figure()
-ax = fig.add_subplot(111)
-fig.subplots_adjust(bottom=0.2)
-im = ax.imshow(callback.data)
-
-axprev = plt.axes([0.7, 0.05, 0.1, 0.075])
-axnext = plt.axes([0.81, 0.05, 0.1, 0.075])
-axup = plt.axes([0.59, 0.05, 0.1, 0.075])
-axdown = plt.axes([0.48, 0.05, 0.1, 0.075])
-bnext = Button(axnext, 'Next')
-bnext.on_clicked(callback.next)
-bprev = Button(axprev, 'Previous')
-bprev.on_clicked(callback.prev)
-bup = Button(axup, 'Up')
-bup.on_clicked(callback.up)
-bdown = Button(axdown, 'Down')
-bdown.on_clicked(callback.down)
-
-plt.show()
-
+if __name__ == '__main__':
+    main()
