@@ -7,9 +7,9 @@ from hirise_tools import *
 
 class HiRsync:
     SOURCE = "hisync.lpl.arizona.edu::hirise_data"
-    PARAM_TEST = "-avnLh"
-    PARAM_REAL = "-avLh"
-    PARAM_LIST = "-avn"
+    PARAM_TEST = "-rtvnLh"
+    PARAM_REAL = "-rtvLh"
+    PARAM_LIST = "-rtvn"
     PROGRESS = "--progress"
     DEST_FOLDER_JP2 = "/imgdata/RDRgen/JP2s/"
     DEST_FOLDER_IMG = "/imgdata"
