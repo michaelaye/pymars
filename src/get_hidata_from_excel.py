@@ -12,7 +12,7 @@ def parse_excel_and_hirsync(dataType, excelFile, do=False):
         if obsID == "": 
           print "Line " + str(r) + " empty"
           continue
-        elif not (obsID.startswith('PSP') or obsID.startswith('ESP'):
+        elif not (obsID.startswith('PSP') or obsID.startswith('ESP')):
           print "no obsid"
           continue 
         print obsID
