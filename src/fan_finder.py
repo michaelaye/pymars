@@ -1,5 +1,6 @@
 #!/Library/Frameworks/Python.framework/Versions/2.6/bin/python
 
+from __future__ import division
 from gdal_imports import *
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
@@ -17,8 +18,10 @@ def load_thresholds():
         data = pickle.load(f)
     return data
 
-def load_pickle(obsID):
-    fname = '/Users/aye/Documents/hirise/fans/' + obsID + '_RED.cal.norm.map.equ.mos.cub.pickled_array'
+def get_data(obsID):
+    fname = ''.join(['/Users/aye/Documents/hirise/fans/',
+                     obsID,
+                     '_RED.cal.norm.map.equ.mos.cub.pickled_array'])
     with open(fname) as f:
         data = pickle.load(f)
     return data
@@ -116,21 +119,82 @@ def get_l_s():
             312.21,
             318.703]
     obsIDs = ['PSP_002380_0985',
-                'PSP_002868_0985',
-                'PSP_003092_0985',
-                'PSP_003158_0985',
-                'PSP_003237_0985',
-                'PSP_003448_0985',
-                'PSP_003593_0985',
-                'PSP_003804_0985',
-                'PSP_004081_0985',
-                'PSP_004714_0985',
-                'PSP_004925_0985',
-                'PSP_005281_0985',
-                'PSP_005426_0985']
+              'PSP_002868_0985',
+              'PSP_003092_0985',
+              'PSP_003158_0985',
+              'PSP_003237_0985',
+              'PSP_003448_0985',
+              'PSP_003593_0985',
+              'PSP_003804_0985',
+              'PSP_004081_0985',
+              'PSP_004714_0985',
+              'PSP_004925_0985',
+              'PSP_005281_0985',
+              'PSP_005426_0985']
     ls_dict = dict(zip(obsIDs, l_s))
     return ls_dict
-   
+
+def hist_equal(data):
+    # to not loose resolution, but do things in integer, i scale by 16bit
+    data = numpy.array(data * 16383, dtype=int)
+    # range is +2 to have the highest luminance to get into correct bin
+    bins = numpy.arange(data.min(), data.max() + 2)
+    # first the histogram of luminances
+    h, bins = numpy.histogram(data, bins=bins)
+    # now get the cdf
+    cdf = h.cumsum()
+    # now get the unique luminance values
+    uniques = numpy.unique(data)
+    nPixel = data.size
+    newcdf = numpy.round((cdf - cdf.min()) * 255 / (nPixel - 1))
+    nData = data.copy()
+    for lum in uniques:
+#        nData[data == lum] = newcdf[bins[:-1] == lum][0]
+        numpy.putmask(nData, data == lum, newcdf[bins[:-1] == lum][0])
+    return nData
+
+def calc_salience(data):
+    # scale to 8 bit, as given in algorithm of LPSC paper,
+    # maybe possible to change, have to check that
+    img = numpy.array(data * 255 / data.max(), dtype=int)
+    bins = numpy.arange(img.min(), img.max() + 2)
+    h, bins = numpy.histogram(img, bins)
+    s = img.copy()
+    for index in numpy.arange(s.size):
+        if index % 10000 == 0:
+            print index * 100 / s.size, ' % done'
+        s_i = 0
+        i_p = img.ravel()[index]
+        for i, h_i in zip(bins[:-1], h):
+            s_i += h_i * abs(i_p - i)
+        s.ravel()[index] = s_i
+    return s
+ 
+def plot_n_save_salience(s, obsid):
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    im = ax.imshow(s)
+    ax.set_title(obsid)
+    plt.colorbar(im)
+    plt.savefig(''.join([obsid, '.sal.png']))
+    plt.close(fig)
+
+def do_saliences():
+    roidata = roi.ROI_Data()
+    roidata.read_in('IncaCity_cleaned.csv')
+    roidict = roidata.dict
+    for obsid in roidict:
+        print obsid
+        data = get_data(obsid)
+        # normalize all images to top at 1.0
+        # that way, an increase of range of pixel values also means an increase
+        # of variance, and therefore more information, but still comparable 
+        # within all data treated
+        img = data / data.mean()
+        s = calc_salience(img)
+        print obsid, s.min(), s.max()
+        plot_n_save_salience(s, obsid)
+           
 def main():
 
     lsdict = get_l_s()
@@ -147,12 +211,12 @@ def main():
     for obsID in roidict:
         if obsID.startswith('ESP'): continue
         print 'doing ', obsID
-        orig_img = load_pickle(obsID)
+        orig_img = get_data(obsID)
         preprocced_img = grey_processing(orig_img)
         threshold = find_threshold(thresholds, obsID)
+        s = calc_salience(orig_img)
     #    arr_masked = ma.masked_where(preprocced_img < threshold, preprocced_img)
-    
-#        fig1, ax1 = show_data(preprocced_img)
+    #    fig1, ax1 = show_data(preprocced_img)
         
         arr_bin = np.where(preprocced_img < threshold, 1, 0)
     #    arr_bin = (canny(preprocced_img, 0.05, 0))[2]
