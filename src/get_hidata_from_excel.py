@@ -7,11 +7,14 @@ def parse_excel_and_hirsync(dataType, excelFile, do=False):
     sh = book.sheet_by_index(0)
     print str(sh.nrows) + " lines"
     # loop over rows in excel sheet
-    for r in range(sh.nrows)[1:]:
+    for r in range(sh.nrows):
         obsID = sh.row_values(r)[0]
         if obsID == "": 
           print "Line " + str(r) + " empty"
           continue
+        elif not (obsID.startswith('PSP') or obsID.startswith('ESP'):
+          print "no obsid"
+          continue 
         print obsID
         hirsync = HiRsync.HiRsync(dataType=dataType,
                                   obsID=obsID,
