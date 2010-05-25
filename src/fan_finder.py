@@ -160,22 +160,26 @@ def calc_salience(data):
     bins = numpy.arange(img.min(), img.max() + 2)
     h, bins = numpy.histogram(img, bins)
     s = img.copy()
+    d = {}
+    for lum in numpy.unique(img):
+        s_i = 0
+        for i, h_i in zip(bins[:-1], h):
+            s_i += h_i * abs(lum - i)
+        d[lum] = s_i
     for index in numpy.arange(s.size):
-        if index % 10000 == 0:
-            print index * 100 / s.size, ' % done'
         s_i = 0
         i_p = img.ravel()[index]
-        for i, h_i in zip(bins[:-1], h):
-            s_i += h_i * abs(i_p - i)
-        s.ravel()[index] = s_i
+        s.ravel()[index] = d[i_p]
     return s
  
 def plot_n_save_salience(s, obsid):
     fig = plt.figure()
-    ax = fig.add_subplot(111)
+    ax = fig.add_subplot(211)
     im = ax.imshow(s)
     ax.set_title(obsid)
     plt.colorbar(im)
+    ax = fig.add_subplot(212)
+    ax.hist(s.ravel(), bins=30, log=True)
     plt.savefig(''.join([obsid, '.sal.png']))
     plt.close(fig)
 
