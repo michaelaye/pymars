@@ -10,6 +10,21 @@ import pickle
 from canny import *
 import roi
 
+
+obsIDs = ['PSP_002380_0985',
+          'PSP_002868_0985',
+          'PSP_003092_0985',
+          'PSP_003158_0985',
+          'PSP_003237_0985',
+          'PSP_003448_0985',
+          'PSP_003593_0985',
+          'PSP_003804_0985',
+          'PSP_004081_0985',
+          'PSP_004714_0985',
+          'PSP_004925_0985',
+          'PSP_005281_0985',
+          'PSP_005426_0985']
+
 def find_threshold(thresholds, obsID):
     return thresholds[obsID]
 
@@ -18,7 +33,11 @@ def load_thresholds():
         data = pickle.load(f)
     return data
 
-def get_data(obsID):
+def get_data(index):
+    try:
+        obsID = obsIDs[index]
+    except TypeError:
+        obsID = index
     fname = ''.join(['/Users/aye/Documents/hirise/fans/',
                      obsID,
                      '_RED.cal.norm.map.equ.mos.cub.pickled_array'])
@@ -118,19 +137,6 @@ def get_l_s():
             295.784,
             312.21,
             318.703]
-    obsIDs = ['PSP_002380_0985',
-              'PSP_002868_0985',
-              'PSP_003092_0985',
-              'PSP_003158_0985',
-              'PSP_003237_0985',
-              'PSP_003448_0985',
-              'PSP_003593_0985',
-              'PSP_003804_0985',
-              'PSP_004081_0985',
-              'PSP_004714_0985',
-              'PSP_004925_0985',
-              'PSP_005281_0985',
-              'PSP_005426_0985']
     ls_dict = dict(zip(obsIDs, l_s))
     return ls_dict
 
