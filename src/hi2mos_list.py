@@ -11,11 +11,12 @@ import twitter
 args = sys.argv
 
 def print_usage():
-    print "Usage: {0} inputListFile ccdColour[RED,BG,IR]".format(args[0])
+    print "Usage: {0} inputListFile ccdColour[RED,BG,IR] mapfile".format(args[0])
 
 try:
     inputListFile = args[1]
     colour = args[2]
+    mapfile = args[3]
 except:
     print_usage()
     sys.exit()
@@ -32,7 +33,7 @@ for row in reader:
     targetPath = getMosPathFromIDandCCD(obsID, colour, in_work=True)
     if os.path.exists(targetPath):
         continue
-    executer = ISIS.ISIS_Executer(obsID ,colour)
+    executer = ISIS.ISIS_Executer(obsID ,colour, pMapfile=mapfile)
     executer.process()
     api = twitter.Api('hirise_bern', 'hiRISE_BERN')
     api.PostUpdate(' '.join([idString, colour, 'finished']))
