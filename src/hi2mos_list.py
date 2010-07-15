@@ -1,7 +1,12 @@
 #!/usr/bin/python
 
-import ISIS, csv, time, sys
-from production_notifier import sendMail
+import ISIS
+import csv
+import time
+import sys
+import os.path
+from hirise_tools import *
+import twitter
 
 args = sys.argv
 
@@ -24,9 +29,13 @@ for row in reader:
     obsID = row[0]
     if obsID == '': continue
     print obsID
+    targetPath = getMosPathFromIDandCCD(obsID, colour, in_work=True)
+    if os.path.exists(targetPath):
+        continue
     executer = ISIS.ISIS_Executer(obsID ,colour)
     executer.process()
-    sendMail(obsID + ' ' + colour +' finished.','')
+    api = twitter.Api('hirise_bern', 'hiRISE_BERN')
+    api.PostUpdate(' '.join([idString, colour, 'finished']) + ' '.join(lCommands))
     
 end = time.time()
 
