@@ -67,12 +67,15 @@ def getDestPathFromID(idString):
     path += idString + '/'
     return path
 
-def getStoredPathFromID(idString):
-    path = DEST_BASE + idString + '/'
+def getStoredPathFromID(idString, in_work=False):
+    folder = ''
+    if in_work == True:
+        folder = 'maye/'
+    path = DEST_BASE + folder + idString + '/'
     return path
 
-def getMosPathFromIDandCCD(obsID, ccd):
-    root = getStoredPathFromID(obsID)
+def getMosPathFromIDandCCD(obsID, ccd, in_work=False):
+    root = getStoredPathFromID(obsID, in_work)
     path = os.path.join(root, '_'.join([obsID, ccd]) + mosaic_extensions)
     return path
 
