@@ -20,7 +20,7 @@ class ROI_Data():
              'CoReg_Line_Offset',
              'NSAMPLES',
              'NLINES']
-    def __init__(self):
+    def __init__(self, fname=None):
         self.dict = {}
         self.roiName = ''
         self.obsID = ''
@@ -36,6 +36,8 @@ class ROI_Data():
         self.nsamples = ''
         self.nlines = ''
         self.mosaicPath = ''
+        if not fname is None:
+            self.read_in(fname)
 
     def write_out(self):
         """important: self.keys is a list of keys for each row,
