@@ -35,7 +35,7 @@ for row in reader:
     executer = ISIS.ISIS_Executer(obsID ,colour)
     executer.process()
     api = twitter.Api('hirise_bern', 'hiRISE_BERN')
-    api.PostUpdate(' '.join([idString, colour, 'finished']) + ' '.join(lCommands))
+    api.PostUpdate(' '.join([idString, colour, 'finished']))
     
 end = time.time()
 
