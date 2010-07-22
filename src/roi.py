@@ -20,6 +20,7 @@ class ROI_Data():
              'CoReg_Line_Offset',
              'NSAMPLES',
              'NLINES',
+             'L_s',
              'Thresholds']
     def __init__(self, fname=None):
         self.dict = {}
@@ -36,6 +37,7 @@ class ROI_Data():
         self.coregLineOffset = ''
         self.nsamples = ''
         self.nlines = ''
+        self.l_s = ''
         self.thresholds = ''
         self.mosaicPath = ''
         if not fname is None:
@@ -62,6 +64,7 @@ class ROI_Data():
                                                   self.coregLineOffset,
                                                   self.nsamples,
                                                   self.nlines,
+                                                  self.l_s,
                                                   self.thresholds]))
 
     def read_in(self, fname):
