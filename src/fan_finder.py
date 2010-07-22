@@ -14,6 +14,7 @@ from hirise_tools import save_plot
 
 
 obsIDs_ESP = [
+            'ESP_011350_0945',
             'ESP_011351_0945',
             'ESP_011403_0945',
             'ESP_011931_0945',
@@ -352,20 +353,20 @@ def time_sequence(targetcode, part):
 #        data = data[0:260, 1500:1950]
 #        data = data[920:1060, 850:1250]
 #        data = data[150:450, 600:976]
-#        data = data[700:1050, 0:448]
+        data = data[700:1050, 0:448]
 #        data = data[575:757, 1640:1856]
 #        data = data[375:645, 1090:1420]
-#        data = data[106:410, 304:636]
+#       data = data[106:410, 304:636]
 ## Inca city ROIs
 ########################################
 #        data = data[360:520,300:448]
 #        data = data[330:410,426:500]
 #        data = data[56:150,70:170]
 #        data = data[250:320,345:500]
-        data = data[111:206,190:312]
+#        data = data[111:206,190:312]
 #########################################
         title = "{0} L_s={1:.0f}".format(obsid,lsdict[obsid])
-        im = ax.imshow(data,vmin=0.0,vmax=0.3)
+        im = ax.imshow(data,vmin=0.0,vmax=0.2)
         plt.colorbar(im)
         ax.set_title(title)
         ax.set_xticklabels([])
@@ -374,13 +375,23 @@ def time_sequence(targetcode, part):
         plt.colorbar(im)
         plotcode += 1
 #        save_plot(data,title,obsid,'png',vmax=None,vmin=None)
+
+def make_roi_collections():
+    """docstring for make_roi_collections"""
+    pass    
+    
+def make_plots(no):
+    """docstring for make_plots"""
+    for i in range(0,16,3):
+        time_sequence('0945',i)
+        plt.savefig('Ithaca_sequence_'+str(no)+'_'+str(i)+'.pdf')
         
 def main():
-    lsdict = get_l_s()
+    lsdict = get_l_s('0945')
     roidata = roi.ROI_Data()
-    roidata.read_in('IncaCity_cleaned.csv')
+    roidata.read_in('Ithaca_cleaned.csv')
     roidict = roidata.dict
-    thresholds = load_thresholds()
+    thresholds = load_thresholds(roidict)
     all_areas = []
     fan_counts = []
     total = []
