@@ -1,5 +1,7 @@
 import os, subprocess, sys
 import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 
 FROM_BASE = "/imgdata/"
 DEST_BASE = "/processed_data/"
@@ -121,6 +123,7 @@ def rebin(a, newshape):
         slices = [ slice(0, old, float(old) / new) for old, new in zip(a.shape, newshape) ]
         coordinates = np.mgrid[slices]
         indices = coordinates.astype('i')   #choose the biggest smaller integer index
+        print len(indices),indices.max()
         return a[tuple(indices)]
 
 def rebin_factor(a, newshape):
@@ -133,4 +136,13 @@ def rebin_factor(a, newshape):
         slices = [ slice(None, None, old / new) for old, new in zip(a.shape, newshape) ]
         return a[slices]
 
-
+def save_plot(data, title, fname, format='png', cb = True,vmax=0.3,vmin=0.0):
+    """quick saving of some data in diff. formats"""
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    im = ax.imshow(data, vmin=vmin,vmax=vmax,aspect='equal')
+    if cb == True:
+        plt.colorbar(im)
+    ax.set_title(title)
+    plt.savefig(fname+'.'+format)
+    plt.close(fig)
