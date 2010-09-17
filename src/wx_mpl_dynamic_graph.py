@@ -22,6 +22,7 @@ import pprint
 import random
 import sys
 import wx
+import urllib
 
 # The recommended way to use wx with mpl is with the WXAgg
 # backend. 
@@ -34,7 +35,18 @@ from matplotlib.backends.backend_wxagg import \
     NavigationToolbar2WxAgg as NavigationToolbar
 import numpy as np
 import matplotlib.pylab as pylab
+import subprocess as sub
+import os
 
+
+def get_tvc_data():
+    print('Trying to get url data ...')
+    url_str = "http://tvc.unibe.ch/cgi-bin/log_file_get.cgi?file_logfile_active=buuh"
+    f = urllib.urlopen(url_str)
+    data = f.readlines()
+    f.close()
+    print('Success, {0} lines received.'.format(len(data)))
+    return data
 
 class DataGen(object):
     """ A silly class that generates pseudo-random data for
@@ -55,10 +67,74 @@ class DataGen(object):
             self.data += delta * 15
         elif r > 0.8: 
             # attraction to the initial value
-            delta += (0.5 if self.init > self.data else -0.5)
+            delta += (0.5 if self.init > self.data else - 0.5)
             self.data += delta
         else:
             self.data += delta
+            
+class TVC_Data(object):
+    """ Class to produce data by downloading the newest values from
+        tvc.unibe.ch
+    """
+    def __init__(self):
+        self.index = 30  # the data column to plot
+        self.init = get_tvc_data()
+        self.data = None
+    def next(self):
+        self._recalc_data()
+        return self.data
+    def _process_initial_data(self):
+        headerline = self.init.pop(0)
+        self.data = []
+        for line in self.init:
+            line = line.strip()
+            line_arr = line.split(';')
+            self.data.append(float(line_arr[self.index].strip()))
+        self.length = len(self.data)
+        
+    def _recalc_data(self):
+        if self.data == None: # only true the first time called
+            self._process_initial_data()
+            return
+        new_data = get_tvc_data() # that's all old plus any new (1 set / 10 s)
+        headerline = new_data.pop(0)
+        no_of_new_lines = len(new_data) - self.length
+        lines = new_data[-no_of_new_lines:] # get only the new lines
+        self.data = []
+        for line in lines:
+            line = line.strip()
+            line_arr = line.split(';')
+            print(line_arr[self.index])
+            self.data.append(float(line_arr[self.index].strip()))
+        self.length = len(new_data)
+        
+
+class ProcessMem(object):
+    """ A silly class that checks the memory consumption of a process. 
+    	Currently hardcoded to be Mail.app
+    """
+    def __init__(self, init=50):
+        self.data = self.init = init
+        self.pid = None
+        
+    def next(self):
+        self._recalc_data()
+        return self.data
+    
+    def _recalc_data(self):
+        if not self.pid:
+            procs = sub.Popen(['ps', 'aux'], stdout=sub.PIPE).communicate()[0]
+            procs = procs.split('\n')
+            pid = 0
+            for proc in procs:
+                if 'Applications/Mail.app' in proc:
+                    pid = int(proc.split()[1])
+            self.pid = pid
+        
+        tmp = int(os.popen('ps -p %d -o %s | tail -1' % 
+                        (self.pid, 'rss')).read()) / 1024
+        print tmp
+        self.data = tmp
 
 
 class BoundControlBox(wx.Panel):
@@ -74,12 +150,12 @@ class BoundControlBox(wx.Panel):
         box = wx.StaticBox(self, -1, label)
         sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
         
-        self.radio_auto = wx.RadioButton(self, -1, 
+        self.radio_auto = wx.RadioButton(self, -1,
             label="Auto", style=wx.RB_GROUP)
         self.radio_manual = wx.RadioButton(self, -1,
             label="Manual")
-        self.manual_text = wx.TextCtrl(self, -1, 
-            size=(35,-1),
+        self.manual_text = wx.TextCtrl(self, -1,
+            size=(35, -1),
             value=str(initval),
             style=wx.TE_PROCESS_ENTER)
         
@@ -117,8 +193,8 @@ class GraphFrame(wx.Frame):
     def __init__(self):
         wx.Frame.__init__(self, None, -1, self.title)
         
-        self.datagen = DataGen()
-        self.data = [self.datagen.next()]
+        self.datagen = TVC_Data()
+        self.data = np.array(self.datagen.next())
         self.paused = False
         
         self.create_menu()
@@ -127,7 +203,7 @@ class GraphFrame(wx.Frame):
         
         self.redraw_timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self.on_redraw_timer, self.redraw_timer)        
-        self.redraw_timer.Start(100)
+        self.redraw_timer.Start(20000)
 
     def create_menu(self):
         self.menubar = wx.MenuBar()
@@ -157,13 +233,13 @@ class GraphFrame(wx.Frame):
         self.Bind(wx.EVT_BUTTON, self.on_pause_button, self.pause_button)
         self.Bind(wx.EVT_UPDATE_UI, self.on_update_pause_button, self.pause_button)
         
-        self.cb_grid = wx.CheckBox(self.panel, -1, 
+        self.cb_grid = wx.CheckBox(self.panel, -1,
             "Show Grid",
             style=wx.ALIGN_RIGHT)
         self.Bind(wx.EVT_CHECKBOX, self.on_cb_grid, self.cb_grid)
         self.cb_grid.SetValue(True)
         
-        self.cb_xlab = wx.CheckBox(self.panel, -1, 
+        self.cb_xlab = wx.CheckBox(self.panel, -1,
             "Show X labels",
             style=wx.ALIGN_RIGHT)
         self.Bind(wx.EVT_CHECKBOX, self.on_cb_xlab, self.cb_xlab)        
@@ -200,7 +276,7 @@ class GraphFrame(wx.Frame):
 
         self.axes = self.fig.add_subplot(111)
         self.axes.set_axis_bgcolor('black')
-        self.axes.set_title('Very important random data', size=12)
+        self.axes.set_title('TVC Data channel column 30', size=12)
         
         pylab.setp(self.axes.get_xticklabels(), fontsize=8)
         pylab.setp(self.axes.get_yticklabels(), fontsize=8)
@@ -209,7 +285,7 @@ class GraphFrame(wx.Frame):
         # to the plotted line series
         #
         self.plot_data = self.axes.plot(
-            self.data, 
+            self.data,
             linewidth=1,
             color=(1, 1, 0),
             )[0]
@@ -221,13 +297,14 @@ class GraphFrame(wx.Frame):
         # sliding window effect. therefore, xmin is assigned after
         # xmax.
         #
+        xwin_size = 360
         if self.xmax_control.is_auto():
-            xmax = len(self.data) if len(self.data) > 50 else 50
+            xmax = len(self.data) if len(self.data) > xwin_size else xwin_size
         else:
             xmax = int(self.xmax_control.manual_value())
             
         if self.xmin_control.is_auto():            
-            xmin = xmax - 50
+            xmin = xmax - xwin_size
         else:
             xmin = int(self.xmin_control.manual_value())
 
@@ -265,7 +342,7 @@ class GraphFrame(wx.Frame):
         # returns a list over which one needs to explicitly 
         # iterate, and setp already handles this.
         #  
-        pylab.setp(self.axes.get_xticklabels(), 
+        pylab.setp(self.axes.get_xticklabels(),
             visible=self.cb_xlab.IsChecked())
         
         self.plot_data.set_xdata(np.arange(len(self.data)))
@@ -290,7 +367,7 @@ class GraphFrame(wx.Frame):
         file_choices = "PNG (*.png)|*.png"
         
         dlg = wx.FileDialog(
-            self, 
+            self,
             message="Save plot as...",
             defaultDir=os.getcwd(),
             defaultFile="plot.png",
@@ -307,7 +384,8 @@ class GraphFrame(wx.Frame):
         # (to respond to scale modifications, grid change, etc.)
         #
         if not self.paused:
-            self.data.append(self.datagen.next())
+            new_object = self.datagen.next()
+            self.data = np.append(self.data, new_object)
         
         self.draw_plot()
     
@@ -318,8 +396,8 @@ class GraphFrame(wx.Frame):
         self.statusbar.SetStatusText(msg)
         self.timeroff = wx.Timer(self)
         self.Bind(
-            wx.EVT_TIMER, 
-            self.on_flash_status_off, 
+            wx.EVT_TIMER,
+            self.on_flash_status_off,
             self.timeroff)
         self.timeroff.Start(flash_len_ms, oneShot=True)
     
