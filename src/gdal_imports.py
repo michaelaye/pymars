@@ -5,7 +5,6 @@ Created on Aug 25, 2009
 '''
 
 #import site
-
 #site.addsitedir('/Library/Frameworks/GDAL.framework/Versions/1.6/Resources')
 
 try:
