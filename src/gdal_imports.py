@@ -16,12 +16,6 @@ except ImportError:
     import gdal
     from gdalconst import *
 
-#try:
-#    import numpy as Numeric
-#    Numeric.arrayrange = Numeric.arange
-#except ImportError:
-#    import Numeric
-
 import numpy as np
 
 try:
