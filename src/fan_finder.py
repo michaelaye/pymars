@@ -1,6 +1,8 @@
 #!/Library/Frameworks/Python.framework/Versions/2.6/bin/python
 
 from __future__ import division
+import matplotlib
+matplotlib.use('Agg')
 from gdal_imports import *
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
@@ -11,69 +13,14 @@ import pickle
 from canny import *
 import roi
 from hirise_tools import save_plot
-
-
-obsIDs_ESP = [
-            'ESP_011350_0945',
-            'ESP_011351_0945',
-            'ESP_011403_0945',
-            'ESP_011931_0945',
-            'ESP_012063_0945',
-            'ESP_012076_0945',
-            'ESP_012643_0945',
-            'ESP_013487_0945',
-            ]
-
-obsIDs = ['PSP_002380_0985',
-          'PSP_002868_0985',
-          'PSP_003092_0985',
-          'PSP_003158_0985',
-          'PSP_003237_0985',
-          'PSP_003448_0985',
-          'PSP_003593_0985',
-          'PSP_003804_0985',
-          'PSP_004081_0985',
-          'PSP_004714_0985',
-          'PSP_004925_0985',
-          'PSP_005281_0985',
-          'PSP_005426_0985',
-          'PSP_002622_0945',
-          'PSP_002675_0945',
-          'PSP_002820_0945',
-          'PSP_003176_0945',
-          'PSP_003308_0945',
-          'PSP_003309_0945',
-          'PSP_003453_0945',
-          'PSP_003466_0945',
-          'PSP_003677_0945',
-          'PSP_003730_0945',
-          'PSP_003756_0945',
-          'PSP_003822_0945',
-          'PSP_004033_0945',
-          'PSP_004178_0945',
-          'PSP_004666_0945',
-          'PSP_004891_0945',
-          ]
-
-def get_some_obs(somestring):
-    """docstring for get_ithaca_obs"""
-    some_obs = []
-    for id in obsIDs:
-        if id.endswith(somestring): some_obs.append(id)
-    return some_obs
+import sys
         
-def find_threshold(thresholds, obsID):
-    return thresholds[obsID]
-
-def load_thresholds():
-    with open('/Users/aye/Desktop/hist_thresholds.pkl') as f:
-        data = pickle.load(f)
-    return data
-
 def get_data(index):
     try:
         obsID = obsIDs[index]
     except TypeError:
+        obsID = index
+    except NameError:
         obsID = index
     fname = ''.join(['/Users/aye/Documents/hirise/fans/',
                      obsID,
@@ -148,54 +95,19 @@ def binary_processing(inputImg):
     struc1[1, 1] = 1
     struc25 = np.ones((5, 5))
     struc36 = np.ones((6, 6))
-    data = nd.morphology.binary_opening(data, struc8)
-    data = nd.morphology.binary_closing(data, struc8)
-
+#    iters = 3 # good for Ithaca
+    iters = 1 # good for Inca City
+    data = nd.morphology.binary_opening(data, struc8,iterations=iters)
+    data = nd.morphology.binary_closing(data, struc8,iterations=iters)
     return data
    
 def grey_processing(inputImg):
-    fp = [[0, 1, 0], [1, 1, 1], [0, 1, 0]]
+#    fp = [[0, 1, 0], [1, 1, 1], [0, 1, 0]]
     fp = np.ones((3, 3))
-#    return nd.filters.median_filter(inputImg, size=30)
-    data = nd.morphology.grey_opening(inputImg, footprint=fp)
-    return nd.morphology.grey_closing(data, footprint=fp)
-
-def get_l_s(targetcode):
-    l_s_inca = [174.477,
-            196.233,
-            206.654,
-            209.771,
-            213.527,
-            223.683,
-            230.75,
-            241.121,
-            254.811,
-            285.757,
-            295.784,
-            312.21,
-            318.703]
-    l_s_ithaca = [185.097,
-                  187.467,
-                  194.034,  
-                  210.623,  
-                  216.925,  
-                  216.973,  
-                  223.925,  
-                  224.557,  
-                  234.868,  
-                  237.474,  
-                  238.754,  
-                  242.008,  
-                  252.437,  
-                  259.603,  
-                  283.449,  
-                  294.181]  
-    if targetcode == '0985':
-        l_s = l_s_inca
-    elif targetcode == '0945':
-        l_s = l_s_ithaca
-    ls_dict = dict(zip(get_some_obs('_'+targetcode), l_s))
-    return ls_dict
+    data = nd.median_filter(inputImg, size=7)
+    data = nd.grey_closing(data, footprint=fp)
+    data = nd.grey_opening(data,footprint=fp)
+    return data
 
 def hist_equal(data):
     "needs integer as input!!"
@@ -386,12 +298,16 @@ def make_plots(no):
         time_sequence('0945',i)
         plt.savefig('Ithaca_sequence_'+str(no)+'_'+str(i)+'.pdf')
         
-def main():
-    lsdict = get_l_s('0945')
+def main(argv=None):
+    if argv == None:
+        argv = sys.argv
+    if argv[1] =='inca':
+        f = 'IncaCity_cleaned.csv'
+    elif argv[1] == 'ithaca':
+        f = 'Ithaca_cleaned.csv'
     roidata = roi.ROI_Data()
-    roidata.read_in('Ithaca_cleaned.csv')
+    roidata.read_in(f)
     roidict = roidata.dict
-    thresholds = load_thresholds(roidict)
     all_areas = []
     fan_counts = []
     total = []
@@ -402,19 +318,30 @@ def main():
         if obsID.startswith('ESP'): continue
         print 'doing ', obsID
         orig_img = get_data(obsID)
+        if orig_img.ndim == 0:
+            print 'Image not loaded. Exiting'
+            sys.exit(1)
         preprocced_img = grey_processing(orig_img)
-        threshold = find_threshold(thresholds, obsID)
-        s = calc_salience(orig_img)
-    #    arr_masked = ma.masked_where(preprocced_img < threshold, preprocced_img)
-    #    fig1, ax1 = show_data(preprocced_img)
-        
+        try:
+            threshold = float(roidict[obsID]['Threshold'])
+        except ValueError:
+            continue
+#        s = calc_salience(orig_img)
+        threshold *= 1.03  # Inca City tuning
+#        threshold *= 1.05 # Ithaca good tune
+        arr_masked = ma.masked_where(preprocced_img < threshold, preprocced_img)
+        fig1, ax1 = show_data(arr_masked)
+        fig1.savefig(obsID+'_thresholded.png')
+        plt.close(fig1)
         arr_bin = np.where(preprocced_img < threshold, 1, 0)
     #    arr_bin = (canny(preprocced_img, 0.05, 0))[2]
     
         data = binary_processing(arr_bin)
         labels, n = labeling(data)
-#        fig2, ax2 = show_data(data)
-#        ax2.set_title('{0} fans found.'.format(n))
+        fig2, ax2 = show_data(data)
+        ax2.set_title('{0} fans found.'.format(n))
+        fig2.savefig(obsID+'binary.png')
+        plt.close(fig2)
 #===============================================================================
 # changed!!! here and in annotating
 #===============================================================================
@@ -422,19 +349,22 @@ def main():
         all_areas.append(areas)
         total.append(sum(areas))
         fan_counts.append(n)
-        lsds.append(lsdict[obsID])
+        lsds.append(float(roidict[obsID]['L_s']))
         actual_obs.append(int(obsID.split('_')[1]))
         
     fig = plt.figure()
     ax = fig.add_subplot(211)
     plt.plot(lsds, fan_counts, 'ro', label='fans')
-    ax.set_xlabel('L_s [deg]')
+    ax.set_xlim(xmax=260)
+    ax.set_xticks([])
     ax.set_ylabel('No of Fans')
     ax2 = fig.add_subplot(212)
     plt.plot(lsds, total, 'bo', label='total')
+    ax2.set_xlim(xmax=260)
+    ax2.set_ylim(ymax=40000)
     ax2.set_xlabel('L_s [deg]')
     ax2.set_ylabel('Total area of fans per subframe [m^2]')
-    
+    fig.savefig('Numbers_areas.pdf')
 #    fig = plt.figure()
 #    plt.hist(all_areas[5], 20)
     
