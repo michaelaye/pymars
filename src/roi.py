@@ -21,7 +21,7 @@ class ROI_Data():
              'NSAMPLES',
              'NLINES',
              'L_s',
-             'Thresholds']
+             'Threshold']
     def __init__(self, fname=None):
         self.dict = {}
         self.roiName = ''
@@ -38,7 +38,7 @@ class ROI_Data():
         self.nsamples = ''
         self.nlines = ''
         self.l_s = ''
-        self.thresholds = ''
+        self.threshold = ''
         self.mosaicPath = ''
         if not fname is None:
             self.read_in(fname)
@@ -65,7 +65,7 @@ class ROI_Data():
                                                   self.nsamples,
                                                   self.nlines,
                                                   self.l_s,
-                                                  self.thresholds]))
+                                                  self.threshold]))
 
     def read_in(self, fname):
         self.roiName = fname.rstrip('.csv')
