@@ -6,8 +6,8 @@ Created on Aug 16, 2009
 '''
 
 from gdal_imports import *
-import matplotlib
-matplotlib.use('Tkagg')
+#import matplotlib
+#matplotlib.use('Tkagg')
 import matplotlib.pyplot as plt
 from matplotlib.pylab import *
 from matplotlib.widgets import Button
@@ -170,7 +170,8 @@ def main():
     opts = [('mosaic cubes', '.mos.cub'),
             ('all cubes', '.cub'),
             ('PDS no label', '.img'),
-            ('PDS w/ label', '.lbl')]
+            ('PDS w/ label', '.lbl'),
+            ('All files', '.*')]
 
     if sys.platform == 'darwin':
         options = {}
