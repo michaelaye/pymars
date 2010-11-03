@@ -28,6 +28,7 @@ def get_ground_from_image(params):
     Results will be given in csv output file from ISIS mappt program."""
     mapptCmd = ISIS_mappt()
     sourcePath = getStoredPathFromID(params.obsID) # DEST_BASE set in hirise_tools
+    print sourcePath
     cubePath = glob.glob(sourcePath + '*'+extensions)[0]
     mapptCmd.setInputPath(cubePath)
     print "output-file for scan in prime image:", params.mapptFile
@@ -96,27 +97,16 @@ def find_coords(params):
                                       float(myCoords.latitude),
                                       float(myCoords.longitude))
 
-    print "\n Now searching for these coordinates in all mosaicked cubes with "\
-          "target code", params.targetCode
-
     foundFiles = []
     zeros = []
     # creating t (=search tuple) to remove potential 'None' type (=not defined)
-    l = []
-    for i in [params.targetCode, params.extraTargetCode]:
-        if i: l.append(i) # if one is None, skip it.
-    t = tuple(l)
-     # get list of all folders that match the targetcode(s)
-    tobeScanned = []
-    for elem in t:
-        tobeScanned.extend(glob.glob(os.path.join(DEST_BASE, '*_' + elem)))
-    for folder in tobeScanned:
+    for folder in os.listdir(DEST_BASE):
         fpath = os.path.join(DEST_BASE, folder)
-        # there shouldn't be a FILE (!) that ends with just a target code
-        # but just in case:
+        # in case it's not a folder, continue:
         if not os.path.isdir(fpath):
             continue
-        mosaics = glob.glob(os.path.join(fpath, "*.mos.cub"))
+        searchpath = os.path.join(fpath,'*'+ extensions)
+        mosaics = glob.glob(searchpath)
         for mosaic in mosaics:
             print 'Scanning', mosaic
             fpath = os.path.join(fpath, mosaic)
@@ -149,7 +139,7 @@ if __name__ == "__main__":
     from optparse import OptionParser
 
     usage = """Usage: %prog roiName obsID ccdColour sample line
-    [optional: -t 2nd_targetcode_nnnn]"""
+                [target codes]"""
 
     descript = """Utility to 1. calculate ground coordinates for a given
     sample/line pair for a given obsID. 2. find all mosaic data cubes on the hirise
