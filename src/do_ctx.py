@@ -10,16 +10,22 @@ Copyright (c) 2010 __MyCompanyName__. All rights reserved.
 from __future__ import division
 from osgeo import gdal
 from matplotlib.pylab import *
+import numpy as np
 import roi
 import hirise_tools as ht
 import glob
 import os
+import csv
+import sys
 
 myroi = roi.ROI_Data('ctx_inca_city.csv')
 
 mydict = myroi.dict
 
 keys = mydict.keys()
+keys.sort()
+
+dictreader = csv.DictReader(open(ht.DEST_BASE + 'ctx_inca_city_metadata.csv'))
 
 def get_ctx_fname(obsid):
     """create full path for ctx file from obsid and ccd.
@@ -39,12 +45,21 @@ def get_ctx_fname(obsid):
  
 gray()
    
-for key in keys:
-    fPath = get_ctx_fname(key)
+for row in dictreader:
+    obsid = row[' PRODUCT_ID'][:16].strip()
+    fPath = get_ctx_fname(obsid)
     f = gdal.Open(fPath)
-    x = int(mydict[key]['Map_Sample_Offset'])
-    y = int(mydict[key]['Map_Line_Offset'])
-    data = f.ReadAsArray(x+500,y+500,1200,1000)
-    print('plotting {0}'.format(key))
-    ht.save_plot(data,key,key)
+    x = int(mydict[obsid]['Map_Sample_Offset'])
+    y = int(mydict[obsid]['Map_Line_Offset'])
+    if x < 0 or y < 0: 
+        print('{0} has negative pixel location'.format(obsid))
+        continue
+    data = f.ReadAsArray(x+500,y,1000,500)
+    angle = float(row[' INCIDENCE_ANGLE'])
+    if angle > 90.0: 
+        print("cannot correct {0} for angle > 90.".format(obsid))
+        continue
+    data = data/np.cos(deg2rad(angle))
+    print('plotting {0}'.format(obsid))
+    ht.save_plot(data,obsid,obsid)
     
