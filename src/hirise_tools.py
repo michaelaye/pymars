@@ -4,9 +4,10 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 
 FROM_BASE = "/imgdata/"
-DEST_BASE = "/processed_data/"
+DEST_BASE = "/Users/aye/Data/ctx/inca_city/"
 
 mosaic_extensions = '.cal.norm.map.equ.mos.cub'
+mosaic_extensions = '.cal.des.mos.cub'
 
 class Coordinates:
     path = ''
@@ -26,14 +27,22 @@ def getCCDColourFromMosPath(path):
     except:
         print path
 
-def getObsIDFromPath(path):
+def getObsIDFromPath(path, instr = 'hirise'):
     basename = os.path.basename(path)
-    obsID = basename[:15]
-    try:
-        phase, orbit, targetcode = obsID.split('_')
-    except ValueError:
-        print("Path does not have standard ObsID, returning first 15 characters.")
-    return obsID
+    if instr == 'hirise':
+        obsID = basename[:15]
+        try:
+            phase, orbit, targetcode = obsID.split('_')
+        except ValueError:
+            print("Path does not have standard ObsID, returning first 15 characters.")
+        return obsID
+    if instr == 'ctx':
+        try:
+            obsID = basename.split('_')[1]
+        except IndexError:
+            print("Path does not have CTX file name format. Returning empty")
+            return ''
+            
 
 def getUpperOrbitFolder(orbitNumber):
     '''
