@@ -157,9 +157,9 @@ def plot_n_save_salience(s, obsid):
     plt.savefig(''.join([obsid, '.sal.png']))
     plt.close(fig)
 
-def do_saliences():
+def do_saliences(inputData = 'IncaCity_cleaned.csv'):
     roidata = roi.ROI_Data()
-    roidata.read_in('IncaCity_cleaned.csv')
+    roidata.read_in(inputData)
     roidict = roidata.dict
     for obsid in roidict:
         print obsid

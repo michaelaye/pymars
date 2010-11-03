@@ -1,4 +1,4 @@
-#!/usr/bin/python2.6
+#!/Library/Frameworks/Python.framework/Versions/Current/bin/python2.6
 # -*- coding: utf-8 -*-
 
 '''
@@ -28,7 +28,7 @@ def get_ground_from_image(params):
     Results will be given in csv output file from ISIS mappt program."""
     mapptCmd = ISIS_mappt()
     sourcePath = getStoredPathFromID(params.obsID) # DEST_BASE set in hirise_tools
-    cubePath = sourcePath + params.obsID + '_' + params.ccdColour + extensions
+    cubePath = glob.glob(sourcePath + '*'+extensions)[0]
     mapptCmd.setInputPath(cubePath)
     print "output-file for scan in prime image:", params.mapptFile
     mapptCmd.setOutputPath(params.mapptFile)
@@ -76,10 +76,11 @@ def find_coords(params):
     myCoords.sample = params.inputSample
     myCoords.line = params.inputLine
 
-    myCoords.longitude, myCoords.latitude = get_values_from_csv(params,
-                                                               myCoords,
-                                                               'Longitude',
-                                                               'Latitude')
+    myCoords.longitude, myCoords.latitude = \
+        get_values_from_csv(params,
+                            myCoords,
+                            'PositiveEast360Longitude',
+                            'PlanetocentricLatitude')
     if myCoords.pixelValue == "NULL":
         print "Given Coordinates do not seem to have a valid pixel value. Check!"
         sys.exit(1)
@@ -188,9 +189,14 @@ if __name__ == "__main__":
             params.roiName, params.obsID, params.ccdColour, params.inputSample, \
             params.inputLine = args
         except:
-            print('\n Something wrong with parameters.')
-            parser.print_help()
-            sys.exit(1)
+            try:
+                params.roiName, params.obsID, params.inputSample, \
+                params.inputLine = args
+                params.ccdColour = ''
+            except:
+                print('\n Something wrong with parameters.')
+                parser.print_help()
+                sys.exit(1)
 
     find_coords(params)
 

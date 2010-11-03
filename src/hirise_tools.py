@@ -149,9 +149,9 @@ def save_plot(data, title, fname, format='png', cb = True,vmax=0.3,vmin=0.0):
     """quick saving of some data in diff. formats"""
     fig = plt.figure()
     ax = fig.add_subplot(111)
-    im = ax.imshow(data, vmin=vmin,vmax=vmax,aspect='equal')
+    im = ax.imshow(data)#, vmin=vmin,vmax=vmax,aspect='equal')
     if cb == True:
         plt.colorbar(im)
     ax.set_title(title)
-    plt.savefig(fname+'.'+format)
+    plt.savefig(fname+'.'+format,dpi=100)
     plt.close(fig)
