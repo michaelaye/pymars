@@ -57,6 +57,8 @@ gray()
 l_s = []
 counts=[] 
 summed_areas=[]
+dx = 800
+dy = 600
 for row in dictreader:
     obsid = row[' PRODUCT_ID'][:16].strip()
     angle = float(row[' INCIDENCE_ANGLE'])
@@ -76,11 +78,11 @@ for row in dictreader:
     print("processing {0}".format(obsid))
     f = gdal.Open(fPath)
     if obsid.startswith('P07_003928'):
-        data = f.ReadAsArray(x+250,y-50,400,300) # correct shift for this one
+        data = f.ReadAsArray(x+250,y-50,dx,dy) # correct shift for this one
     elif obsid.startswith('P13_006204'):
-        data = f.ReadAsArray(x+190,y,400,300)
+        data = f.ReadAsArray(x+215,y,dx,dy)
     else:
-        data = f.ReadAsArray(x+240,y,400,300)
+        data = f.ReadAsArray(x+240,y,dx,dy)
     data = data/np.cos(deg2rad(angle))
 #     # data = nd.median_filter(data,size=2)
 #     n, bins = histogram(data,40)
@@ -102,7 +104,7 @@ for row in dictreader:
 #     title('{0} features found'.format(no))
     ht.save_plot(data,
                 obsid + ', L_s: {0}, incidence: {1}'.format(current_l_s,angle),
-                'inca_ctx_psp_' + obsid)
+                'inca_ctx_' + obsid)
 
 # plot(l_s, summed_areas)
 # show()
