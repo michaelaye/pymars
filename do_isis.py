@@ -93,3 +93,6 @@ def main():
         data = ISIS_Cube(f)
         data.do_map()
         print("\n###\n{0:2.2f}% done.\n###\n".format((i+1)/len(fList)*100.))
+
+if __name__ == '__main__':
+    main()
