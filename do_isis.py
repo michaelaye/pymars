@@ -46,7 +46,6 @@ class ISIS_Cube():
         check_call(cmd)
         self.state = 'cub'
         self.fname = newFileName
-
     def do_cal(self):
         if self.state != 'cub':
             print 'Wrong state for calibration'
