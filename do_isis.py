@@ -9,14 +9,16 @@ Copyright (c) 2010 __MyCompanyName__. All rights reserved.
 
 from __future__ import division
 import sys
-import os.path
+import os
 from glob import glob
 from pprint import pprint
 from subprocess import check_call
+op = os.path
 
 class ISIS_Cube():
     """CTX processing steps"""
-    def __init__(self, fname):
+    def __init__(self, fname, search=True):
+        "fname: absolute path"
         self.fname = fname
         self.states=['UNK','IMG','cub','cal','des','map']
         self.states_dir={'cal.des.cub':'des',
@@ -25,11 +27,33 @@ class ISIS_Cube():
                          'IMG':'IMG',
                          'cal.des.map.cub':'map'}
         self.state=self.states[0]
-        parts = self.fname.split('.')
-        self.fRoot = parts[0]
-        pointIndex = self.fname.find('.')
-        self.state = self.states_dir[self.fname[pointIndex+1:]]
+        self.fRoot = fname.split('.')[0]
+        if not search:
+            # the extension string is used as the key for the states dictionary
+            self.state = self.states_dir[op.basename(fname).partition[2]]
+        else:
+            self.search_other_states()
         print 'File status:',self.state
+     
+    def search_other_states(self):
+        dirname = op.dirname(self.fname) 
+        fnames = os.listdir(dirname)
+        extensions = [op.basename(fname).partition('.')[2] for fname in fnames]
+        print extensions
+        if 'cal.des.map.cub' in extensions:
+            self.state = 'map'
+            return
+        if 'cal.des.cub' in extensions:
+            self.state = 'des'
+            return
+        if 'cal.cub' in extensions:
+            self.state = 'cal'
+            return
+        if 'cub' in extensions:
+            self.state = 'cub'
+            return
+        self.state = 'IMG'
+            
     def do_cube(self):
         if self.state != 'IMG':
             print 'Wrong state for cube production'
