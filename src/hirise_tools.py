@@ -146,11 +146,19 @@ def rebin_factor(a, newshape):
         slices = [ slice(None, None, old / new) for old, new in zip(a.shape, newshape) ]
         return a[slices]
 
+def save_hist(data, fname, title=''):
+    """quick saving of histogram to file"""
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    im = ax.hist(data.flatten(),bins=100,range=[0,1])
+    plt.savefig(fname, dpi=100)
+    plt.close(fig)
+    
 def save_plot(data, title, fname, format='png', cb = True,vmax=0.3,vmin=0.0):
     """quick saving of some data in diff. formats"""
     fig = plt.figure()
     ax = fig.add_subplot(111)
-    im = ax.imshow(data,interpolation='nearest')#, vmax=0.3,vmin=0.2)#,aspect='equal')
+    im = ax.imshow(data,interpolation='nearest')#, vmax=0.6,vmin=0.2)#,aspect='equal')
     # im = ax.imshow(data, norm=colors.LogNorm(vmin=0.01,vmax=0.7))
     
     if cb == True:
@@ -158,5 +166,5 @@ def save_plot(data, title, fname, format='png', cb = True,vmax=0.3,vmin=0.0):
         # plt.colorbar(im, ticks=t, format='$%.2f$')
         plt.colorbar(im)
     ax.set_title(title)
-    plt.savefig(fname+'.'+format,dpi=200)
+    plt.savefig(fname+'.'+format,dpi=100)
     plt.close(fig)
