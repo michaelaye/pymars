@@ -1,4 +1,8 @@
 syntax: glob
+
+# eclipse settings
+*.settings
+
 # hidden Mac OS X files
 .DS_Store
 
