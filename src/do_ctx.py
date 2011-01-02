@@ -61,10 +61,11 @@ gray()
 l_s = []
 counts=[] 
 summed_areas=[]
-dx = 800
-dy = 600
+dx = 300
+dy = 300
 shiftx = 0
 shifty = 0
+season = 'P'
 for row in dictreader:
     obsid = row[' PRODUCT_ID'][:16].strip()
     angle = float(row[' INCIDENCE_ANGLE'])
@@ -77,18 +78,17 @@ for row in dictreader:
         print('{0} has negative pixel location'.format(obsid))
         continue
     fPath = get_ctx_fname(obsid)
-    if os.path.basename(fPath).startswith('B'): continue
+    if not os.path.basename(fPath).startswith(season): continue
     current_l_s = float(row[' SOLAR_LONGITUDE'])
     # if current_l_s > 260: break
     # if current_l_s < 180: continue
     print("processing {0}".format(obsid))
     f = gdal.Open(fPath)
     if obsid.startswith('P07_003928'):
-        data = f.ReadAsArray(x+250+shiftx,y-50+shifty,dx,dy) # correct shift for this one
-    elif obsid.startswith('P13_006204'):
-        data = f.ReadAsArray(x+215+shiftx,y+shifty,dx,dy)
+        data = f.ReadAsArray(x+10+shiftx-dx//2,y-41+shifty-dy//2,dx,dy) # correct shift for this one
     else:
-        data = f.ReadAsArray(x+240+shiftx,y+shifty,dx,dy)
+        data = f.ReadAsArray(x+shiftx-dx//2,y+shifty-dy//2,dx,dy)
+
     data = data/np.cos(deg2rad(angle))
 #     # data = nd.median_filter(data,size=2)
 #     n, bins = histogram(data,40)
