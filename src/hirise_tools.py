@@ -2,12 +2,13 @@ import os, subprocess, sys
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
+from matplotlib import colors
 
 FROM_BASE = "/imgdata/"
 DEST_BASE = "/Users/aye/Data/ctx/inca_city/"
 
-mosaic_extensions = '.cal.norm.map.equ.mos.cub'
-mosaic_extensions = '.cal.des.mos.cub'
+# mosaic_extensions = '.cal.norm.map.equ.mos.cub'
+mosaic_extensions = '.cal.des.map.cub'
 
 class Coordinates:
     path = ''
@@ -149,9 +150,13 @@ def save_plot(data, title, fname, format='png', cb = True,vmax=0.3,vmin=0.0):
     """quick saving of some data in diff. formats"""
     fig = plt.figure()
     ax = fig.add_subplot(111)
-    im = ax.imshow(data)#, vmin=vmin,vmax=vmax,aspect='equal')
+    im = ax.imshow(data,interpolation='nearest')#, vmax=0.3,vmin=0.2)#,aspect='equal')
+    # im = ax.imshow(data, norm=colors.LogNorm(vmin=0.01,vmax=0.7))
+    
     if cb == True:
+        # t = [0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7]
+        # plt.colorbar(im, ticks=t, format='$%.2f$')
         plt.colorbar(im)
     ax.set_title(title)
-    plt.savefig(fname+'.'+format,dpi=100)
+    plt.savefig(fname+'.'+format,dpi=200)
     plt.close(fig)
