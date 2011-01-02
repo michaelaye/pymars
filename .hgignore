@@ -18,6 +18,7 @@ syntax: glob
 
 # isis log files
 *.log
+*.prt
 
 # metadata folders of eclipse
 .metadata
@@ -36,3 +37,6 @@ nohup.out
 
 # zip files
 *.zip
+
+#text mate project
+*.tmproj
