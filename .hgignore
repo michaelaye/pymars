@@ -33,3 +33,6 @@ syntax: glob
 
 # nohup.outs from remote operations
 nohup.out
+
+# zip files
+*.zip
