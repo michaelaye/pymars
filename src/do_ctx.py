@@ -28,7 +28,7 @@ def get_areas(data, labels, n):
         areas.append(area)
     return areas
 
-myroi = roi.ROI_Data('ctx_inca_city.csv')
+myroi = roi.ROI_Data('ctx_ic_2.csv')
 
 mydict = myroi.dict
 
@@ -50,7 +50,11 @@ def get_ctx_fname(obsid):
     ccd = mydict[obsid]['CCDColour']
     dname = ht.DEST_BASE + phase + obsid[3:]
     searchpath = dname + os.sep + '*' + ht.mosaic_extensions
-    fname = glob.glob(searchpath)[0]
+    try:
+        fname = glob.glob(searchpath)[0]
+    except IndexError, e:
+        print searchpath
+        raise e    
     return fname
  
 gray()
@@ -59,6 +63,8 @@ counts=[]
 summed_areas=[]
 dx = 800
 dy = 600
+shiftx = 0
+shifty = 0
 for row in dictreader:
     obsid = row[' PRODUCT_ID'][:16].strip()
     angle = float(row[' INCIDENCE_ANGLE'])
@@ -78,11 +84,11 @@ for row in dictreader:
     print("processing {0}".format(obsid))
     f = gdal.Open(fPath)
     if obsid.startswith('P07_003928'):
-        data = f.ReadAsArray(x+250,y-50,dx,dy) # correct shift for this one
+        data = f.ReadAsArray(x+250+shiftx,y-50+shifty,dx,dy) # correct shift for this one
     elif obsid.startswith('P13_006204'):
-        data = f.ReadAsArray(x+215,y,dx,dy)
+        data = f.ReadAsArray(x+215+shiftx,y+shifty,dx,dy)
     else:
-        data = f.ReadAsArray(x+240,y,dx,dy)
+        data = f.ReadAsArray(x+240+shiftx,y+shifty,dx,dy)
     data = data/np.cos(deg2rad(angle))
 #     # data = nd.median_filter(data,size=2)
 #     n, bins = histogram(data,40)
