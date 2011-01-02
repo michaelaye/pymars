@@ -58,7 +58,9 @@ def get_ctx_fname(obsid):
         raise e    
     return fname
  
+# color palette
 gray()
+
 l_s = []
 counts=[] 
 summed_areas=[]
@@ -72,6 +74,7 @@ picked = ['B05_011702',
           'B08_012757',
           'B08_012889']
 frameholder = []
+my_l_s = []
 for row in dictreader:
     shiftx = 3
     shifty = -5
@@ -106,25 +109,31 @@ for row in dictreader:
         shifty = shifty + 4
     data = f.ReadAsArray(x+shiftx-dx//2,y+shifty-dy//2,dx,dy)
 
-    data = data/np.cos(deg2rad(angle))
+    data2 = data/np.cos(deg2rad(angle))
     # fp = ones((3,3))
     # fp = [[0,1,0],[1,1,1],[0,1,0]]
     # data = nd.grey_closing(data,footprint=fp)
     # data = nd.spline_filter(data)
-    data2 = nd.gaussian_filter(data,0.5)
+    data2 = nd.gaussian_filter(data2,0.5)
     # ht.save_plot(data2,
     #                 obsid + ', L_s: {0}, incidence: {1}'.format(current_l_s,angle),
     #                 'inca_ctx_' + obsid)
     # if obsid[:10] in ['B05_011702','B06_011913']:
-    #     data2 = data2 - data2.min()
-    #     
-    #     print 'multiplied'
-    data2 = (data2-scoreatpercentile(data2.flatten(),5)) * \
-                255/scoreatpercentile(data2.flatten(),95)
+    data2 = (data2 - data2.min())*(0.43-0.27)/(data2.max()-data2.min())+0.27
+    # data2 = (data2-scoreatpercentile(data2.flatten(),5)) * \
+    #             255/scoreatpercentile(data2.flatten(),95)
     print data2.min(),data2.max()
     frameholder.append(data2)
+    my_l_s.append(int(current_l_s))
+    # ht.save_hist(data2,'inca_ctx_' + obsid + '_hist.png')
 
 end = hstack(frameholder)
-ht.save_plot(end,'Inca City','inca_city_end',cb=False)
-# plot(l_s, summed_areas)
-# show()
+bone() # color palette
+imshow(end)
+xticks(range(25,310,50),tuple(my_l_s),fontsize=12)
+yticks([])
+tick_params(direction='out',top='off')
+title('Reappearing halo in Inca City, L$_s$: {0}-{1}$^\circ$\
+        '.format(my_l_s[0],my_l_s[-1]),fontsize=12)
+savefig('inca_ctx_end.pdf',dpi=100)
+
