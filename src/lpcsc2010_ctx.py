@@ -19,6 +19,7 @@ import os
 import csv
 import sys
 from scipy import ndimage as nd
+from scipy.stats import scoreatpercentile
 
 def get_areas(data, labels, n):
     slices = nd.find_objects(labels)
@@ -61,13 +62,24 @@ gray()
 l_s = []
 counts=[] 
 summed_areas=[]
-dx = 300
-dy = 300
-shiftx = 0
-shifty = 0
-season = 'P'
+dx = 50
+dy = 50
+season = 'B'
+picked = ['B05_011702',
+          'B06_011913',
+          'B07_012480',
+          'B08_012678',
+          'B08_012757',
+          'B08_012889']
+frameholder = []
 for row in dictreader:
+    shiftx = 3
+    shifty = -5
     obsid = row[' PRODUCT_ID'][:16].strip()
+    #!!!!
+    if not obsid[:10] in picked: 
+        continue
+    #!!!!
     angle = float(row[' INCIDENCE_ANGLE'])
     if angle > 90.0: 
         print("cannot correct {0} for angle > 90.".format(obsid))
@@ -85,32 +97,34 @@ for row in dictreader:
     print("processing {0}".format(obsid))
     f = gdal.Open(fPath)
     if obsid.startswith('P07_003928'):
-        data = f.ReadAsArray(x+10+shiftx-dx//2,y-41+shifty-dy//2,dx,dy) # correct shift for this one
-    else:
-        data = f.ReadAsArray(x+shiftx-dx//2,y+shifty-dy//2,dx,dy)
+        # correct shift for this one
+        shiftx = shiftx + 10
+        shifty = shifty - 41
+        # data = f.ReadAsArray(x+10+shiftx-dx//2,y-41+shifty-dy//2,dx,dy)
+    elif obsid[:10] in ['B05_011702','B06_011913']:
+        shiftx = shiftx - 8
+        shifty = shifty + 4
+    data = f.ReadAsArray(x+shiftx-dx//2,y+shifty-dy//2,dx,dy)
 
     data = data/np.cos(deg2rad(angle))
-#     # data = nd.median_filter(data,size=2)
-#     n, bins = histogram(data,40)
-#     diff = np.diff(n)
-#     thres = bins[diff.argmax()]
-#     print thres
-#     t = data<thres
-#     # for iters in arange(1,30,3):
-#     #     for elem in arange(iters):
-#     t = nd.binary_closing(t,iterations=1)
-#     t = nd.binary_opening(t,iterations=2)
-#     labeled, no = nd.label(t)
-#     counts.append(no)
-#     l_s.append(current_l_s)
-#     summed_areas.append(sum(get_areas(data,labeled, no)))
-#     # imshow(data)
-#     # break
-# #     imshow(labeled, interpolation='nearest')
-#     title('{0} features found'.format(no))
-    ht.save_plot(data,
-                obsid + ', L_s: {0}, incidence: {1}'.format(current_l_s,angle),
-                'inca_ctx_' + obsid)
+    # fp = ones((3,3))
+    # fp = [[0,1,0],[1,1,1],[0,1,0]]
+    # data = nd.grey_closing(data,footprint=fp)
+    # data = nd.spline_filter(data)
+    data2 = nd.gaussian_filter(data,0.5)
+    # ht.save_plot(data2,
+    #                 obsid + ', L_s: {0}, incidence: {1}'.format(current_l_s,angle),
+    #                 'inca_ctx_' + obsid)
+    # if obsid[:10] in ['B05_011702','B06_011913']:
+    #     data2 = data2 - data2.min()
+    #     
+    #     print 'multiplied'
+    data2 = (data2-scoreatpercentile(data2.flatten(),5)) * \
+                255/scoreatpercentile(data2.flatten(),95)
+    print data2.min(),data2.max()
+    frameholder.append(data2)
 
+end = hstack(frameholder)
+ht.save_plot(end,'Inca City','inca_city_end',cb=False)
 # plot(l_s, summed_areas)
 # show()
