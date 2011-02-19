@@ -87,6 +87,7 @@ def main():
     molaLRsample,molaLRline = get_pixels_from_coords(molaDS,lrX,lrY)
     print ctxULsample, ctxULline, ctxLRsample, ctxLRline
     print molaULsample, molaULline,molaLRsample, molaLRline
+    print ulX,ulY,lrX,lrY
     ctxData = ctxDS.ReadAsArray(ctxULsample,ctxULline,ctxWidth,ctxWidth)
     molaData = molaDS.ReadAsArray(int(molaULsample),int(molaULline),
                                   int(molaLRsample - molaULsample),
@@ -94,17 +95,26 @@ def main():
 
     molaData = molaData - molaData.mean()                    
 
-    x = arange(ctxULsample,ctxULsample+ctxWidth)
-    y = arange(ctxULline,ctxULline+ctxWidth)
-    X, Y = np.meshgrid(x,y)
+    # x = np.arange(ulX,lrX)
+    # y = np.arange(lrY,ulY)
+    # X, Y = np.meshgrid(x,y)
     # plotting
     fig = plt.figure(figsize=(10,10))
-    plt.gray()
     ax = fig.add_subplot(211)
-    im = ax.imshow(ctxData)
+    plt.gray()
+    im = ax.imshow(ctxData, extent=(min(ulX,lrX),max(ulX,lrX),min(ulY,lrY),
+                                     max(ulY,lrY)))
     ax2 = fig.add_subplot(212)
-    im2 = ax2.imshow(molaData,interpolation='nearest')
-    # cb2 = fig.colorbar(im2,orientation='vertical')
+    im2 = ax2.imshow(molaData, extent=(min(ulX,lrX),max(ulX,lrX),min(ulY,lrY),
+                                     max(ulY,lrY)))
+    cb2 = fig.colorbar(im2,orientation='vertical')
+
+    
+    # CS = ax2.contour(molaData, levels=[-300,0,300,600],
+    #                  extent=(min(ulX,lrX),
+    #                          max(ulX,lrX),
+    #                          min(ulY,lrY),
+    #                          max(ulY,lrY)) )
     plt.show()
  
 def _test():
