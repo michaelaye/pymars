@@ -19,6 +19,8 @@ import os
 import csv
 import sys
 from scipy import ndimage as nd
+from enthought.traits.api import *
+from enthought.traits.ui.api import *
 
 def get_areas(data, labels, n):
     slices = nd.find_objects(labels)
@@ -28,6 +30,11 @@ def get_areas(data, labels, n):
         areas.append(area)
     return areas
 
+class GetSeason(HasTraits):
+    """little class to get a GUI to ask for the season to work on (PSP/ESP)"""
+    season = Enum('P','B',desc="the CTX season to work on (P=PSP,B=ESP)",
+                    label='Season',)
+        
 myroi = roi.ROI_Data('ctx_ic_2.csv')
 
 mydict = myroi.dict
@@ -57,7 +64,6 @@ def get_ctx_fname(obsid):
         raise e    
     return fname
  
-gray()
 l_s = []
 counts=[] 
 summed_areas=[]
@@ -65,7 +71,12 @@ dx = 300
 dy = 300
 shiftx = 0
 shifty = 0
-season = 'P'
+getseason = GetSeason()
+getseason.configure_traits()
+season = getseason.season
+print season
+gray()
+
 for row in dictreader:
     obsid = row[' PRODUCT_ID'][:16].strip()
     angle = float(row[' INCIDENCE_ANGLE'])
