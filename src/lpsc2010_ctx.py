@@ -135,5 +135,5 @@ yticks([])
 tick_params(direction='out',top='off')
 title('Reappearing halo in Inca City, L$_s$: {0}-{1}$^\circ$\
         '.format(my_l_s[0],my_l_s[-1]),fontsize=12)
-savefig('inca_ctx_end.pdf',dpi=100)
+savefig('inca_ctx_end.pdf',dpi=100,bbox_inches='tight')
 
