@@ -13,6 +13,7 @@ import sys
 import os
 from osgeo import gdal,osr
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 import numpy as np
 
 molaFile = '/Users/aye/Data/mola/megr_s_512_1.cub'
@@ -90,7 +91,7 @@ def main():
     print molaULsample, molaULline,molaLRsample, molaLRline
     print ulX,ulY,lrX,lrY
     ctxData = ctxDS.ReadAsArray(ctxULsample,ctxULline,ctxWidth,ctxWidth)
-    molaData = molaDS.ReadAsArray(int(molaULsample),int(molaULline),
+    molaData = molaDS.ReadAsArray(int(molaULsample)+1,int(molaULline),
                                   int(molaLRsample - molaULsample),
                                   int(molaLRline - molaULline))
 
@@ -101,21 +102,23 @@ def main():
     # X, Y = np.meshgrid(x,y)
     # plotting
     fig = plt.figure(figsize=(10,10))
-    ax = fig.add_subplot(211)
+    ax = fig.add_subplot(111)
     plt.gray()
     im = ax.imshow(ctxData, extent=(min(ulX,lrX),max(ulX,lrX),min(ulY,lrY),
                                      max(ulY,lrY)))
-    ax2 = fig.add_subplot(212)
-    im2 = ax2.imshow(molaData, extent=(min(ulX,lrX),max(ulX,lrX),min(ulY,lrY),
-                                     max(ulY,lrY)))
-    cb2 = fig.colorbar(im2,orientation='vertical')
-
+    # ax2 = fig.add_subplot(111)
+    # im2 = ax2.imshow(molaData, extent=(min(ulX,lrX),max(ulX,lrX),min(ulY,lrY),
+    #                                  max(ulY,lrY)))
+    # cb2 = fig.colorbar(im2,orientation='vertical')
+    # 
     
-    # CS = ax2.contour(molaData, levels=[-300,0,300,600],
-    #                  extent=(min(ulX,lrX),
-    #                          max(ulX,lrX),
-    #                          min(ulY,lrY),
-    #                          max(ulY,lrY)) )
+    CS = ax.contour(molaData, 20, cmap = cm.jet,
+                     extent=(min(ulX,lrX),
+                             max(ulX,lrX),
+                             min(ulY,lrY),
+                             max(ulY,lrY)),
+                     origin='image' )
+    plt.clabel(CS,fontsize=9, inline=1)
     plt.show()
  
 def _test():
