@@ -8,12 +8,26 @@ Copyright (c) 2010 __MyCompanyName__. All rights reserved.
 """
 
 import sys
-from enthought.mayavi import mlab
 from osgeo import gdal
 from matplotlib.pyplot import imshow, figure, show
 
+def get_dataset():
+    """docstring for get_dataset"""
+    ds = gdal.Open('/Users/aye/Data/mola/megr_s_512_1.cub')
+    return ds
+    
+def get_sample_data(width=500):
+    """docstring for get_sample_data"""
+    ds = get_dataset()
+    xSize = ds.RasterXSize
+    ySize = ds.RasterYSize
+    return ds.ReadAsArray(xSize/2 - width/2,
+                          ySize/2 - width/2,
+                          width, width)
+                          
 def main(argv=None):
     """docstring for main"""
+    from enthought.mayavi import mlab
     if argv==None:
         argv=sys.argv
      
