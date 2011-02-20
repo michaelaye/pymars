@@ -76,6 +76,7 @@ def main():
         Usage()
     ctxDS = gdal.Open(ctxData)
     molaDS = gdal.Open(molaFile)
+    print 'Rastersize: ',ctxDS.RasterXSize, ctxDS.RasterYSize
     ctxULsample = ctxSample - ctxWidth//2
     ctxULline = ctxLine - ctxWidth//2
     ctxLRsample = ctxSample + ctxWidth//2
