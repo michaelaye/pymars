@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 '''
 Created on Aug 16, 2009
 
@@ -19,20 +19,20 @@ from LabelPlotter import get_labels
 class Zoom:
     dSize = (512, 512)
     def __init__(self, fname):
-        labels = get_labels(fname)
-        self.labels = labels
-        try:
-            self.offset = float(labels['IMAGE']['OFFSET'])
-            print self.offset
-            self.scaling_factor = float(labels['IMAGE']['SCALING_FACTOR'])
-            print self.scaling_factor
-        except KeyError:
-            self.offset = float(labels['UNCOMPRESSED_FILE']
-                                ['IMAGE']['OFFSET'])
-            print self.offset
-            self.scaling_factor = float(labels['UNCOMPRESSED_FILE']
-                                        ['IMAGE']['SCALING_FACTOR'])
-            print self.scaling_factor
+        # labels = get_labels(fname)
+        # self.labels = labels
+        # try:
+        #     self.offset = float(labels['IMAGE']['OFFSET'])
+        #     print self.offset
+        #     self.scaling_factor = float(labels['IMAGE']['SCALING_FACTOR'])
+        #     print self.scaling_factor
+        # except KeyError:
+        #     self.offset = float(labels['UNCOMPRESSED_FILE']
+        #                         ['IMAGE']['OFFSET'])
+        #     print self.offset
+        #     self.scaling_factor = float(labels['UNCOMPRESSED_FILE']
+        #                                 ['IMAGE']['SCALING_FACTOR'])
+        #     print self.scaling_factor
         ds = gdal.Open(fname)
         band = ds.GetRasterBand(1)
         self.data = band.ReadAsArray()
