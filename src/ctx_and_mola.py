@@ -54,7 +54,8 @@ def get_pixels_from_coords(dataset,x,y):
     quadratic dataset should return half the samples and lines, because (0,0)
     in pixels is the upper left of the array. This file as 10240 lines and 
     samples, so we expect 5120 to get back as pixel entry for the center of 
-    the projection:
+    the projection: (testing slightly off-center to avoid errors hidden by 
+    symmetric parameters)
     >>> get_pixels_from_coords(ds,0,1)
     [5120.0, 5119.997826086957]
     """
@@ -62,6 +63,19 @@ def get_pixels_from_coords(dataset,x,y):
     success, tInverse = gdal.InvGeoTransform(datasetTransform)
     return gdal.ApplyGeoTransform(tInverse, x, y)
 
+def center_width_to_corners(sample,line,width):
+    """docstring for center_width_to_corners
+    
+    create symmetric window around given sample/line point:
+    >>> center_width_to_corners(500,400,100)
+    (450, 350, 550, 450)
+    """
+    ulSample = sample - width//2
+    ulLine = line - width//2
+    lrSample = sample + width//2
+    lrLine = line + width//2
+    return ulSample,ulLine,lrSample,lrLine
+    
 def main():
     """combine CTX and MOLA data.
     
@@ -78,10 +92,8 @@ def main():
     ctxDS = gdal.Open(ctxData)
     molaDS = gdal.Open(molaFile)
     print 'Rastersize: ',ctxDS.RasterXSize, ctxDS.RasterYSize
-    ctxULsample = ctxSample - ctxWidth//2
-    ctxULline = ctxLine - ctxWidth//2
-    ctxLRsample = ctxSample + ctxWidth//2
-    ctxLRline = ctxLine + ctxWidth//2
+    ctxULsample,ctxULline,ctxLRsample,ctxLRline = \
+        center_width_to_corners(ctxSample,ctxLine,ctxWidth) 
     ulX,ulY = get_coords_from_pixels(ctxDS, ctxULsample, ctxULline)
     lrX,lrY = get_coords_from_pixels(ctxDS, ctxLRsample, ctxLRline)
                                      
