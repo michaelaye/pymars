@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 #from matplotlib.widgets import RectangleSelector
 #from pylab import subplot, arange, plot, sin, cos, pi, show
@@ -25,17 +25,19 @@
 #                       drawtype='box',useblit=True,
 #                       minspanx=5,minspany=5,spancoords='pixels')
 
-from gdal_imports import *
-import tkFileDialog as fd
+
+from osgeo import gdal
+# import tkFileDialog as fd
 import matplotlib.pyplot as plt
 
-def main():    
-    try:
-        fname = fd.askopenfilename(initialdir='/processed_data/maye')
-    except:
-        fname = fd.askopenfilename()
-        
-    cube = gdal.Open(fname, GA_ReadOnly)
+def main():
+    # try:
+    #     fname = fd.askopenfilename(initialdir='/processed_data/maye')
+    # except:
+    #     fname = fd.askopenfilename()
+
+    fname = '/Users/aye/Data/hirise/PSP_002622_0945_RED.JP2'
+    cube = gdal.Open(fname)
     
     print cube.GetDescription()
     
@@ -52,11 +54,11 @@ def main():
     yOff = ySize / 2 - size / 2 - 1
     
     print "reading a {0} sized array at center coordinates {1},{2} offset".format(size, xOff, yOff)
-    arr = cube.ReadAsArray(xOff, yOff, size, size)
+    arr = cube.ReadAsArray(int(xOff), int(yOff), size, size)
     
-    print "minimum of array: ", arr.min()
+    # print "minimum of array: ", arr.min()
     
-    arr[np.where(arr < 0.0)] = np.nan
+    # arr[np.where(arr < 0.0)] = np.nan
     
     fig = plt.figure()
     ax = fig.add_subplot(111)
