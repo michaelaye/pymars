@@ -118,12 +118,6 @@ def main():
     plt.gray()
     im = ax.imshow(ctxData, extent=(min(ulX,lrX),max(ulX,lrX),min(ulY,lrY),
                                      max(ulY,lrY)))
-    # ax2 = fig.add_subplot(111)
-    # im2 = ax2.imshow(molaData, extent=(min(ulX,lrX),max(ulX,lrX),min(ulY,lrY),
-    #                                  max(ulY,lrY)))
-    # cb2 = fig.colorbar(im2,orientation='vertical')
-    # 
-    
     CS = ax.contour(molaData, 20, cmap = cm.jet,
                      extent=(min(ulX,lrX),
                              max(ulX,lrX),
