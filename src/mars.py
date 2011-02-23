@@ -9,16 +9,23 @@ Copyright (c) 2010 __MyCompanyName__. All rights reserved.
 
 import sys
 from osgeo import gdal
-from matplotlib.pyplot import imshow, figure, show
+from matplotlib.pyplot import figure, show
 from ctx_and_mola import get_coords_from_pixels
 from ctx_and_mola import get_pixels_from_coords
+from mpl_toolkits.axes_grid.anchored_artists import AnchoredSizeBar
+import numpy as np
 
 class MOLA():
     """docstring for MOLA"""
     def __init__(self, 
-                 fname='/Users/aye/Data/mola/megr_s_512_1.cub'):
+                 fname='/Users/aye/Data/mola/megr_s_512_1.cub',
+                 testing = False,
+                 ):
         self.fname = fname
         self.dataset = gdal.Open(self.fname)
+        self.ds = self.dataset
+        if testing is True:
+            self.do_all()
             
     def get_sample_data(self,width=500):
         """docstring for get_sample_data"""
@@ -39,16 +46,35 @@ class MOLA():
         self.data = ds.ReadAsArray(ulSample,ulLine,lrSample-ulSample,lrLine-ulLine)
         return self.data
         
-    def get_extent(self,ulSample=None,ulLine=None,lrSample=None,lrLine=None):
-        if not any([ulSample,ulLine,lrSample,lrLine]):
-            self.ulX,self.ulY = get_coords_from_pixels(ulSample,ulLine)
-            self.lrX,self.lrY = get_coords_from_pixels(lrSample,lrLine)
-        else:
-            self.ulX,self.ulY = get_coords_from_pixels(self.urSL[0],self.urSL[1])
-            self.lrX,self.lrY = get_coords_from_pixels(self.lrSL[0],self.lrSL[1])
-        self.extent = [self.ulX,self.lrX,self.ulY,self.lrY]
+    def get_extent(self):
+        self.ulX,self.ulY = get_coords_from_pixels(self.ds,self.ulSL[0],self.ulSL[1])
+        self.lrX,self.lrY = get_coords_from_pixels(self.ds,self.lrSL[0],self.lrSL[1])
+        self.extent = [self.ulX,self.lrX,self.lrY,self.ulY]
         return self.extent
-                              
+
+    def show(self,loc = 3):
+        fig = figure()
+        ax = fig.add_subplot(111)
+        extent = self.get_extent()
+        ax.imshow(self.data,extent=extent,origin='image')
+        diffx = abs(extent[1]-extent[0])
+        diffy = abs(extent[3]-extent[2])
+        diff = max(diffx,diffy)
+        # get closed magnitude to 10 % of image extent
+        scalebarLength = 10**int(round(np.log10(diff/10)))
+        d = dict([(10,'10 m'), (100,'100 m'), (1000,'1 km'), (10000,'10 km'),
+                    (100000,'100 km'), (1000000,'1000 km')])
+        asb = AnchoredSizeBar(ax.transData,
+                              scalebarLength,
+                              d[scalebarLength],
+                              loc=loc)
+        ax.add_artist(asb)
+        show()
+
+    def do_all(self):
+        self.from_corners(0,0,1000,500)
+        self.show()
+        
 def main(argv=None):
     """docstring for main"""
     from enthought.mayavi import mlab
