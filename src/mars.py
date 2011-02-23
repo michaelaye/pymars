@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 """
-mars.py $Id: mars.py,v 765d2c83a7da 2011/02/23 19:37:40 aye $
+mars.py $Id: mars.py,v c749f7f7a441 2011/02/23 19:43:18 aye $
 
 Some tools to work with Mars data.
 Abbreviations:
@@ -83,7 +83,7 @@ class Point():
         return (self.sample, self.line)
 
 class Window():
-    """class to manage a window made of corner points
+    """class to manage a window made of corner Points (objects of Point())
     
     when using width, only quadratic windows supported currently
     """
@@ -95,8 +95,12 @@ class Window():
         self.center = centerPoint
         if not (ulPoint and lrPoint):
             if centerPoint and width: self.get_corners_from_center()
-            if ulPoint and width: self.get_lr_from_width()
-        
+            elif ulPoint and width: self.get_lr_from_width()
+            else:
+                print("Either upper left and lower right or upper left/"
+                     " centerPoint with width needs to be provided.") 
+                sys.exit(1)
+                
     def get_corners_from_center():
         """docstring for get_corners_from_center
     
