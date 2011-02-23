@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 """
-mars.py $Id: mars.py,v c749f7f7a441 2011/02/23 19:43:18 aye $
+mars.py $Id: mars.py,v 54d29ece915e 2011/02/23 22:56:19 aye $
 
 Some tools to work with Mars data.
 Abbreviations:
@@ -22,41 +22,43 @@ import numpy as np
 """
 """
 
+gdal.UseExceptions()
+
 class Point():
     """Little Point class to manage pixel and map points.
     
     Requires: gdal to enable sample/line<-> map coords tra'fo's
+    >>> p = Point(0,1)
+    
+    Need a dataset to try, so I get a MOLA dataset:
+    >>> mola = MOLA()
+    >>> p.convert_to_map(mola.dataset)
+    (-707109.6954345703, 706994.6059659123)
+    >>> p = Point(x=0,y=1)
+    >>> t = p.convert_to_pixels(mola.dataset)
+    >>> '%4.1f, %4.1f' % t
+    >>> '6144.0, 6143.9'
     """
     def __init__(self, sample=None, line=None, 
                        x=None, y=None,
                        lat=None,lon=None):
-        self.x = x
-        self.y = y
         self.sample = sample
         self.line = line
-        self.isPixel = isPixel
-        self.isMap = isMap
-        self.isLatLon = isLatLon
+        self.x = x
+        self.y = y
+        self.lat = lat
+        self.lon = lon
         
     def convert_to_map(self, dataset):
         """provide point in map projection coordinates.
     
         Input: gdal Dataset
-        Return: list [x,y] coordinates in the projection of the dataset
-        >>> from osgeo import gdal
-        >>> ds = gdal.Open('/Users/aye/Data/mola/megt_s_128_1.tif')
-    
-        Asking for the (0,1) pixel as measured in (sample,line), one gets the 
-        coordinate of the current projection measured in meters from the origin of
-        that projection.
-        Have to test (0,1) and not (0,0) because a wrong order of arguments would 
-        not be detected by the test because of the symmetry.
-        >>> convert_to_map(ds,0,1)
-        [-2355200.0, 2354740.0]
+        Return: tuple (x,y) coordinates in the projection of the dataset
         """
         if not (self.x and self.y): 
             datasetTransform = dataset.GetGeoTransform()
-            self.x, self.y = gdal.ApplyGeoTransform(datasetTransform, sample, line)
+            self.x, self.y = gdal.ApplyGeoTransform(datasetTransform, 
+                                                    self.sample, self.line)
         return (self.x,self.y)
 
     def convert_to_pixels(self, dataset):
@@ -64,43 +66,53 @@ class Point():
     
         Input: gdal Dataset
         Return: list [line,sample] of the dataset for given coordinate
-        >>> from osgeo import gdal
-        >>> ds = gdal.Open('/Users/aye/Data/mola/megt_s_128_1.tif')
-    
-        Asking the pixels for the center coordinate of a south pole centered
-        quadratic dataset should return half the samples and lines, because (0,0)
-        in pixels is the upper left of the array. This file as 10240 lines and 
-        samples, so we expect 5120 to get back as pixel entry for the center of 
-        the projection: (testing slightly off-center to avoid errors hidden by 
-        symmetric parameters)
-        >>> convert_to_pixel(ds,0,1)
-        [5120.0, 5119.997826086957]
         """
         if not(self.sample and self.line):
             datasetTransform = dataset.GetGeoTransform()
             success, tInverse = gdal.InvGeoTransform(datasetTransform)
-            self.sample, self.line = gdal.ApplyGeoTransform(tInverse, x, y)
+            self.sample, self.line = gdal.ApplyGeoTransform(tInverse, 
+                                                            self.x, 
+                                                            self.y)
         return (self.sample, self.line)
 
 class Window():
     """class to manage a window made of corner Points (objects of Point())
     
     when using width, only quadratic windows supported currently
+    >>> p1 = Point(0, 1)
+    >>> p2 = Point(10,20)
     """
-    def __init__(self, ulPoint=None, width=None, lrPoint=None, 
-                        centerPoint=None):
-        self.ul = ulPoint
+    def __init__(self, ulPoint=None, lrPoint=None, 
+                       centerPoint=None, width=None):
+        if any([not isinstance(point,mars.Point) for point in [ulPoint,lrPoint,
+                                                            centerPoint]]):
+            self.usage()
+        else: 
+            self.ul = ulPoint
+            self.lr = lrPoint
+            self.center = centerPoint
         self.width = width
-        self.lr= lrPoint
-        self.center = centerPoint
         if not (ulPoint and lrPoint):
             if centerPoint and width: self.get_corners_from_center()
             elif ulPoint and width: self.get_lr_from_width()
             else:
                 print("Either upper left and lower right or upper left/"
                      " centerPoint with width needs to be provided.") 
-                sys.exit(1)
+                return
                 
+    def get_lr_from_width(self):
+        lrSample = self.ul.sample+self.width
+        lrLine = self.ul.line+self.width
+        self.lr = Point(lrSample,lrLine)
+        
+    def usage(self):
+        print """Usage: win = Window(pointObject1, pointObject2) 
+        or 
+        win = Window(pointObject1, width_in_Pixel) 
+        or 
+        win = Window(centerPoint, width_in_Pixel)"""
+        return
+        
     def get_corners_from_center():
         """docstring for get_corners_from_center
     
@@ -111,17 +123,14 @@ class Window():
         """
         ulSample = self.center.sample - self.width//2
         ulLine = self.center.line - width//2
-        self.ul = Point(sample=ulSample,line=ulLine)
+        self.ul = Point(ulSample,ulLine)
         lrSample = self.center.sample + width//2
         lrLine = self.center.line + width//2
-        self.lr = Point(sample=lrSample,line=lrLine)
+        self.lr = Point(lrSample,lrLine)
         return (self.ul, self.lr)
 
-class Base():
-    """docstring for Base"""
-    def __init__(self):
-        gdal.UseExceptions()
-
+class ImgData():
+    """docstring for ImgData"""
     def get_sample_data(self,width=500):
         """docstring for get_sample_data"""
         ds = self.dataset
@@ -166,13 +175,12 @@ class Base():
         ax.add_artist(asb)
         show()
             
-class MOLA(Base):
+class MOLA(ImgData):
     """docstring for MOLA"""
     def __init__(self, 
                  fname='/Users/aye/Data/mola/megr_s_512_1.cub',
                  testing = False,
                  ):
-        super(MOLA, self).__init__()
         self.fname = fname
         self.dataset = gdal.Open(self.fname)
         self.ds = self.dataset
@@ -183,12 +191,14 @@ class MOLA(Base):
         self.from_corners(0,0,1000,500)
         self.show()
 
-class CTX(Base):
+class CTX(ImgData):
     """docstring for CTX"""
     def __init__(self,
                  fname='Users/aye/Data/ctx/inca_city/ESP_011412/'\
                  'B05_011412_0985_XI_81S063W.cal.des.cub.map.cub.png'):
-        super(CTX, self).__init__()
+        self.fname = fname
+        self.dataset = gdal.Open(self.fname)
+
                 
 def combine_ctx_and_mola(ctxFilename, ctxSample, ctxLine, ctxWidth):
     """combine CTX and MOLA data.
