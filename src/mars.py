@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 """
-mars.py $Id: mars.py,v 54d29ece915e 2011/02/23 22:56:19 aye $
+mars.py $Id: mars.py,v e2597fa7acfd 2011/02/24 00:33:41 aye $
 
 Some tools to work with Mars data.
 Abbreviations:
@@ -32,14 +32,17 @@ class Point():
     
     Need a dataset to try, so I get a MOLA dataset:
     >>> mola = MOLA()
-    >>> p.convert_to_map(mola.dataset)
-    (-707109.6954345703, 706994.6059659123)
+    >>> '%4.2f, %4.2f' % p.convert_to_map(mola.dataset)
+    '-707109.70, 706994.61'
     >>> p = Point(x=0,y=1)
-    >>> t = p.convert_to_pixels(mola.dataset)
-    >>> '%4.1f, %4.1f' % t
-    >>> '6144.0, 6143.9'
+    >>> '%4.2f, %4.2f' % p.convert_to_pixels(mola.dataset)
+    '6144.00, 6143.99'
+    >>> p2 = Point(x=3,y=3)
+    >>> newP = p + p2
+    >>> print newP.x, newP.y
+    3 4
     """
-    def __init__(self, sample=None, line=None, 
+    def __init__(self, sample=None, line=None,
                        x=None, y=None,
                        lat=None,lon=None):
         self.sample = sample
@@ -48,30 +51,43 @@ class Point():
         self.y = y
         self.lat = lat
         self.lon = lon
+    
+    def __add__(self, other):
+        newPoint = Point(0,0)
+        if all([coord != None for coord in [self.sample,other.sample]]):
+            newPoint.sample =self.sample + other.sample
+            newPoint.line = self.line + other.line
+        if all([coord != None for coord in [self.x,other.x]]):
+            newPoint.x = self.x + other.x
+            newPoint.y = self.y + other.y
+        if all([coord != None for coord in [self.lat,other.lat]]):
+            newPoint.lat = self.lat + other.lat
+            newPoint.lon = self.lon + other.lon
+        return newPoint
         
     def convert_to_map(self, dataset):
         """provide point in map projection coordinates.
-    
+        
         Input: gdal Dataset
         Return: tuple (x,y) coordinates in the projection of the dataset
         """
-        if not (self.x and self.y): 
+        if not (self.x and self.y):
             datasetTransform = dataset.GetGeoTransform()
-            self.x, self.y = gdal.ApplyGeoTransform(datasetTransform, 
+            self.x, self.y = gdal.ApplyGeoTransform(datasetTransform,
                                                     self.sample, self.line)
         return (self.x,self.y)
-
+    
     def convert_to_pixels(self, dataset):
         """provide pixel coords from x,y coords.
-    
+        
         Input: gdal Dataset
         Return: list [line,sample] of the dataset for given coordinate
         """
         if not(self.sample and self.line):
             datasetTransform = dataset.GetGeoTransform()
             success, tInverse = gdal.InvGeoTransform(datasetTransform)
-            self.sample, self.line = gdal.ApplyGeoTransform(tInverse, 
-                                                            self.x, 
+            self.sample, self.line = gdal.ApplyGeoTransform(tInverse,
+                                                            self.x,
                                                             self.y)
         return (self.sample, self.line)
 
@@ -82,12 +98,11 @@ class Window():
     >>> p1 = Point(0, 1)
     >>> p2 = Point(10,20)
     """
-    def __init__(self, ulPoint=None, lrPoint=None, 
+    def __init__(self, ulPoint=None, lrPoint=None,
                        centerPoint=None, width=None):
-        if any([not isinstance(point,mars.Point) for point in [ulPoint,lrPoint,
-                                                            centerPoint]]):
+        if  not any([lrPoint,centerPoint,width]):
             self.usage()
-        else: 
+        else:
             self.ul = ulPoint
             self.lr = lrPoint
             self.center = centerPoint
@@ -97,35 +112,37 @@ class Window():
             elif ulPoint and width: self.get_lr_from_width()
             else:
                 print("Either upper left and lower right or upper left/"
-                     " centerPoint with width needs to be provided.") 
+                     " centerPoint with width needs to be provided.")
                 return
-                
+    
     def get_lr_from_width(self):
         lrSample = self.ul.sample+self.width
         lrLine = self.ul.line+self.width
         self.lr = Point(lrSample,lrLine)
-        
+        return self.lr
+    
     def usage(self):
-        print """Usage: win = Window(pointObject1, pointObject2) 
-        or 
-        win = Window(pointObject1, width_in_Pixel) 
-        or 
+        print """Usage: win = Window(pointObject1, pointObject2)
+        or
+        win = Window(pointObject1, width_in_Pixel)
+        or
         win = Window(centerPoint, width_in_Pixel)"""
         return
-        
-    def get_corners_from_center():
-        """docstring for get_corners_from_center
     
+    def get_corners_from_center(self):
+        """docstring for get_corners_from_center
+        
         create symmetric window around given sample/line point and return
         to Point objects for each corner point of the window
-        >>> get_corners_from_center(500,400,100)
-        (450, 350, 550, 450)
+        >>> win = Window(centerPoint=Point(100,100),width=50)
+        >>> win.ul.sample, win.ul.line, win.lr.sample, win.lr.line
+        (75, 75, 125, 125)
         """
         ulSample = self.center.sample - self.width//2
-        ulLine = self.center.line - width//2
+        ulLine = self.center.line - self.width//2
         self.ul = Point(ulSample,ulLine)
-        lrSample = self.center.sample + width//2
-        lrLine = self.center.line + width//2
+        lrSample = self.center.sample + self.width//2
+        lrLine = self.center.line + self.width//2
         self.lr = Point(lrSample,lrLine)
         return (self.ul, self.lr)
 
@@ -140,7 +157,7 @@ class ImgData():
                               ySize/2 - width/2,
                               width, width)
         return self.data
- 
+    
     def from_corners(self,ulSample,ulLine,lrSample,lrLine):
         """"""
         self.corners = [ulSample,ulLine,lrSample,lrLine]
@@ -149,7 +166,7 @@ class ImgData():
         ds = self.dataset
         self.data = ds.ReadAsArray(ulSample,ulLine,lrSample-ulSample,lrLine-ulLine)
         return self.data
-        
+    
     def get_extent(self):
         self.ulX,self.ulY = get_coords_from_pixels(self.ds,self.ulSL[0],self.ulSL[1])
         self.lrX,self.lrY = get_coords_from_pixels(self.ds,self.lrSL[0],self.lrSL[1])
@@ -174,10 +191,10 @@ class ImgData():
                               loc=loc)
         ax.add_artist(asb)
         show()
-            
+
 class MOLA(ImgData):
     """docstring for MOLA"""
-    def __init__(self, 
+    def __init__(self,
                  fname='/Users/aye/Data/mola/megr_s_512_1.cub',
                  testing = False,
                  ):
@@ -186,7 +203,7 @@ class MOLA(ImgData):
         self.ds = self.dataset
         if testing is True:
             self.do_all()
-            
+    
     def do_all(self):
         self.from_corners(0,0,1000,500)
         self.show()
@@ -198,23 +215,23 @@ class CTX(ImgData):
                  'B05_011412_0985_XI_81S063W.cal.des.cub.map.cub.png'):
         self.fname = fname
         self.dataset = gdal.Open(self.fname)
-
                 
+
 def combine_ctx_and_mola(ctxFilename, ctxSample, ctxLine, ctxWidth):
     """combine CTX and MOLA data.
     
     MOLA and CTX data will be combined with these tools.
-    User shall provide line,sample center coordinate of CTX file ROI to 
+    User shall provide line,sample center coordinate of CTX file ROI to
     define distance in meters from southpole.
     """
-        
+    
     ctx = CTX(ctxFilename)
     mola = MOLA()
     ctxULsample,ctxULline,ctxLRsample,ctxLRline = \
-        get_corners_from_center(ctxSample,ctxLine,ctxWidth) 
+        get_corners_from_center(ctxSample,ctxLine,ctxWidth)
     ulX,ulY = get_coords_from_pixels(ctxDS, ctxULsample, ctxULline)
     lrX,lrY = get_coords_from_pixels(ctxDS, ctxLRsample, ctxLRline)
-                                     
+    
     molaULsample,molaULline = get_pixels_from_coords(molaDS,ulX,ulY)
     molaLRsample,molaLRline = get_pixels_from_coords(molaDS,lrX,lrY)
     print ctxULsample, ctxULline, ctxLRsample, ctxLRline
@@ -224,9 +241,9 @@ def combine_ctx_and_mola(ctxFilename, ctxSample, ctxLine, ctxWidth):
     molaData = molaDS.ReadAsArray(int(molaULsample)+1,int(molaULline),
                                   int(molaLRsample - molaULsample),
                                   int(molaLRline - molaULline))
-
-    molaData = molaData - molaData.mean()                    
-
+    
+    molaData = molaData - molaData.mean()
+    
     # x = np.arange(ulX,lrX)
     # y = np.arange(lrY,ulY)
     # X, Y = np.meshgrid(x,y)
@@ -250,15 +267,15 @@ def main(argv=None):
     from enthought.mayavi import mlab
     if argv==None:
         argv=sys.argv
-     
+    
     x1 = x2 = y1 = y2 = 0
-    fname = ''   
+    fname = ''
     try:
         fname = argv[1]
         x1,x2,y1,y2 = [int(i) for i in argv[2:]]
     except:
         print 'Usage: {0} fname x1 x2 y1 y2'.format(argv[0])
-
+    
     print x1,x2,y1,y2
     ds = gdal.Open(fname)
     band = ds.GetRasterBand(1)
@@ -273,6 +290,6 @@ def main(argv=None):
     mlab.colorbar(orientation='vertical',title='Height [m]',label_fmt='%4.0f')
     mlab.show()
     
-    
+
 if __name__ == "__main__":
 	sys.exit(main())
