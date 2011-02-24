@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 """
-mars.py $Id: mars.py,v e2597fa7acfd 2011/02/24 00:33:41 aye $
+mars.py $Id: mars.py,v ca68ea0db90c 2011/02/24 15:10:43 aye $
 
 Some tools to work with Mars data.
 Abbreviations:
@@ -146,6 +146,30 @@ class Window():
         self.lr = Point(lrSample,lrLine)
         return (self.ul, self.lr)
 
+    def get_gdal_window(self):
+        """provide window coordinates in gdal format.
+        
+        thats [ulSample, ulLine, samplewidth,linewidth]
+        >>> win = Window(Point(10,150),Point(100,200))
+        >>> win.get_gdal_window()
+        [10, 150, 90, 50]
+        """
+        return [self.ul.sample,self.ul.line,
+                self.lr.sample-self.ul.sample,
+                self.lr.line-self.ul.line]
+                
+    def get_extent(self):
+        """provide window coordinates in matplotlib extent format
+        
+        this is needed to get the imshow image plot in the right coordinates
+        >>> win = Window(Point(10,150),Point(100,200))
+        >>> win.get_extent()
+        [10, 100, 200, 150]
+        """
+        return [self.ul.sample,self.lr.sample,
+                self.lr.line,self.ul.line]
+                
+                
 class ImgData():
     """docstring for ImgData"""
     def get_sample_data(self,width=500):
@@ -158,13 +182,13 @@ class ImgData():
                               width, width)
         return self.data
     
-    def from_corners(self,ulSample,ulLine,lrSample,lrLine):
-        """"""
-        self.corners = [ulSample,ulLine,lrSample,lrLine]
-        self.ulSL= [ulSample,ulLine]
-        self.lrSL = [lrSample,lrLine]
-        ds = self.dataset
-        self.data = ds.ReadAsArray(ulSample,ulLine,lrSample-ulSample,lrLine-ulLine)
+    def read_ul_lr(self,ulPoint,lrPoint):
+        """get data for upperleft sample/line and lower right sample/line
+        
+        ulPoint = lrPoint = Point() class
+        """
+        self.window = Window(ulPoint,lrPoint)
+        self.data = self.dataset.ReadAsArray(*self.window.get_gdal_window())
         return self.data
     
     def get_extent(self):
@@ -205,14 +229,14 @@ class MOLA(ImgData):
             self.do_all()
     
     def do_all(self):
-        self.from_corners(0,0,1000,500)
+        self.read_ul_lr(0,0,1000,500)
         self.show()
 
 class CTX(ImgData):
     """docstring for CTX"""
     def __init__(self,
-                 fname='Users/aye/Data/ctx/inca_city/ESP_011412/'\
-                 'B05_011412_0985_XI_81S063W.cal.des.cub.map.cub.png'):
+                 fname='/Users/aye/Data/ctx/inca_city/ESP_011412_0985/'\
+                 'B05_011412_0985_XI_81S063W.cal.des.cub.map.cub'):
         self.fname = fname
         self.dataset = gdal.Open(self.fname)
                 
