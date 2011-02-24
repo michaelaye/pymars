@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 """
-mars.py $Id: mars.py,v b1c69986d9a4 2011/02/24 18:23:54 aye $
+mars.py $Id: mars.py,v fbda9498f60c 2011/02/24 18:31:55 aye $
 
 Some tools to work with Mars data.
 Abbreviations:
@@ -220,9 +220,14 @@ class ImgData():
         3380594.5
         >>> data.max()
         3380967.0
+        >>> data = mola.read_window(Window(Point(100,200),Point(400,500)))
+        >>> data.shape
+        (300, 300)
+        >>> data.min()
+        3380329.8
         """
         if isinstance(ul_or_win,Window):
-            self.window = window
+            self.window = ul_or_win
         else:
             self.window = Window(ul_or_win, lrPoint)
         self.data = self.dataset.ReadAsArray(*self.window.get_gdal_window())
