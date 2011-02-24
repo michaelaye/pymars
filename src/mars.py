@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 """
-mars.py $Id: mars.py,v fbda9498f60c 2011/02/24 18:31:55 aye $
+mars.py $Id: mars.py,v 8793b6c14e0c 2011/02/24 18:34:18 aye $
 
 Some tools to work with Mars data.
 Abbreviations:
@@ -175,7 +175,6 @@ class Window():
         this code executes on other machines
         >>> win = Window(Point(10,150),Point(100,200))
         >>> mola = MOLA()
-        >>> mola.read_window(win)
         >>> '%6.2f, '*4 % tuple(win.get_extent(mola.dataset))
         '-705958.80, -695600.75, 684091.80, 689846.28, '
         """
