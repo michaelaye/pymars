@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 """
-mars.py $Id: mars.py,v ca68ea0db90c 2011/02/24 15:10:43 aye $
+mars.py $Id: mars.py,v b1c69986d9a4 2011/02/24 18:23:54 aye $
 
 Some tools to work with Mars data.
 Abbreviations:
@@ -70,6 +70,10 @@ class Point():
         
         Input: gdal Dataset
         Return: tuple (x,y) coordinates in the projection of the dataset
+        >>> p = Point(0,0)
+        >>> mola = MOLA()
+        >>> '%6.2f, '*2 % p.convert_to_map(mola.dataset)
+        '-707109.70, 707109.70, '
         """
         if not (self.x and self.y):
             datasetTransform = dataset.GetGeoTransform()
@@ -82,6 +86,10 @@ class Point():
         
         Input: gdal Dataset
         Return: list [line,sample] of the dataset for given coordinate
+        >>> p = Point(x=5e5, y=6e5)
+        >>> mola = MOLA()
+        >>> '%6.2f ,'*2 % p.convert_to_pixels(mola.dataset)
+        '10488.45 ,930.66 ,'
         """
         if not(self.sample and self.line):
             datasetTransform = dataset.GetGeoTransform()
@@ -158,22 +166,40 @@ class Window():
                 self.lr.sample-self.ul.sample,
                 self.lr.line-self.ul.line]
                 
-    def get_extent(self):
+    def get_extent(self, dataset):
         """provide window coordinates in matplotlib extent format
         
         this is needed to get the imshow image plot in the right coordinates
+        the strange looking string print out for getting the extent is only 
+        done to make up for floating point differences that can happen when 
+        this code executes on other machines
         >>> win = Window(Point(10,150),Point(100,200))
-        >>> win.get_extent()
-        [10, 100, 200, 150]
+        >>> mola = MOLA()
+        >>> mola.read_window(win)
+        >>> '%6.2f, '*4 % tuple(win.get_extent(mola.dataset))
+        '-705958.80, -695600.75, 684091.80, 689846.28, '
         """
-        return [self.ul.sample,self.lr.sample,
-                self.lr.line,self.ul.line]
+        self.ul.convert_to_map(dataset)
+        self.lr.convert_to_map(dataset)
+        return [self.ul.x,self.lr.x,
+                self.lr.y,self.ul.y]
                 
                 
 class ImgData():
     """docstring for ImgData"""
     def get_sample_data(self,width=500):
-        """docstring for get_sample_data"""
+        """Get some sample data from the center of the dataset
+        
+        Input: width of square data array, default 500
+        >>> mola= MOLA()
+        >>> data = mola.get_sample_data()
+        >>> data.shape
+        (500, 500)
+        >>> data.min()
+        3382217.5
+        >>> mola.data.max()
+        3382383.8
+        """
         ds = self.dataset
         xSize = ds.RasterXSize
         ySize = ds.RasterYSize
@@ -182,25 +208,30 @@ class ImgData():
                               width, width)
         return self.data
     
-    def read_ul_lr(self,ulPoint,lrPoint):
-        """get data for upperleft sample/line and lower right sample/line
+    def read_window(self, ul_or_win, lrPoint=None):
+        """get data for Window object or 2 Point objects
         
-        ulPoint = lrPoint = Point() class
+        user can either provide one Window object or 2 Point objects as input
+        >>> mola = MOLA()
+        >>> data = mola.read_window(Point(100,200),Point(300,400))
+        >>> data.shape
+        (200, 200)
+        >>> data.min()
+        3380594.5
+        >>> data.max()
+        3380967.0
         """
-        self.window = Window(ulPoint,lrPoint)
+        if isinstance(ul_or_win,Window):
+            self.window = window
+        else:
+            self.window = Window(ul_or_win, lrPoint)
         self.data = self.dataset.ReadAsArray(*self.window.get_gdal_window())
         return self.data
-    
-    def get_extent(self):
-        self.ulX,self.ulY = get_coords_from_pixels(self.ds,self.ulSL[0],self.ulSL[1])
-        self.lrX,self.lrY = get_coords_from_pixels(self.ds,self.lrSL[0],self.lrSL[1])
-        self.extent = [self.ulX,self.lrX,self.lrY,self.ulY]
-        return self.extent
-    
+        
     def show(self,loc = 3):
         fig = figure()
         ax = fig.add_subplot(111)
-        extent = self.get_extent()
+        extent = self.window.get_extent(self.dataset)
         ax.imshow(self.data,extent=extent,origin='image')
         diffx = abs(extent[1]-extent[0])
         diffy = abs(extent[3]-extent[2])
