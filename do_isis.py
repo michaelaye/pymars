@@ -21,38 +21,31 @@ class ISIS_Cube():
         "fname: absolute path"
         self.fname = fname
         self.states=['UNK','IMG','cub','cal','des','map']
-        self.states_dir={'cal.des.cub':'des',
-                         'cal.cub':'cal',
-                         'cub':'cub',
-                         'IMG':'IMG',
-                         'cal.des.map.cub':'map'}
+        self.extensions = ['xxx','IMG','cub','cal.cub','cal.des.cub',
+                            'cal.des.map.cub']
+        self.states_dir=dict(zip(self.extensions,self.states))
         self.state=self.states[0]
         self.fRoot = fname.split('.')[0]
         if not search:
             # the extension string is used as the key for the states dictionary
-            self.state = self.states_dir[op.basename(fname).partition[2]]
+            self.state = self.states_dir[op.basename(fname).partition('.')[2]]
         else:
+            self.state = 'UNK'
             self.search_other_states()
         print 'File status:',self.state
+        print self.fname
      
     def search_other_states(self):
         dirname = op.dirname(self.fname) 
         fnames = os.listdir(dirname)
         extensions = [op.basename(fname).partition('.')[2] for fname in fnames]
-        print extensions
-        if 'cal.des.map.cub' in extensions:
-            self.state = 'map'
-            return
-        if 'cal.des.cub' in extensions:
-            self.state = 'des'
-            return
-        if 'cal.cub' in extensions:
-            self.state = 'cal'
-            return
-        if 'cub' in extensions:
-            self.state = 'cub'
-            return
-        self.state = 'IMG'
+        # start from highest evolved state
+        for state,ext in zip(reversed(self.states),reversed(self.extensions)):
+            if ext in extensions:
+                self.state = state
+                self.fname = self.fRoot + '.' + ext 
+                return
+            
             
     def do_cube(self):
         if self.state != 'IMG':
@@ -111,7 +104,7 @@ class ISIS_Cube():
         
         
 def main():
-    fList = glob('/Users/aye/Data/ctx/inca_city/*/*.des.cub')
+    fList = glob('/Users/aye/Data/ctx/inca_city/*/*.IMG')
     for i,f in enumerate(fList):
         print 'processing {0}'.format(f)
         data = ISIS_Cube(f)
