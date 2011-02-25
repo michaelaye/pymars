@@ -30,14 +30,20 @@ class ISIS_Cube():
             # the extension string is used as the key for the states dictionary
             self.state = self.states_dir[op.basename(fname).partition('.')[2]]
         else:
+            print 'Searching...'
             self.state = 'UNK'
             self.search_other_states()
         print 'File status:',self.state
         print self.fname
-     
+   
+    def do_all(self):
+        self.do_cube()
+        self.do_cal()
+        self.do_destripe()
+        self.do_map()
+        
     def search_other_states(self):
-        dirname = op.dirname(self.fname) 
-        fnames = os.listdir(dirname)
+        fnames = glob(self.fRoot+'*')
         extensions = [op.basename(fname).partition('.')[2] for fname in fnames]
         # start from highest evolved state
         for state,ext in zip(reversed(self.states),reversed(self.extensions)):
@@ -96,7 +102,7 @@ class ISIS_Cube():
                 'from='+self.fname,
                 'to='+newFileName,
                 'pixres=map',
-                'map=ctx_polar_stereo.map')
+                'map=/Users/aye/Data/ctx/ctx_polar_stereo.map')
         print(cmd)
         check_call(cmd)
         self.state = 'map'
@@ -104,12 +110,13 @@ class ISIS_Cube():
         
         
 def main():
-    fList = glob('/Users/aye/Data/ctx/inca_city/*/*.IMG')
+    fList = glob('/Users/aye/Data/ctx/manhattan/*.IMG')
     for i,f in enumerate(fList):
         print 'processing {0}'.format(f)
-        data = ISIS_Cube(f)
-        data.do_map()
+        data = ISIS_Cube(f,search=True)
+        data.do_all()
         print("\n###\n{0:2.2f}% done.\n###\n".format((i+1)/len(fList)*100.))
+        if i > 1: break
 
 if __name__ == '__main__':
     main()
