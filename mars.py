@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 """
-mars.py $Id: mars.py,v 8793b6c14e0c 2011/02/24 18:34:18 aye $
+mars.py $Id$
 
 Some tools to work with Mars data.
 Abbreviations:
