@@ -116,7 +116,6 @@ def main():
         data = ISIS_Cube(f,search=True)
         data.do_all()
         print("\n###\n{0:2.2f}% done.\n###\n".format((i+1)/len(fList)*100.))
-        if i > 1: break
 
 if __name__ == '__main__':
     main()
