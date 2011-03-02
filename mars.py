@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 """
-mars.py $Id$
+mars.py $Id: mars.py,v 5b5955c33dcd 2011/03/02 23:25:56 aye $
 
 Some tools to work with Mars data.
 Abbreviations:
@@ -11,7 +11,7 @@ lr = LowerRight
 Copyright (c) 2011 Klaus-Michael Aye. All rights reserved.
 """
 
-from osgeo import gdal
+from osgeo import gdal,osr
 from matplotlib.pyplot import figure, show
 import matplotlib.pyplot as plt
 import sys
@@ -32,10 +32,10 @@ class Point():
     
     Need a dataset to try, so I get a MOLA dataset:
     >>> mola = MOLA()
-    >>> '%4.2f, %4.2f' % p.convert_to_map(mola.dataset)
+    >>> '%4.2f, %4.2f' % p.pixel_to_meter(mola.dataset)
     '-707109.70, 706994.61'
     >>> p = Point(x=0,y=1)
-    >>> '%4.2f, %4.2f' % p.convert_to_pixels(mola.dataset)
+    >>> '%4.2f, %4.2f' % p.meter_to_pixel(mola.dataset)
     '6144.00, 6143.99'
     >>> p2 = Point(x=3,y=3)
     >>> newP = p + p2
@@ -51,7 +51,13 @@ class Point():
         self.y = y
         self.lat = lat
         self.lon = lon
-    
+        self.centered = False
+
+    def shift_to_center(self, geomatrix):
+        self.x += geomatrix[1] / 2.0
+        self.y += geomatrix[5] / 2.0
+        self.centered = True
+        
     def __add__(self, other):
         newPoint = Point(0,0)
         if all([coord != None for coord in [self.sample,other.sample]]):
@@ -65,39 +71,67 @@ class Point():
             newPoint.lon = self.lon + other.lon
         return newPoint
         
-    def convert_to_map(self, dataset):
+    def pixel_to_meter(self, geomatrix):
         """provide point in map projection coordinates.
         
         Input: gdal Dataset
         Return: tuple (x,y) coordinates in the projection of the dataset
         >>> p = Point(0,0)
         >>> mola = MOLA()
-        >>> '%6.2f, '*2 % p.convert_to_map(mola.dataset)
+        >>> '%6.2f, '*2 % p.pixel_to_meter(mola.dataset)
         '-707109.70, 707109.70, '
         """
         if not (self.x and self.y):
-            datasetTransform = dataset.GetGeoTransform()
-            self.x, self.y = gdal.ApplyGeoTransform(datasetTransform,
+            self.geomatrix = geomatrix
+            self.x, self.y = gdal.ApplyGeoTransform(geomatrix,
                                                     self.sample, self.line)
+        self.shift_to_center(geomatrix)
         return (self.x,self.y)
     
-    def convert_to_pixels(self, dataset):
+    def meter_to_pixel(self, geomatrix, sh):
         """provide pixel coords from x,y coords.
         
         Input: gdal Dataset
         Return: list [line,sample] of the dataset for given coordinate
         >>> p = Point(x=5e5, y=6e5)
         >>> mola = MOLA()
-        >>> '%6.2f ,'*2 % p.convert_to_pixels(mola.dataset)
+        >>> '%6.2f ,'*2 % p.meter_to_pixel(mola.dataset)
         '10488.45 ,930.66 ,'
         """
         if not(self.sample and self.line):
-            datasetTransform = dataset.GetGeoTransform()
-            success, tInverse = gdal.InvGeoTransform(datasetTransform)
+            success, tInverse = gdal.InvGeoTransform(geomatrix)
             self.sample, self.line = gdal.ApplyGeoTransform(tInverse,
                                                             self.x,
                                                             self.y)
         return (self.sample, self.line)
+    
+    def pixel_to_lonlat(self, geomatrix, projection):
+        self.pixel_to_meter(geomatrix)
+        self.meter_to_lonlat(projection)
+        return (self.lon, self.lat)
+        
+    def lonlat_to_pixel(self, geomatrix, projection):
+        self.lonlat_to_meter(projection)
+        self.meter_to_pixel(geomatrix, projection)
+        return (self.sample,self.line)
+        
+    def meter_to_lonlat(self, projection):
+        srs = osr.SpatialReference()
+        srs.ImportFromWkt(projection)
+        srsLatLon = srs.CloneGeogCS()
+        ct = osr.CoordinateTransformation(srs, srsLatLon)
+        self.lon, self.lat, height = ct.TransformPoint(self.x,self.y)
+        return (self.lon,self.lat)
+        
+    def lonlat_to_meter(self, projection):
+        srs = osr.SpatialReference()
+        srs.ImportFromWkt(projection)
+        srsLatLon = srs.CloneGeogCS()
+        ct = osr.CoordinateTransformation(srsLatLon,srs)
+        # height not used so far!
+        self.x, self.y, height = ct.TransformPoint(self.lon,self.lat)
+        return (self.x,self.y)
+        
 
 class Window():
     """class to manage a window made of corner Points (objects of Point())
@@ -178,8 +212,8 @@ class Window():
         >>> '%6.2f, '*4 % tuple(win.get_extent(mola.dataset))
         '-705958.80, -695600.75, 684091.80, 689846.28, '
         """
-        self.ul.convert_to_map(dataset)
-        self.lr.convert_to_map(dataset)
+        self.ul.pixel_to_meter(dataset)
+        self.lr.pixel_to_meter(dataset)
         return [self.ul.x,self.lr.x,
                 self.lr.y,self.ul.y]
                 
