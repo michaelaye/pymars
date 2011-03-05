@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 """
-mars.py $Id: mars.py,v 5b5955c33dcd 2011/03/02 23:25:56 aye $
+mars.py $Id: mars.py,v 998b600447bb 2011/03/05 19:30:25 aye $
 
 Some tools to work with Mars data.
 Abbreviations:
@@ -53,10 +53,13 @@ class Point():
         self.lon = lon
         self.centered = False
 
-    def shift_to_center(self, geomatrix):
-        self.x += geomatrix[1] / 2.0
-        self.y += geomatrix[5] / 2.0
-        self.centered = True
+    def shift_to_center(self, geotransform):
+        # if i'd shift, the centerpoint does not show center coordinates
+        # so that seems wrong. am i overlooking something?
+        # self.x += geotransform[1] / 2.0
+        # self.y += geotransform[5] / 2.0
+        # self.centered = True
+        pass
         
     def __add__(self, other):
         newPoint = Point(0,0)
@@ -70,8 +73,13 @@ class Point():
             newPoint.lat = self.lat + other.lat
             newPoint.lon = self.lon + other.lon
         return newPoint
+
+    def __call__(self):
+        print('Pixel: ({0},{1})'.format(self.sample,self.line))
+        print('Map: ({0},{1})'.format(self.x,self.y))
+        print('Geo: ({0},{1})'.format(self.lon,self.lat))
         
-    def pixel_to_meter(self, geomatrix):
+    def pixel_to_meter(self, geotransform):
         """provide point in map projection coordinates.
         
         Input: gdal Dataset
@@ -82,13 +90,13 @@ class Point():
         '-707109.70, 707109.70, '
         """
         if not (self.x and self.y):
-            self.geomatrix = geomatrix
-            self.x, self.y = gdal.ApplyGeoTransform(geomatrix,
+            self.geotransform = geotransform
+            self.x, self.y = gdal.ApplyGeoTransform(geotransform,
                                                     self.sample, self.line)
-        self.shift_to_center(geomatrix)
+        self.shift_to_center(geotransform)
         return (self.x,self.y)
     
-    def meter_to_pixel(self, geomatrix, sh):
+    def meter_to_pixel(self, geotransform):
         """provide pixel coords from x,y coords.
         
         Input: gdal Dataset
@@ -99,33 +107,35 @@ class Point():
         '10488.45 ,930.66 ,'
         """
         if not(self.sample and self.line):
-            success, tInverse = gdal.InvGeoTransform(geomatrix)
+            success, tInverse = gdal.InvGeoTransform(geotransform)
             self.sample, self.line = gdal.ApplyGeoTransform(tInverse,
                                                             self.x,
                                                             self.y)
         return (self.sample, self.line)
     
-    def pixel_to_lonlat(self, geomatrix, projection):
-        self.pixel_to_meter(geomatrix)
+    def pixel_to_lonlat(self, geotransform, projection):
+        self.pixel_to_meter(geotransform)
         self.meter_to_lonlat(projection)
         return (self.lon, self.lat)
         
-    def lonlat_to_pixel(self, geomatrix, projection):
+    def lonlat_to_pixel(self, geotransform, projection):
         self.lonlat_to_meter(projection)
-        self.meter_to_pixel(geomatrix, projection)
+        self.meter_to_pixel(geotransform, projection)
         return (self.sample,self.line)
         
     def meter_to_lonlat(self, projection):
-        srs = osr.SpatialReference()
-        srs.ImportFromWkt(projection)
+        srs = osr.SpatialReference(projection)
+        if int(srs.GetProjParm('scale_factor')) == 0:
+            srs.SetProjParm('scale_factor',1)
         srsLatLon = srs.CloneGeogCS()
         ct = osr.CoordinateTransformation(srs, srsLatLon)
         self.lon, self.lat, height = ct.TransformPoint(self.x,self.y)
         return (self.lon,self.lat)
         
     def lonlat_to_meter(self, projection):
-        srs = osr.SpatialReference()
-        srs.ImportFromWkt(projection)
+        srs = osr.SpatialReference(projection)
+        if int(srs.GetProjParm('scale_factor')) == 0:
+            srs.SetProjParm('scale_factor',1)
         srsLatLon = srs.CloneGeogCS()
         ct = osr.CoordinateTransformation(srsLatLon,srs)
         # height not used so far!
@@ -189,7 +199,7 @@ class Window():
         return (self.ul, self.lr)
 
     def get_gdal_window(self):
-        """provide window coordinates in gdal format.
+        """provide window pixel coordinates in gdal format.
         
         thats [ulSample, ulLine, samplewidth,linewidth]
         >>> win = Window(Point(10,150),Point(100,200))
@@ -200,7 +210,7 @@ class Window():
                 self.lr.sample-self.ul.sample,
                 self.lr.line-self.ul.line]
                 
-    def get_extent(self, dataset):
+    def get_extent(self, dataset, lonlat=False):
         """provide window coordinates in matplotlib extent format
         
         this is needed to get the imshow image plot in the right coordinates
@@ -212,14 +222,28 @@ class Window():
         >>> '%6.2f, '*4 % tuple(win.get_extent(mola.dataset))
         '-705958.80, -695600.75, 684091.80, 689846.28, '
         """
-        self.ul.pixel_to_meter(dataset)
-        self.lr.pixel_to_meter(dataset)
-        return [self.ul.x,self.lr.x,
+        if lonlat==False:
+            self.ul.pixel_to_meter(dataset.GetGeoTransform())
+            self.lr.pixel_to_meter(dataset.GetGeoTransform())
+            return [self.ul.x,self.lr.x,
                 self.lr.y,self.ul.y]
+        elif lonlat == True:
+            self.ul.pixel_to_lonlat(dataset.GetGeoTransform(),
+                                    dataset.GetProjection())
+            self.lr.pixel_to_lonlat(dataset.GetGeoTransform(),
+                                    dataset.GetProjection())
+            return [self.ul.lon,self.lr.lon,self.lr.lat,self.ul.lat]                  
                 
                 
 class ImgData():
     """docstring for ImgData"""
+    def __init__(self, fname=None):
+        self.fname = fname
+        self.dataset = gdal.Open(self.fname)
+        self.ds = self.dataset
+        self.geotransform = self.dataset.GetGeoTransform()
+        self.projection = self.dataset.GetProjection()
+        
     def get_sample_data(self,width=500):
         """Get some sample data from the center of the dataset
         
@@ -234,13 +258,19 @@ class ImgData():
         3382383.8
         """
         ds = self.dataset
-        xSize = ds.RasterXSize
-        ySize = ds.RasterYSize
-        self.data = ds.ReadAsArray(xSize/2 - width/2,
-                              ySize/2 - width/2,
-                              width, width)
+        self.get_center_from_dataset()
+        self.window = Window(centerPoint=self.center,width=width)
+        self.data = ds.ReadAsArray(*self.window.get_gdal_window())
         return self.data
-    
+  
+    def get_center_from_dataset(self, dataset=None):
+        if not dataset:
+            dataset = self.dataset
+        xSize = dataset.RasterXSize
+        ySize = dataset.RasterYSize
+        self.center = Point(xSize//2,ySize//2)
+        return self.center
+        
     def read_window(self, ul_or_win, lrPoint=None):
         """get data for Window object or 2 Point objects
         
@@ -265,11 +295,24 @@ class ImgData():
             self.window = Window(ul_or_win, lrPoint)
         self.data = self.dataset.ReadAsArray(*self.window.get_gdal_window())
         return self.data
+
+    def read_center_window(self, width=300):
+        self.window = Window(centerPoint=self.get_center_from_dataset(),width=width)
+        self.read_window(self.window)
         
-    def show(self,loc = 3):
+    def window_coords_to_meter(self):
+        self.window.ul.pixel_to_meter(self.geotransform)
+        self.window.lr.pixel_to_meter(self.geotransform)
+        
+    def window_coords_to_lonlat(self):
+        self.window.ul.pixel_to_lonlat(self.geotransform,self.projection)
+        self.window.lr.pixel_to_lonlat(self.geotransform,self.projection)
+        
+        
+    def show(self,loc = 3,lonlat=False):
         fig = figure()
         ax = fig.add_subplot(111)
-        extent = self.window.get_extent(self.dataset)
+        extent = self.window.get_extent(self.dataset,lonlat)
         ax.imshow(self.data,extent=extent,origin='image')
         diffx = abs(extent[1]-extent[0])
         diffy = abs(extent[3]-extent[2])
@@ -291,9 +334,7 @@ class MOLA(ImgData):
                  fname='/Users/aye/Data/mola/megr_s_512_1.cub',
                  testing = False,
                  ):
-        self.fname = fname
-        self.dataset = gdal.Open(self.fname)
-        self.ds = self.dataset
+        ImgData.__init__(self,fname)
         if testing is True:
             self.do_all()
     
@@ -306,8 +347,13 @@ class CTX(ImgData):
     def __init__(self,
                  fname='/Users/aye/Data/ctx/inca_city/ESP_011412_0985/'\
                  'B05_011412_0985_XI_81S063W.cal.des.cub.map.cub'):
-        self.fname = fname
-        self.dataset = gdal.Open(self.fname)
+        ImgData.__init__(self,fname)
+
+class HiRISE(ImgData):
+    """docstring for HiRISE"""
+    def __init__(self,
+                 fname='/Users/aye/Data/hirise/PSP_002380_0985_RED.cal.mos.cub'):
+        ImgData.__init__(self,fname)
                 
 
 def combine_ctx_and_mola(ctxFilename, ctxSample, ctxLine, ctxWidth):
