@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 """
-mars.py $Id: mars.py,v 998b600447bb 2011/03/05 19:30:25 aye $
+mars.py $Id: mars.py,v 750818c897ed 2011/03/10 18:08:51 aye $
 
 Some tools to work with Mars data.
 Abbreviations:
@@ -11,10 +11,12 @@ lr = LowerRight
 Copyright (c) 2011 Klaus-Michael Aye. All rights reserved.
 """
 
+from __future__ import division
 from osgeo import gdal,osr
 from matplotlib.pyplot import figure, show
 import matplotlib.pyplot as plt
 import sys
+import os.path
 import matplotlib.cm as cm
 from mpl_toolkits.axes_grid.anchored_artists import AnchoredSizeBar
 import numpy as np
@@ -24,6 +26,21 @@ import numpy as np
 
 gdal.UseExceptions()
 
+class Error(Exception):
+    """Base class for exceptions in this module."""
+    pass
+
+class MapNotSetError(Error):
+    """Exception raised for errors in the input of transformations.
+
+    Attributes:
+        expr -- input expression in which the error occurred
+        msg  -- explanation of the error
+    """
+    def __init__(self, expr, msg):
+        self.expr = expr
+        self.msg = msg
+
 class Point():
     """Little Point class to manage pixel and map points.
     
@@ -32,10 +49,10 @@ class Point():
     
     Need a dataset to try, so I get a MOLA dataset:
     >>> mola = MOLA()
-    >>> '%4.2f, %4.2f' % p.pixel_to_meter(mola.dataset)
+    >>> '%4.2f, %4.2f' % p.pixel_to_meter(mola.dataset.GetGeoTransform())
     '-707109.70, 706994.61'
     >>> p = Point(x=0,y=1)
-    >>> '%4.2f, %4.2f' % p.meter_to_pixel(mola.dataset)
+    >>> '%4.2f, %4.2f' % p.meter_to_pixel(mola.dataset.GetGeoTransform())
     '6144.00, 6143.99'
     >>> p2 = Point(x=3,y=3)
     >>> newP = p + p2
@@ -86,13 +103,12 @@ class Point():
         Return: tuple (x,y) coordinates in the projection of the dataset
         >>> p = Point(0,0)
         >>> mola = MOLA()
-        >>> '%6.2f, '*2 % p.pixel_to_meter(mola.dataset)
+        >>> '%6.2f, '*2 % p.pixel_to_meter(mola.dataset.GetGeoTransform())
         '-707109.70, 707109.70, '
         """
-        if not (self.x and self.y):
-            self.geotransform = geotransform
-            self.x, self.y = gdal.ApplyGeoTransform(geotransform,
-                                                    self.sample, self.line)
+        self.geotransform = geotransform
+        self.x, self.y = gdal.ApplyGeoTransform(geotransform,
+                                                self.sample, self.line)
         self.shift_to_center(geotransform)
         return (self.x,self.y)
     
@@ -103,14 +119,16 @@ class Point():
         Return: list [line,sample] of the dataset for given coordinate
         >>> p = Point(x=5e5, y=6e5)
         >>> mola = MOLA()
-        >>> '%6.2f ,'*2 % p.meter_to_pixel(mola.dataset)
+        >>> '%6.2f ,'*2 % p.meter_to_pixel(mola.dataset.GetGeoTransform())
         '10488.45 ,930.66 ,'
         """
-        if not(self.sample and self.line):
-            success, tInverse = gdal.InvGeoTransform(geotransform)
-            self.sample, self.line = gdal.ApplyGeoTransform(tInverse,
-                                                            self.x,
-                                                            self.y)
+        if (self.x == None) or (self.y == None):
+            raise MapNotSetError((self.x,self.y),
+                'Map coordinates not set for transformation.')
+        success, tInverse = gdal.InvGeoTransform(geotransform)
+        self.sample, self.line = gdal.ApplyGeoTransform(tInverse,
+                                                        self.x,
+                                                        self.y)
         return (self.sample, self.line)
     
     def pixel_to_lonlat(self, geotransform, projection):
@@ -120,7 +138,7 @@ class Point():
         
     def lonlat_to_pixel(self, geotransform, projection):
         self.lonlat_to_meter(projection)
-        self.meter_to_pixel(geotransform, projection)
+        self.meter_to_pixel(geotransform)
         return (self.sample,self.line)
         
     def meter_to_lonlat(self, projection):
@@ -167,6 +185,15 @@ class Window():
                      " centerPoint with width needs to be provided.")
                 return
     
+    def copy(self):
+        win = Window(Point(self.ul.sample,self.ul.line,
+                           x = self.ul.x, y = self.ul.y,
+                           lon = self.ul.lon, lat = self.ul.lat),
+                     Point(self.lr.sample,self.lr.line,
+                           x = self.lr.x, y = self.lr.y,
+                           lon = self.lr.lon, lat = self.lr.lat))
+        return win
+        
     def get_lr_from_width(self):
         lrSample = self.ul.sample+self.width
         lrLine = self.ul.line+self.width
@@ -206,9 +233,9 @@ class Window():
         >>> win.get_gdal_window()
         [10, 150, 90, 50]
         """
-        return [self.ul.sample,self.ul.line,
-                self.lr.sample-self.ul.sample,
-                self.lr.line-self.ul.line]
+        return [int(self.ul.sample)-1,int(self.ul.line)-1,
+                int(self.lr.sample-self.ul.sample),
+                int(self.lr.line-self.ul.line)]
                 
     def get_extent(self, dataset, lonlat=False):
         """provide window coordinates in matplotlib extent format
@@ -225,8 +252,7 @@ class Window():
         if lonlat==False:
             self.ul.pixel_to_meter(dataset.GetGeoTransform())
             self.lr.pixel_to_meter(dataset.GetGeoTransform())
-            return [self.ul.x,self.lr.x,
-                self.lr.y,self.ul.y]
+            return [self.ul.x/1000,self.lr.x/1000,self.lr.y/1000,self.ul.y/1000]
         elif lonlat == True:
             self.ul.pixel_to_lonlat(dataset.GetGeoTransform(),
                                     dataset.GetProjection())
@@ -275,6 +301,7 @@ class ImgData():
         """get data for Window object or 2 Point objects
         
         user can either provide one Window object or 2 Point objects as input
+        Point.sample and Point.line have to be filled.
         >>> mola = MOLA()
         >>> data = mola.read_window(Point(100,200),Point(300,400))
         >>> data.shape
@@ -307,40 +334,41 @@ class ImgData():
     def window_coords_to_lonlat(self):
         self.window.ul.pixel_to_lonlat(self.geotransform,self.projection)
         self.window.lr.pixel_to_lonlat(self.geotransform,self.projection)
+    
+    def window_coords_to_pixel(self):
+        self.window.ul.lonlat_to_pixel(self.geotransform,self.projection)
+        self.window.lr.lonlat_to_pixel(self.geotransform,self.projection) 
         
-        
-    def show(self,loc = 3,lonlat=False):
+    def show(self, lonlat=False):
         fig = figure()
         ax = fig.add_subplot(111)
         extent = self.window.get_extent(self.dataset,lonlat)
-        ax.imshow(self.data,extent=extent,origin='image')
-        diffx = abs(extent[1]-extent[0])
-        diffy = abs(extent[3]-extent[2])
+        ax.imshow(self.data,extent=extent)#,origin='image')
+        self.ax = ax
+        show()
+
+    def add_scalebar(self, loc=3):
+        extent = self.window.get_extent(self.dataset)
+        diffx = abs(extent[1]-extent[0])*1000
+        diffy = abs(extent[3]-extent[2])*1000
         diff = max(diffx,diffy)
         # get closed magnitude to 10 % of image extent
         scalebarLength = 10**int(round(np.log10(diff/10)))
-        d = dict([(10,'10 m'), (100,'100 m'), (1000,'1 km'), (10000,'10 km'),
+        scalebarLength /= 1000
+        d = dict([(1, '1 km'),(10,'10 m'), (100,'100 m'), (1000,'1 km'), (10000,'10 km'),
                     (100000,'100 km'), (1000000,'1000 km')])
-        asb = AnchoredSizeBar(ax.transData,
+        asb = AnchoredSizeBar(self.ax.transData,
                               scalebarLength,
                               d[scalebarLength],
                               loc=loc)
-        ax.add_artist(asb)
-        show()
-
+        self.ax.add_artist(asb)
+        self.ax.get_figure().canvas.draw()
+        
 class MOLA(ImgData):
     """docstring for MOLA"""
     def __init__(self,
-                 fname='/Users/aye/Data/mola/megr_s_512_1.cub',
-                 testing = False,
-                 ):
+                 fname='/Users/aye/Data/mola/megr_s_512_1.cub'):
         ImgData.__init__(self,fname)
-        if testing is True:
-            self.do_all()
-    
-    def do_all(self):
-        self.read_ul_lr(0,0,1000,500)
-        self.show()
 
 class CTX(ImgData):
     """docstring for CTX"""
@@ -349,10 +377,32 @@ class CTX(ImgData):
                  'B05_011412_0985_XI_81S063W.cal.des.cub.map.cub'):
         ImgData.__init__(self,fname)
 
+    def add_mola_contours(self):
+        self.window_coords_to_lonlat()
+        mola = MOLA()
+        mola.window = self.window.copy()
+        mola.window_coords_to_pixel()
+        mola.read_window(mola.window)
+        mola.data = mola.data - mola.data.mean()
+        fig = plt.figure(figsize=(10,10))
+        ax = fig.add_subplot(111)
+        plt.gray()
+        ax.imshow(self.data, extent=self.window.get_extent(self.dataset))
+        CS = ax.contour(mola.data, 8, cmap = cm.jet,
+                         extent=self.window.get_extent(self.dataset),
+                         origin='image' )
+        plt.clabel(CS,fontsize=13, inline=1)
+        ax.set_xlabel('Polar stereographic X [km]')
+        ax.set_ylabel('Polar stereographic Y [km]')
+        ax.set_title('CTX: ' +os.path.basename(self.fname))
+        self.ax = ax
+        plt.show()
+        
 class HiRISE(ImgData):
     """docstring for HiRISE"""
     def __init__(self,
-                 fname='/Users/aye/Data/hirise/PSP_002380_0985_RED.cal.mos.cub'):
+                 fname='/Users/aye/Data/hirise/'\
+                            'PSP_002380_0985_RED.cal.norm.map.equ.mos.cub'):
         ImgData.__init__(self,fname)
                 
 
