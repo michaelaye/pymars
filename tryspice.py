@@ -15,17 +15,17 @@ import sys
 furnsh('bepic.mk')
 
 radii = bodvrd('MERCURY','RADII',3)
-print radii
-daterange=['2021 JAN 30 12:00:00.000', '2022 MAY 02 03:42:42.623']
+daterange=['2021 JAN 30 12:00:00.000', '2021 JAN 31 12:00:00.000']
 
 et1 = utc2et(daterange[0])
 et2 = utc2et(daterange[1])
 print et2utc(et2,'ISOC',5)
-times = linspace(et1,et2,100)
+times = arange(et1,et2,60)
 print et2utc(times[-1],'ISOC',5)
 
 distances = []
 for t in times:
+    print et2utc(t,'ISOC',5)
     try:
         pos = spkpos('mercury',t,'j2000','none','mpo')
     except SpiceException:
@@ -33,5 +33,6 @@ for t in times:
         sys.exit(1)
     distances.append(vnorm(pos[0]))
     
-plot(times,array(distances)-radii[1][0])
+plot(times-et1,array(distances)-radii[1][0])
+plot(times-et1,array(distances)-radii[1][0],'*')
 show()
