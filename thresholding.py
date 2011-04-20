@@ -12,7 +12,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 import sys
-import cv
+# import cv
 from fan_finder import get_data
 
 counter = 0
@@ -53,29 +53,29 @@ def k_means_cluster(data):
     print 'final t:',final_t
     return final_t
 
-def test_cvAdapt(data):
-    """docstring for test_cvAdapt"""
-    dst = data.copy()
-    for block in range(3,22,2):
-        for param in range(20):
-            print 'Doing {0} with {1}'.format(block,param)
-            cv.AdaptiveThreshold(data,dst,1,
-                                 adaptive_method=cv.CV_ADAPTIVE_THRESH_MEAN_C,
-                                 thresholdType=cv.CV_THRESH_BINARY_INV,
-                                 blockSize=block,
-                                 param1=param )
-            fig = plt.figure()
-            ax = fig.add_subplot(111)
-            ax.set_title('Block = {0}, Param1 = {1}'.format(block,param))
-            im = ax.imshow(dst)
-            fig.savefig('test_adapt/adapt_block_'+str(block)+'_param_'+str(param)+'.png')
-            plt.close(fig)
+# def test_cvAdapt(data):
+#     """docstring for test_cvAdapt"""
+#     dst = data.copy()
+#     for block in range(3,22,2):
+#         for param in range(20):
+#             print 'Doing {0} with {1}'.format(block,param)
+#             cv.AdaptiveThreshold(data,dst,1,
+#                                  adaptive_method=cv.CV_ADAPTIVE_THRESH_MEAN_C,
+#                                  thresholdType=cv.CV_THRESH_BINARY_INV,
+#                                  blockSize=block,
+#                                  param1=param )
+#             fig = plt.figure()
+#             ax = fig.add_subplot(111)
+#             ax.set_title('Block = {0}, Param1 = {1}'.format(block,param))
+#             im = ax.imshow(dst)
+#             fig.savefig('test_adapt/adapt_block_'+str(block)+'_param_'+str(param)+'.png')
+#             plt.close(fig)
 
 def main():
     """not implemented"""
     data = get_data(2)
     data = get_uint8(data)
-    test_cvAdapt(data)
+    # test_cvAdapt(data)
 
 
 if __name__ == '__main__':
