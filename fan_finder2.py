@@ -61,7 +61,7 @@ def get_fan_blocks():
             '896_5632']
     for block in blocks:
         x,y = block.split('_')
-        yield (int(x),int(y))
+        yield (int(x),int(y),128,128)
 
 def get_block_coords(dataset = None):
     """provide coordinates for ReadAsArray.
@@ -92,16 +92,16 @@ def test_local_thresholds():
     for coords in get_block_coords():
         data = band.ReadAsArray(*coords)
         if data.min() < -1e6: continue # no data values in the block
-        data = data * 16384
+        data = data * 256
         data = data.astype(np.uint)
-        print 'doing ',x,y
+        print 'doing ', coords
         fig = plt.figure()
         ax = fig.add_subplot(111)
         T = mahotas.thresholding.otsu(data)
         labels, n = labeling (data < T)
         ax.imshow(data,cmap=cm.gray)
         plt.savefig(os.path.join('local_histos',
-                                 'block_'+str(x)+'_'+str(y)+'.png'))
+                                 'block_'+str(coords[0])+'_'+str(coords[1])+'.png'))
         plt.close(fig)
             
 if __name__ == '__main__':
