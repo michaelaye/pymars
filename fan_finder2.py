@@ -63,6 +63,25 @@ def get_fan_blocks():
         x,y = block.split('_')
         yield (int(x),int(y),128,128)
 
+def test_gaussian_filters():
+    ds = get_dataset()
+    band = ds.GetRasterBand(1)
+    for i,block in enumerate(get_fan_blocks()):
+        print(block)
+        data = band.ReadAsArray(*block)
+        for sigma in [1,2,3,4,5]:
+            fig = plt.figure()
+            ax = fig.add_subplot(111)
+            fdata = nd.gaussian_filter(data,sigma)
+            ax.imshow(fdata,interpolation='nearest')
+            ax.set_title('Sigma: ' + str(sigma))
+            plt.savefig('local_histos/gaussian_fan'+str(i)+'_sigma'+str(sigma)+'.png')
+            fig.clf()
+            ax = fig.add_subplot(111)
+            ax.hist(fdata.flatten(),50)
+            plt.savefig('local_histos/gaussian_fan_h'+str(i)+'_sigma'+str(sigma)+'.png')
+            plt.close(fig)
+                
 def get_block_coords(dataset = None):
     """provide coordinates for ReadAsArray.
     
@@ -97,12 +116,15 @@ def test_local_thresholds():
         print 'doing ', coords
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        T = mahotas.thresholding.otsu(data)
+        T = mahotas.thresholding.rc(data)
         labels, n = labeling (data < T)
-        ax.imshow(data,cmap=cm.gray)
+        # ax.imshow(data,cmap=cm.gray)
+        ax.hist(data.flatten(),15,log=True)
+        ax.set_title(str(T))
         plt.savefig(os.path.join('local_histos',
                                  'block_'+str(coords[0])+'_'+str(coords[1])+'.png'))
         plt.close(fig)
             
 if __name__ == '__main__':
-    test_local_thresholds()
+    test_gaussian_filters()
+    # test_local_thresholds()
