@@ -154,16 +154,12 @@ def save_hist(data, fname, title=''):
     plt.savefig(fname, dpi=100)
     plt.close(fig)
     
-def save_plot(data, title, fname, format='png', cb = True,vmax=0.3,vmin=0.0):
+def save_plot(data, title, fname, format='png', cb = True,vmax=None,vmin=None):
     """quick saving of some data in diff. formats"""
     fig = plt.figure()
     ax = fig.add_subplot(111)
-    im = ax.imshow(data,interpolation='nearest')#, vmax=0.6,vmin=0.2)#,aspect='equal')
-    # im = ax.imshow(data, norm=colors.LogNorm(vmin=0.01,vmax=0.7))
-    
-    if cb == True:
-        # t = [0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7]
-        # plt.colorbar(im, ticks=t, format='$%.2f$')
+    im = ax.imshow(data,interpolation='nearest',vmax=vmax,vmin=vmin)
+    if cb == True: 
         plt.colorbar(im)
     ax.set_title(title)
     plt.savefig(fname+'.'+format,dpi=100)
