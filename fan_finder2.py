@@ -1,21 +1,43 @@
 from __future__ import division
+from osgeo import gdal
 import matplotlib
 matplotlib.use('Agg')
-from osgeo import gdal
 import matplotlib.pyplot as plt
-import matplotlib.colors as colors
-import matplotlib.cm as cm
-import numpy.ma as ma
 import numpy as np
 import scipy.ndimage as nd
-import pickle
-from canny import *
-import roi
 from hirise_tools import save_plot
+import mahotas
 import sys
 import os
-import mahotas
+from canny import canny
+from hirise_tools import save_plot
 
+ndimage = nd
+numpy = np
+
+blocks = ['768_5120',
+        '768_5248',
+        '896_3200',
+        '896_3328',
+        '896_5120',
+        '896_5376',
+        '896_5632',
+        '128_3072',
+        '256_3456']
+
+blocksize=256
+
+def get_fan_no(index):
+    block = blocks[index]
+    x,y = block.split('_')
+    ds = get_dataset()
+    data = ds.ReadAsArray(int(x),int(y),blocksize,blocksize)
+    return data
+
+def get_fname(aList):
+    """get a string filename out of list of elements"""
+    return '_'.join([str(i) for i in aList])
+    
 class DataFinder():
     """class to provide data from different sources"""
     def __init__(self, fname=None, foldername=None, noOfFiles=None):
@@ -52,58 +74,122 @@ def labeling(data):
   
 def get_fan_blocks():
     """deliver block coords"""
-    blocks = ['768_5120',
-            '768_5248',
-            '896_3200',
-            '896_3328',
-            '896_5120',
-            '896_5376',
-            '896_5632']
     for block in blocks:
         x,y = block.split('_')
-        yield (int(x),int(y),128,128)
+        yield (int(x),int(y),blocksize,blocksize)
 
-def test_gaussian_filters():
-    ds = get_dataset()
-    band = ds.GetRasterBand(1)
-    for i,block in enumerate(get_fan_blocks()):
-        print(block)
-        data = band.ReadAsArray(*block)
-        for sigma in [1,2,3,4,5]:
-            fig = plt.figure()
-            ax = fig.add_subplot(111)
-            fdata = nd.gaussian_filter(data,sigma)
-            ax.imshow(fdata,interpolation='nearest')
-            ax.set_title('Sigma: ' + str(sigma))
-            plt.savefig('local_histos/gaussian_fan'+str(i)+'_sigma'+str(sigma)+'.png')
-            fig.clf()
-            ax = fig.add_subplot(111)
-            ax.hist(fdata.flatten(),50)
-            plt.savefig('local_histos/gaussian_fan_h'+str(i)+'_sigma'+str(sigma)+'.png')
-            plt.close(fig)
-                
-def get_block_coords(dataset = None):
-    """provide coordinates for ReadAsArray.
+def get_data(dataset = None,breakpoint=1e8):
+    """provide image data.
     
     If a dataset is provided loop through it in sizes of GDAL blocksize.
-    If not, provide the coords for blocks with fans as provided by get_fan_blocks
+    If not, provide the data for blocks with fans as provided by get_fan_blocks
     """
     # this to get blocks with fans
     if dataset == None:
+        ds = get_dataset()
+        band=ds.GetRasterBand(1)
         for t in get_fan_blocks():
-            yield t
+            yield band.ReadAsArray(*t),t[0],t[1]
     else:
         xSize = dataset.RasterXSize
         ySize = dataset.RasterYSize
         band = dataset.GetRasterBand(1)
-        blockSize = band.GetBlockSize()
+        blockSize = (blocksize,blocksize)
         for x in range(0,xSize,blockSize[0]):
             if x + blockSize[0] > xSize: continue
-            if x > 1000: break
+            if x > breakpoint: break
             for y in range(0,ySize,blockSize[1]):
                 if y+blockSize[1]> ySize: continue
-                yield (x,y,blockSize[0],blockSize[1])
+                data = band.ReadAsArray(x,y,blockSize[0],blockSize[1])
+                if data.min() < -1e6: continue
+                yield (data,x,y)
+
+
+def get_uint_image(data):
+    data *= np.round(255/data.max())
+    return data.astype(np.uint)
+ 
+def get_grad_mag(image):
+    grad_x = ndimage.sobel(image, 0)
+    grad_y = ndimage.sobel(image, 1)
+    grad_mag = numpy.sqrt(grad_x**2+grad_y**2)
+    return grad_mag
+ 
+def test_min():
+    ds = get_dataset()
+    X= ds.RasterXSize
+    Y= ds.RasterYSize
+    blobs = np.zeros((X/blocksize+1,Y/blocksize+1),dtype=np.uint8)
+    counter = 0
+    for db in get_data(ds,breakpoint=1000):
+        counter += 1
+        data,x,y = db
+        if np.mod(counter,10)== 0:
+            print counter,': ',(x/X,y/Y)
+        data = nd.median_filter(data,3)
+        cropped = data<data.mean()-4*data.std()
+        # if cropped.sum()==0:continue
+        cropped = nd.binary_closing(cropped,np.ones((3,3)),iterations=2)
+        cropped = nd.binary_opening(cropped,np.ones((3,3)),iterations=1)
+        blobs[x/blocksize,y/blocksize]=cropped.sum() 
+        fig = plt.figure()
+        ax=fig.add_subplot(211)
+        ax.imshow(data)
+        ax.set_title(str(x)+'_'+str(y))
+        ax2=fig.add_subplot(212)
+        labeled,n = nd.label(cropped,np.ones((3,3)))
+        ax2.imshow(labeled)
+        ax2.set_title(str(n)+' blobs found.')
+        plt.savefig(get_fname(['local_histos/min',x,y,'.png']))
+        plt.close(fig)
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    im = ax.imshow(blobs)
+    plt.colorbar(im)
+    plt.savefig('local_histos/blobs.png')
+    # np.save('blobs',blobs)
     
+def test_grey_morph():
+    root = 'local_histos/'
+    final_t = 0 # for get_new_t
+    for datablock in get_data():
+        data,x,y = datablock
+        data = get_uint_image(data)
+        print(x,y)
+        for i in range(0,30,4):
+            mdata = nd.grey_opening(data,(i,i))
+            R = mahotas.thresholding.rc(mdata)
+            gradient = get_grad_mag(mdata)
+            fig = plt.figure(figsize=(12,12))
+            ax1 = fig.add_subplot(211)
+            ax1.imshow(gradient)
+            ax1.set_title(str(i)+', R: '+str(R))
+            ax2 = fig.add_subplot(212)
+            ax2.hist(gradient.flatten(),50)
+            plt.savefig(get_fname([root+'img',x,y,i,'.png']))
+            plt.close(fig)
+
+def test_gaussian_filters():
+    for i,datablock in enumerate(get_data(ds)):
+        data, x,y = datablock
+        print(block)
+        for sigma in range(5,10):
+            fig = plt.figure()
+            ax = fig.add_subplot(211)
+            fdata = nd.gaussian_filter(data,sigma)
+            fdata = (fdata * 256).astype(np.uint)
+            T = mahotas.thresholding.otsu(fdata)
+            R = mahotas.thresholding.rc(fdata)
+            im = ax.imshow(fdata,interpolation='nearest')
+            ax.set_title('Sigma: ' + str(sigma)+', T='+str(T)+', R='+str(R))
+            plt.colorbar(im)
+            ax2 = fig.add_subplot(212)
+            # ax2.hist(fdata.flatten(),50)
+            labels,n = nd.label(fdata<R,np.ones((3,3)))
+            ax2.imshow(labels)
+            ax2.set_title(str(n))
+            plt.savefig('local_histos/gaussian_fan'+str(i)+'_sigma'+str(sigma)+'.png')
+            plt.close(fig)
     
 def test_local_thresholds():
     ds = get_dataset()
@@ -124,7 +210,10 @@ def test_local_thresholds():
         plt.savefig(os.path.join('local_histos',
                                  'block_'+str(coords[0])+'_'+str(coords[1])+'.png'))
         plt.close(fig)
-            
+
+
 if __name__ == '__main__':
-    test_gaussian_filters()
+    test_min()
+    # test_grey_morph()
+    # test_gaussian_filters()
     # test_local_thresholds()
