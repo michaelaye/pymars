@@ -25,7 +25,7 @@ blocks = ['768_5120',
         '128_3072',
         '256_3456']
 
-blocksize=512
+blocksize=128
 
 def get_fan_no(index):
     block = blocks[index]
@@ -82,6 +82,7 @@ def get_data(dataset = None,breakpoint=1e8):
     
     If a dataset is provided loop through it in sizes of GDAL blocksize.
     If not, provide the data for blocks with fans as provided by get_fan_blocks
+    No check for data quality is done, should be done at caller function
     """
     # this to get blocks with fans, a predefined set above
     if dataset == None:
@@ -94,14 +95,13 @@ def get_data(dataset = None,breakpoint=1e8):
         xSize = dataset.RasterXSize
         ySize = dataset.RasterYSize
         band = dataset.GetRasterBand(1)
-        blockSize = (blocksize,blocksize)
+        blockSize = (blocksize,blocksize) # global var above
         for x in range(0,xSize,blockSize[0]):
             if x + blockSize[0] > xSize: continue
             if x > breakpoint: break
             for y in range(0,ySize,blockSize[1]):
-                if y+blockSize[1]> ySize: continue
+                if y+blockSize[1] > ySize: continue
                 data = band.ReadAsArray(x,y,blockSize[0],blockSize[1])
-                if data.min() < -1e6: continue
                 yield (data,x,y)
 
 
@@ -119,7 +119,8 @@ def test_min():
     ds = get_dataset()
     X= ds.RasterXSize
     Y= ds.RasterYSize
-    blobs = np.zeros((Y/blocksize,X/blocksize),dtype=np.uint8)
+    # blobs = np.zeros((Y/blocksize,X/blocksize),dtype=np.uint8)
+    blobs = np.zeros((Y,X),dtype=np.bool)
     counter = 0
     kernel = [[0,1,0],
               [1,1,1],
@@ -127,8 +128,11 @@ def test_min():
     for db in get_data(ds):
         counter += 1
         data,x,y = db
-        if np.mod(counter,10)== 0:
+        if np.mod(counter,100) == 0:
             print("{0:3d} %".format(x*100//X))
+
+        if data.min() < -1e6: continue # black area around image data is NaN (-1e-38)
+
         data = nd.median_filter(data,3)
         
         # this is the first pixel selector, cropping with a
@@ -139,22 +143,23 @@ def test_min():
         cropped = data<data.mean()-3*data.std()
         cropped = nd.binary_closing(cropped,kernel,iterations=3)
         cropped = nd.binary_opening(cropped,kernel,iterations=3)
+        labeled,n = nd.label(cropped,np.ones((3,3)))
+        blobs[y:y+blocksize,x:x+blocksize]=labeled 
+        # blobs[y/blocksize,x/blocksize]=n 
         fig = plt.figure()
         ax=fig.add_subplot(211)
         ax.imshow(data)
         ax.set_title(str(x)+'_'+str(y))
         ax2=fig.add_subplot(212)
-        labeled,n = nd.label(cropped,np.ones((3,3)))
-        blobs[y/blocksize,x/blocksize]=n 
         ax2.imshow(labeled)
         ax2.set_title(str(n)+' blobs found.')
         fig.savefig(get_fname(['local_histos/min',x,y,'.png']))
         plt.close(fig)
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-    im = ax.imshow(blobs)
-    plt.colorbar(im)
-    plt.savefig('local_histos/blobs.png')
+    # fig = plt.figure()
+    # ax = fig.add_subplot(111)
+    # im = ax.imshow(blobs)
+    # plt.colorbar(im)
+    # plt.savefig('local_histos/blobs.png')
     np.save('blobs',blobs)
   
 def test_blob_array():
