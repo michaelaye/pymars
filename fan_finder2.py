@@ -1,7 +1,7 @@
 from __future__ import division
 from osgeo import gdal
 import matplotlib
-matplotlib.use('Agg')
+matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.ndimage as nd
@@ -25,7 +25,7 @@ blocks = ['768_5120',
         '128_3072',
         '256_3456']
 
-blocksize=256
+blocksize=512
 
 def get_fan_no(index):
     block = blocks[index]
@@ -47,14 +47,13 @@ class DataFinder():
         self.set_system_root_path()
         if not np.any(fname,foldername,noOfFiles):
             self.fname = os.path.join(self.data_root,
-                                      'hirise',
                                       'PSP_003092_0985',
                                       'PSP_003092_0985_RED.cal.norm.map.equ.mos.cub')
             self.data_type = 'single'
                                       
     def set_system_root_path(self):
         if sys.platform == 'darwin':
-            self.data_root='/Users/aye/Data/'
+            self.data_root='/Users/aye/Data/hirise/'
         else:
             self.data_root='/processed_data/'
 
@@ -84,13 +83,14 @@ def get_data(dataset = None,breakpoint=1e8):
     If a dataset is provided loop through it in sizes of GDAL blocksize.
     If not, provide the data for blocks with fans as provided by get_fan_blocks
     """
-    # this to get blocks with fans
+    # this to get blocks with fans, a predefined set above
     if dataset == None:
         ds = get_dataset()
         band=ds.GetRasterBand(1)
         for t in get_fan_blocks():
             yield band.ReadAsArray(*t),t[0],t[1]
     else:
+        #this is the standard loop through the big image
         xSize = dataset.RasterXSize
         ySize = dataset.RasterYSize
         band = dataset.GetRasterBand(1)
@@ -119,36 +119,67 @@ def test_min():
     ds = get_dataset()
     X= ds.RasterXSize
     Y= ds.RasterYSize
-    blobs = np.zeros((X/blocksize+1,Y/blocksize+1),dtype=np.uint8)
+    blobs = np.zeros((Y/blocksize,X/blocksize),dtype=np.uint8)
     counter = 0
-    for db in get_data(ds,breakpoint=1000):
+    kernel = [[0,1,0],
+              [1,1,1],
+              [0,1,0]]
+    for db in get_data(ds):
         counter += 1
         data,x,y = db
         if np.mod(counter,10)== 0:
-            print counter,': ',(x/X,y/Y)
+            print("{0:3d} %".format(x*100//X))
         data = nd.median_filter(data,3)
-        cropped = data<data.mean()-4*data.std()
-        # if cropped.sum()==0:continue
-        cropped = nd.binary_closing(cropped,np.ones((3,3)),iterations=2)
-        cropped = nd.binary_opening(cropped,np.ones((3,3)),iterations=1)
-        blobs[x/blocksize,y/blocksize]=cropped.sum() 
+        
+        # this is the first pixel selector, cropping with a
+        # 'x' sigma exclusion criteria around the mean
+        # with a 2 population pixel histogram, that's of course rude
+        # really should do first search for minimum and if that doesn't
+        # work such brutal 'x'-sigma from a mean'-approach
+        cropped = data<data.mean()-3*data.std()
+        cropped = nd.binary_closing(cropped,kernel,iterations=3)
+        cropped = nd.binary_opening(cropped,kernel,iterations=3)
         fig = plt.figure()
         ax=fig.add_subplot(211)
         ax.imshow(data)
         ax.set_title(str(x)+'_'+str(y))
         ax2=fig.add_subplot(212)
         labeled,n = nd.label(cropped,np.ones((3,3)))
+        blobs[y/blocksize,x/blocksize]=n 
         ax2.imshow(labeled)
         ax2.set_title(str(n)+' blobs found.')
-        plt.savefig(get_fname(['local_histos/min',x,y,'.png']))
+        fig.savefig(get_fname(['local_histos/min',x,y,'.png']))
         plt.close(fig)
     fig = plt.figure()
     ax = fig.add_subplot(111)
     im = ax.imshow(blobs)
     plt.colorbar(im)
     plt.savefig('local_histos/blobs.png')
-    # np.save('blobs',blobs)
-    
+    np.save('blobs',blobs)
+  
+def test_blob_array():
+    ds = get_dataset()
+    X= ds.RasterXSize
+    Y= ds.RasterYSize
+    bs = 128
+    newblobs = np.zeros((Y//bs,X//bs))
+    for xNow in range(0,X,bs):
+        print xNow
+        if xNow+bs > X: continue
+        for yNow in range(0,Y,bs):
+            if yNow+bs > Y: continue
+            data = ds.ReadAsArray(xNow,yNow, bs, bs)
+            myMax = data.max()
+            if myMax < 0: continue
+            newblobs[yNow//bs,xNow//bs]=myMax
+    print newblobs
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    im = ax.imshow(newblobs,aspect='equal')
+    plt.colorbar(im)
+    plt.show()
+
+      
 def test_grey_morph():
     root = 'local_histos/'
     final_t = 0 # for get_new_t
@@ -213,6 +244,7 @@ def test_local_thresholds():
 
 
 if __name__ == '__main__':
+    # test_blob_array()
     test_min()
     # test_grey_morph()
     # test_gaussian_filters()
