@@ -25,7 +25,7 @@ blocks = ['768_5120',
         '128_3072',
         '256_3456']
 
-blocksize=128
+blocksize=256
 
 def get_fan_no(index):
     block = blocks[index]
@@ -114,17 +114,25 @@ def get_grad_mag(image):
     grad_y = ndimage.sobel(image, 1)
     grad_mag = numpy.sqrt(grad_x**2+grad_y**2)
     return grad_mag
- 
-def test_min():
+
+def filter_and_morph(img, action_code='',iterations=1):
+    for code in action_code:
+        if code == 'c':
+            self.closing
+        
+def scanner():
     ds = get_dataset()
     X= ds.RasterXSize
     Y= ds.RasterYSize
-    # blobs = np.zeros((Y/blocksize,X/blocksize),dtype=np.uint8)
-    blobs = np.zeros((Y,X),dtype=np.bool)
+    blobs = np.zeros((Y/blocksize,X/blocksize))
+    sigmas_orig = np.zeros((Y/blocksize,X/blocksize))
+    sigmas_stretched = np.zeros((Y/blocksize,X/blocksize))
     counter = 0
-    kernel = [[0,1,0],
+    kernel_half = [[0,1,0],
               [1,1,1],
               [0,1,0]]
+    kernel = np.ones((3,3))
+    
     for db in get_data(ds):
         counter += 1
         data,x,y = db
@@ -133,35 +141,53 @@ def test_min():
 
         if data.min() < -1e6: continue # black area around image data is NaN (-1e-38)
 
-        data = nd.median_filter(data,3)
-        
-        # this is the first pixel selector, cropping with a
-        # 'x' sigma exclusion criteria around the mean
-        # with a 2 population pixel histogram, that's of course rude
-        # really should do first search for minimum and if that doesn't
-        # work such brutal 'x'-sigma from a mean'-approach
-        cropped = data<data.mean()-3*data.std()
-        cropped = nd.binary_closing(cropped,kernel,iterations=3)
-        cropped = nd.binary_opening(cropped,kernel,iterations=3)
-        labeled,n = nd.label(cropped,np.ones((3,3)))
-        blobs[y:y+blocksize,x:x+blocksize]=labeled 
+        # remove some noise
+        # data = nd.median_filter(data,3)
+        sigmas_orig[y/blocksize,x/blocksize]=data.std()
+        # stretch (=normalize) to min=0 and max = 2*pi (for later arctan stretch)
+        target_max = 1
+#        target_max = 2*np.pi
+        data = target_max*(data-data.min())/(data.max()-data.min())
+        # data = data - np.pi
+        # data = np.arctan(data)
+        sigmas_stretched[y/blocksize,x/blocksize]=data.std()
+        cropped3 = data<data.mean()-3*data.std()
+        cropped3o = nd.binary_opening(cropped3,kernel,iterations=1)
+        cropped3o2 = nd.binary_opening(cropped3,kernel,iterations=2)
+        cropped3oc2 = nd.binary_opening(cropped3,kernel,iterations=1)
+        cropped3oc2 = nd.binary_closing(cropped3oc2,kernel,iterations=2)
+        labeled3o,n3o = nd.label(cropped3o,kernel)
+        labeled3o2,n3o2 = nd.label(cropped3o2,kernel)
+        labeled3oc2,n3oc2 = nd.label(cropped3oc2,kernel)
+        # blobs[y:y+blocksize,x:x+blocksize]=labeled 
+        # if n!=0: continue
         # blobs[y/blocksize,x/blocksize]=n 
-        fig = plt.figure()
-        ax=fig.add_subplot(211)
+        fig = plt.figure(figsize=(14,10))
+        ax=fig.add_subplot(221)
         ax.imshow(data)
         ax.set_title(str(x)+'_'+str(y))
-        ax2=fig.add_subplot(212)
-        ax2.imshow(labeled)
-        ax2.set_title(str(n)+' blobs found.')
-        fig.savefig(get_fname(['local_histos/min',x,y,'.png']))
+        ax2=fig.add_subplot(222)
+        ax2.imshow(labeled3o)
+        ax2.set_title(str(n3o)+' blobs found.')
+        ax3=fig.add_subplot(223)
+        ax3.imshow(labeled3o2)
+        ax3.set_title(str(n3o2)+' blobs found.')
+        ax4=fig.add_subplot(224)
+        ax4.imshow(labeled3oc2)
+        ax4.set_title(str(n3oc2)+' blobs found.')
+        fig.savefig(get_fname(['PSP_003092_0985/subframe',x,y,'.png']))
         plt.close(fig)
     # fig = plt.figure()
     # ax = fig.add_subplot(111)
     # im = ax.imshow(blobs)
     # plt.colorbar(im)
     # plt.savefig('local_histos/blobs.png')
-    np.save('blobs',blobs)
-  
+    np.save('PSP_003092_0985/blobs',blobs)
+    np.save('PSP_003092_0985/sigmas_orig',sigmas_orig)
+    np.save('PSP_003092_0985/sigmas_stretched',sigmas_stretched)
+
+    
+    
 def test_blob_array():
     ds = get_dataset()
     X= ds.RasterXSize
@@ -250,7 +276,7 @@ def test_local_thresholds():
 
 if __name__ == '__main__':
     # test_blob_array()
-    test_min()
+    scanner()
     # test_grey_morph()
     # test_gaussian_filters()
     # test_local_thresholds()
