@@ -5,15 +5,18 @@ matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.ndimage as nd
-from hirise_tools import save_plot
+import hirise_tools
+from hirise_tools import save_plot,getStoredPathFromID
 import mahotas
 import sys
 import os
 from canny import canny
 from hirise_tools import save_plot
 
+np.seterr(all='raise')
 ndimage = nd
 numpy = np
+savepath='/Users/aye/results/fan_finder/'
 
 blocks = ['768_5120',
         '768_5248',
@@ -40,31 +43,28 @@ def get_fname(aList):
     
 class DataFinder():
     """class to provide data from different sources"""
-    def __init__(self, fname=None, foldername=None, noOfFiles=None):
+    def __init__(self, obsid=None,fname=None, foldername=None, noOfFiles=None):
         self.fname = fname
+        self.obsid = obsid
         self.foldername = foldername
         self.noOfFiles = noOfFiles
-        self.set_system_root_path()
-        if not np.any(fname,foldername,noOfFiles):
+        self.data_root = hirise_tools.DEST_BASE
+        if not np.any([obsid,fname,foldername,noOfFiles]):
             self.fname = os.path.join(self.data_root,
                                       'PSP_003092_0985',
                                       'PSP_003092_0985_RED.cal.norm.map.equ.mos.cub')
             self.data_type = 'single'
-                                      
-    def set_system_root_path(self):
-        if sys.platform == 'darwin':
-            self.data_root='/Users/aye/Data/hirise/'
-        else:
-            self.data_root='/processed_data/'
-
+        elif obsid:
+            self.fname = getStoredPathFromID(self.obsid)
+        self.get_dataset()
+        
     def get_dataset(self):
-        if self.data_type == 'single':
-            ds = gdal.Open(self.fname)
-            return ds
+        # if self.data_type == 'single':
+        self.ds = gdal.Open(self.fname)
            
-def get_dataset():
-    df = DataFinder()
-    return df.get_dataset()
+def get_dataset(obsid=None,fname=None):
+    df = DataFinder(obsid,fname)
+    return df.ds
  
 def labeling(data):
     struc8 = np.ones((3, 3))
@@ -115,10 +115,58 @@ def get_grad_mag(image):
     grad_mag = numpy.sqrt(grad_x**2+grad_y**2)
     return grad_mag
 
-def filter_and_morph(img, action_code='',iterations=1):
-    for code in action_code:
-        if code == 'c':
-            self.closing
+class ImgHandler():
+    def __init__(self,img,x,y,action_code=''):
+        """action_code is a sequence of letters indicating the kind of filter
+        to be applied and a digit that shall be used as parameter for that
+        filter, e.g. c2 means closing with 2 iterations.
+        So a combination of 2 closings and 3 openings would be encoded:
+        'c2o3'
+        """        
+        self.img = img
+        self.x = x
+        self.y = y
+        self.action_code = action_code
+        self.kernels = [[[0,1,0],
+                         [1,1,1],
+                         [0,1,0]],
+                         np.ones((3,3))]
+        myIter = iter(action_code)
+        #make sure to call myIter.next() somewhere to advance to next character
+        for code in myIter:
+            if code == ' ': continue
+            param = int(myIter.next())
+            # median filtering
+            if code == 'm':
+                self.img = nd.median_filter(self.img, param)
+            # stretching image to max: param
+            elif code == 's':
+                img = self.img
+                img = param*(img-img.min())/(img.max()-img.min())
+            # morphological closing with param iterations
+            elif code == 'c':
+                self.cropped = nd.binary_closing(self.cropped,
+                                                 self.kernels[1],
+                                                 iterations=param)
+            # morphological opening with param iterations
+            elif code == 'o':
+                self.cropped = nd.binary_opening(self.cropped,
+                                                 self.kernels[1],
+                                                 iterations=param)
+            # labeling the cropped (=binary) image with either 4- or 8-
+            # connected-ness, controlled by param
+            elif code == 'l':
+                self.labels, self.n = nd.label(self.cropped,
+                                               self.kernels[param])
+            # create binary cropped image by exclusion of pixels that are
+            # float(code.param)(e.g. 2.4) sigma away from mean value
+            elif code.isdigit():
+                # trick to have float factor for exclusion
+                factor = float(code+'.'+str(param))
+                img = self.img
+                self.cropped = img < img.mean() - factor * img.std()        
+            else:
+                print('No defined action found for: ',code,param)
         
 def scanner():
     ds = get_dataset()
@@ -133,7 +181,7 @@ def scanner():
               [0,1,0]]
     kernel = np.ones((3,3))
     
-    for db in get_data(ds):
+    for db in get_data(ds,2000):
         counter += 1
         data,x,y = db
         if np.mod(counter,100) == 0:
@@ -141,50 +189,30 @@ def scanner():
 
         if data.min() < -1e6: continue # black area around image data is NaN (-1e-38)
 
-        # remove some noise
-        # data = nd.median_filter(data,3)
-        sigmas_orig[y/blocksize,x/blocksize]=data.std()
-        # stretch (=normalize) to min=0 and max = 2*pi (for later arctan stretch)
-        target_max = 1
-#        target_max = 2*np.pi
-        data = target_max*(data-data.min())/(data.max()-data.min())
-        # data = data - np.pi
-        # data = np.arctan(data)
-        sigmas_stretched[y/blocksize,x/blocksize]=data.std()
-        cropped3 = data<data.mean()-3*data.std()
-        cropped3o = nd.binary_opening(cropped3,kernel,iterations=1)
-        cropped3o2 = nd.binary_opening(cropped3,kernel,iterations=2)
-        cropped3oc2 = nd.binary_opening(cropped3,kernel,iterations=1)
-        cropped3oc2 = nd.binary_closing(cropped3oc2,kernel,iterations=2)
-        labeled3o,n3o = nd.label(cropped3o,kernel)
-        labeled3o2,n3o2 = nd.label(cropped3o2,kernel)
-        labeled3oc2,n3oc2 = nd.label(cropped3oc2,kernel)
-        # blobs[y:y+blocksize,x:x+blocksize]=labeled 
-        # if n!=0: continue
-        # blobs[y/blocksize,x/blocksize]=n 
+        # TODO: compare with median filtering
+        # TODO: compare with and without stretching
+        # TODO: compare 4 and 8 connected labeling/opening/closing
+        handler1 = ImgHandler(data.copy(),x,y,'s1 15 o2 c1 l1')
+        handler2 = ImgHandler(data.copy(),x,y,'s1 15 o3 c2 l1')
+        handler3 = ImgHandler(data.copy(),x,y,'s1 15 o4 c3 l1')
+        blobs[y/blocksize,x/blocksize]=handler2.n 
         fig = plt.figure(figsize=(14,10))
         ax=fig.add_subplot(221)
         ax.imshow(data)
         ax.set_title(str(x)+'_'+str(y))
         ax2=fig.add_subplot(222)
-        ax2.imshow(labeled3o)
-        ax2.set_title(str(n3o)+' blobs found.')
+        ax2.imshow(handler1.labels)
+        ax2.set_title(str(handler1.n)+' blobs found, '+handler1.action_code)
         ax3=fig.add_subplot(223)
-        ax3.imshow(labeled3o2)
-        ax3.set_title(str(n3o2)+' blobs found.')
+        ax3.imshow(handler2.labels)
+        ax3.set_title(str(handler2.n)+' blobs found, '+handler2.action_code)
         ax4=fig.add_subplot(224)
-        ax4.imshow(labeled3oc2)
-        ax4.set_title(str(n3oc2)+' blobs found.')
-        fig.savefig(get_fname(['PSP_003092_0985/subframe',x,y,'.png']))
+        ax4.imshow(handler3.labels)
+        ax4.set_title(str(handler3.n)+' blobs found, '+handler3.action_code)
+        save_fname = get_fname([savepath+'PSP_003092_0985/subframe',x,y,'.png'])
+        fig.savefig(save_fname)
         plt.close(fig)
-    # fig = plt.figure()
-    # ax = fig.add_subplot(111)
-    # im = ax.imshow(blobs)
-    # plt.colorbar(im)
-    # plt.savefig('local_histos/blobs.png')
-    np.save('PSP_003092_0985/blobs',blobs)
-    np.save('PSP_003092_0985/sigmas_orig',sigmas_orig)
-    np.save('PSP_003092_0985/sigmas_stretched',sigmas_stretched)
+    np.save(savepath+'PSP_003092_0985/blobs',blobs)
 
     
     
