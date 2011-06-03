@@ -5,7 +5,10 @@ import matplotlib.cm as cm
 from matplotlib import colors
 
 FROM_BASE = "/imgdata/"
-DEST_BASE = "/Users/aye/Data/ctx/inca_city/"
+if sys.platform == 'darwin':
+    DEST_BASE = "/Users/aye/Data/hirise/"
+else:
+    DEST_BASE = '/processed_data/'
 
 # mosaic_extensions = '.cal.norm.map.equ.mos.cub'
 mosaic_extensions = '.cal.des.map.cub'
