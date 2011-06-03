@@ -145,13 +145,15 @@ class ImgHandler():
                 img = param*(img-img.min())/(img.max()-img.min())
             # morphological closing with param iterations
             elif code == 'c':
+                kernel = int(myIter.next())
                 self.cropped = nd.binary_closing(self.cropped,
-                                                 self.kernels[1],
+                                                 self.kernels[kernel],
                                                  iterations=param)
             # morphological opening with param iterations
             elif code == 'o':
+                kernel = int(myIter.next())
                 self.cropped = nd.binary_opening(self.cropped,
-                                                 self.kernels[1],
+                                                 self.kernels[kernel],
                                                  iterations=param)
             # labeling the cropped (=binary) image with either 4- or 8-
             # connected-ness, controlled by param
@@ -192,9 +194,9 @@ def scanner():
         # TODO: compare with median filtering
         # TODO: compare with and without stretching
         # TODO: compare 4 and 8 connected labeling/opening/closing
-        handler1 = ImgHandler(data.copy(),x,y,'s1 15 o2 c1 l1')
-        handler2 = ImgHandler(data.copy(),x,y,'s1 15 o3 c2 l1')
-        handler3 = ImgHandler(data.copy(),x,y,'s1 15 o4 c3 l1')
+        handler1 = ImgHandler(data.copy(),x,y,'s1 10 o30 l0')
+        handler2 = ImgHandler(data.copy(),x,y,'s1 10 o31 l0')
+        handler3 = ImgHandler(data.copy(),x,y,'s1 10 o30 l1')
         blobs[y/blocksize,x/blocksize]=handler2.n 
         fig = plt.figure(figsize=(14,10))
         ax=fig.add_subplot(221)
