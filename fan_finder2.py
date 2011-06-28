@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import scipy.ndimage as nd
 import hirise_tools
-from hirise_tools import save_plot,getStoredPathFromID
+from hirise_tools import save_plot,getStoredPathFromID, getObsIDFromPath
 import mahotas
 import sys
 import os
@@ -16,7 +16,7 @@ from hirise_tools import save_plot
 np.seterr(all='raise')
 ndimage = nd
 numpy = np
-savepath='/Users/aye/results/fan_finder/'
+save_rootpath='/Users/aye/results/fan_finder/'
 
 blocks = ['768_5120',
         '768_5248',
@@ -30,6 +30,7 @@ blocks = ['768_5120',
 
 blocksize=256
 
+    
 def get_fan_no(index):
     block = blocks[index]
     x,y = block.split('_')
@@ -134,7 +135,7 @@ class ImgHandler():
         myIter = iter(action_code)
         #make sure to call myIter.next() somewhere to advance to next character
         for code in myIter:
-            if code == ' ': continue
+            if code == ' ' or code == '_': continue
             # param is used by several branches so i take it out here
             # some need another parameter and they advance the iterator further
             param = int(myIter.next())
@@ -147,11 +148,12 @@ class ImgHandler():
             elif code == 's':
                 img = self.img
                 img = param*(img-img.min())/(img.max()-img.min())
+                self.img = img
             
             # morphological closing with param iterations
             elif code == 'c':
                 kernel = int(myIter.next())
-                self.cropped = nd.binary_closing(self.cropped,
+                self.binarized = nd.binary_closing(self.binarized,
                                                  self.kernels[kernel],
                                                  iterations=param)
             
@@ -160,29 +162,43 @@ class ImgHandler():
             # c20 means 2 iterations closing with the 4-connected kernel
             elif code == 'o':
                 kernel = int(myIter.next())
-                self.cropped = nd.binary_opening(self.cropped,
+                self.binarized = nd.binary_opening(self.binarized,
                                                  self.kernels[kernel],
                                                  iterations=param)
             
-            # labeling the cropped (=binary) image with either 4- or 8-
+            # labeling the binarized (=binary) image with either 4- or 8-
             # connected-ness, controlled by param
             elif code == 'l':
-                self.labels, self.n = nd.label(self.cropped,
+                self.labels, self.n = nd.label(self.binarized,
                                                self.kernels[param])
+                self.get_label_area()
             
-            # create binary cropped image by exclusion of pixels that are
+            # create binarized image by exclusion of pixels that are
             # float(code.param)(e.g. 2.4) sigma away from mean value
             elif code.isdigit():
                 # trick to have float factor for exclusion
                 factor = float(code+'.'+str(param))
                 img = self.img
-                self.cropped = img < img.mean() - factor * img.std()        
+                self.binarized = img < img.mean() - factor * img.std()        
             
             else:
                 print('No defined action found for: ',code,param)
-        
+                
+    def get_label_area(self,resolution=0.5):
+        slices = nd.find_objects(self.labels)
+        areas = []
+        for i in range(self.n):
+            y1 = slices[i][0].start
+            y2 = slices[i][0].stop
+            x1 = slices[i][1].start
+            x2 = slices[i][1].stop
+            area = self.binarized[slices[i]].sum()*resolution*resolution
+            areas.append(area)
+        self.area = areas.sum()
+
 def scanner():
     ds = get_dataset()
+    obsid = getObsIDFromPath(ds.GetFileList()[0])
     X= ds.RasterXSize
     Y= ds.RasterYSize
     blobs = np.zeros((Y/blocksize,X/blocksize))
@@ -194,7 +210,17 @@ def scanner():
               [0,1,0]]
     kernel = np.ones((3,3))
     
-    for db in get_data(ds):
+    # TODO: compare with median filtering
+    # TODO: compare with and without stretching
+    # TODO: compare 4 and 8 connected labeling/opening/closing
+    action_codes = ['s1_15_o31_l1',
+                    's1_15_o31_c11_l1',
+                    's1_20_o21_c11_l1']
+    save_folder = save_rootpath+obsid+'_'+'__'.join(action_codes)
+    if not os.path.isdir(save_folder):
+        os.mkdir(save_folder)
+    # 2nd parameter (=breakpoint) is the coordinate value of x until to loop.
+    for db in get_data(ds, 2000):
         counter += 1
         data,x,y = db
         if np.mod(counter,100) == 0:
@@ -202,26 +228,23 @@ def scanner():
 
         if data.min() < -1e6: continue # black area around image data is NaN (-1e-38)
 
-        # TODO: compare with median filtering
-        # TODO: compare with and without stretching
-        # TODO: compare 4 and 8 connected labeling/opening/closing
-        handler1 = ImgHandler(data.copy(),x,y,'s1 10 o31 l1')
-        handler2 = ImgHandler(data.copy(),x,y,'s1 10 o41 l1')
-        handler3 = ImgHandler(data.copy(),x,y,'s1 10 o51 l1')
-        blobs[y/blocksize,x/blocksize]=handler2.n 
+        handlers = []
+        for i,code in enumerate(action_codes):
+            eval('handlers.append(ImgHandler(data.copy(),x,y,code))')
+        #blobs[y/blocksize,x/blocksize]=handler2.n 
         fig = plt.figure(figsize=(14,10))
         ax=fig.add_subplot(221)
         ax.imshow(data)
         ax.set_title(str(x)+'_'+str(y))
-        for handler,subplot in zip([handler1,handler2,handler3],
-                                     [222,223,224]):
+        for handler,subplot in zip(handlers,[222,223,224]):
             ax=fig.add_subplot(subplot)
             ax.imshow(handler.labels)
-            ax.set_title(str(handler.n)+' blobs found, '+handler.action_code)
-        save_fname = get_fname([savepath+'PSP_003092_0985/subframe',x,y,'.png'])
+            ax.set_title(str(handler.n)+' blobs found, '+handler.action_code+\
+                        ' '+str(handler.area))
+        save_fname = get_fname([save_folder+'/subframe',x,y,'.png'])
         fig.savefig(save_fname)
         plt.close(fig)
-    np.save(savepath+'PSP_003092_0985/blobs',blobs)
+    np.save(save_folder+'/blobs',blobs)
     
 def test_blob_array():
     ds = get_dataset()
