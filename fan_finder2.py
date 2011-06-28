@@ -138,19 +138,23 @@ class ImgHandler():
             # param is used by several branches so i take it out here
             # some need another parameter and they advance the iterator further
             param = int(myIter.next())
+            
             # median filtering
             if code == 'm':
                 self.img = nd.median_filter(self.img, param)
+                
             # stretching image to max: param
             elif code == 's':
                 img = self.img
                 img = param*(img-img.min())/(img.max()-img.min())
+            
             # morphological closing with param iterations
             elif code == 'c':
                 kernel = int(myIter.next())
                 self.cropped = nd.binary_closing(self.cropped,
                                                  self.kernels[kernel],
                                                  iterations=param)
+            
             # morphological opening with param iterations
             # o31 means 3 iterations opening with the np.ones kernel (8-connected)
             # c20 means 2 iterations closing with the 4-connected kernel
@@ -159,11 +163,13 @@ class ImgHandler():
                 self.cropped = nd.binary_opening(self.cropped,
                                                  self.kernels[kernel],
                                                  iterations=param)
+            
             # labeling the cropped (=binary) image with either 4- or 8-
             # connected-ness, controlled by param
             elif code == 'l':
                 self.labels, self.n = nd.label(self.cropped,
                                                self.kernels[param])
+            
             # create binary cropped image by exclusion of pixels that are
             # float(code.param)(e.g. 2.4) sigma away from mean value
             elif code.isdigit():
@@ -171,6 +177,7 @@ class ImgHandler():
                 factor = float(code+'.'+str(param))
                 img = self.img
                 self.cropped = img < img.mean() - factor * img.std()        
+            
             else:
                 print('No defined action found for: ',code,param)
         
