@@ -135,6 +135,8 @@ class ImgHandler():
         #make sure to call myIter.next() somewhere to advance to next character
         for code in myIter:
             if code == ' ': continue
+            # param is used by several branches so i take it out here
+            # some need another parameter and they advance the iterator further
             param = int(myIter.next())
             # median filtering
             if code == 'm':
@@ -150,6 +152,8 @@ class ImgHandler():
                                                  self.kernels[kernel],
                                                  iterations=param)
             # morphological opening with param iterations
+            # o31 means 3 iterations opening with the np.ones kernel (8-connected)
+            # c20 means 2 iterations closing with the 4-connected kernel
             elif code == 'o':
                 kernel = int(myIter.next())
                 self.cropped = nd.binary_opening(self.cropped,
@@ -183,7 +187,7 @@ def scanner():
               [0,1,0]]
     kernel = np.ones((3,3))
     
-    for db in get_data(ds,2000):
+    for db in get_data(ds):
         counter += 1
         data,x,y = db
         if np.mod(counter,100) == 0:
@@ -194,29 +198,23 @@ def scanner():
         # TODO: compare with median filtering
         # TODO: compare with and without stretching
         # TODO: compare 4 and 8 connected labeling/opening/closing
-        handler1 = ImgHandler(data.copy(),x,y,'s1 10 o30 l0')
-        handler2 = ImgHandler(data.copy(),x,y,'s1 10 o31 l0')
-        handler3 = ImgHandler(data.copy(),x,y,'s1 10 o30 l1')
+        handler1 = ImgHandler(data.copy(),x,y,'s1 10 o31 l1')
+        handler2 = ImgHandler(data.copy(),x,y,'s1 10 o41 l1')
+        handler3 = ImgHandler(data.copy(),x,y,'s1 10 o51 l1')
         blobs[y/blocksize,x/blocksize]=handler2.n 
         fig = plt.figure(figsize=(14,10))
         ax=fig.add_subplot(221)
         ax.imshow(data)
         ax.set_title(str(x)+'_'+str(y))
-        ax2=fig.add_subplot(222)
-        ax2.imshow(handler1.labels)
-        ax2.set_title(str(handler1.n)+' blobs found, '+handler1.action_code)
-        ax3=fig.add_subplot(223)
-        ax3.imshow(handler2.labels)
-        ax3.set_title(str(handler2.n)+' blobs found, '+handler2.action_code)
-        ax4=fig.add_subplot(224)
-        ax4.imshow(handler3.labels)
-        ax4.set_title(str(handler3.n)+' blobs found, '+handler3.action_code)
+        for handler,subplot in zip([handler1,handler2,handler3],
+                                     [222,223,224]):
+            ax=fig.add_subplot(subplot)
+            ax.imshow(handler.labels)
+            ax.set_title(str(handler.n)+' blobs found, '+handler.action_code)
         save_fname = get_fname([savepath+'PSP_003092_0985/subframe',x,y,'.png'])
         fig.savefig(save_fname)
         plt.close(fig)
     np.save(savepath+'PSP_003092_0985/blobs',blobs)
-
-    
     
 def test_blob_array():
     ds = get_dataset()
