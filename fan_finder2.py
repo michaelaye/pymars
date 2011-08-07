@@ -179,7 +179,7 @@ class ImgHandler():
                 # trick to have float factor for exclusion
                 factor = float(code+'.'+str(param))
                 img = self.img
-                self.binarized = img < img.mean() - factor * img.std()        
+                self.binarized = img < np.median(img) - factor * img.std()        
             
             else:
                 print('No defined action found for: ',code,param)
@@ -194,16 +194,18 @@ class ImgHandler():
             x2 = slices[i][1].stop
             area = self.binarized[slices[i]].sum()*resolution*resolution
             areas.append(area)
-        self.area = areas.sum()
+        self.area = sum(areas)
 
-def scanner():
+def scanner(do_plot = False):
+    # ds = get_dataset(fname='/Users/aye/Data/hirise/PSP_002380_0985_RED.cal.norm.map.equ.mos.cub')
     ds = get_dataset()
     obsid = getObsIDFromPath(ds.GetFileList()[0])
     X= ds.RasterXSize
     Y= ds.RasterYSize
     blobs = np.zeros((Y/blocksize,X/blocksize))
-    sigmas_orig = np.zeros((Y/blocksize,X/blocksize))
-    sigmas_stretched = np.zeros((Y/blocksize,X/blocksize))
+    orig = np.zeros((Y/blocksize,X/blocksize))
+    # sigmas_orig = np.zeros((Y/blocksize,X/blocksize))
+    # sigmas_stretched = np.zeros((Y/blocksize,X/blocksize))
     counter = 0
     kernel_half = [[0,1,0],
               [1,1,1],
@@ -213,14 +215,21 @@ def scanner():
     # TODO: compare with median filtering
     # TODO: compare with and without stretching
     # TODO: compare 4 and 8 connected labeling/opening/closing
-    action_codes = ['s1_15_o31_l1',
-                    's1_15_o31_c11_l1',
-                    's1_20_o21_c11_l1']
+
+    action_codes = ['s1_23_o21_c11_l1',
+                    # 's1_25_o21_c11_l1',
+                    # 's1_27_o21_c11_l1'
+                    ]
+
+    # action_codes = ['s1_15_o31_l1',
+    #                 's1_15_o31_c11_l1',
+    #                 's1_20_o21_c11_l1']
+
     save_folder = save_rootpath+obsid+'_'+'__'.join(action_codes)
     if not os.path.isdir(save_folder):
         os.mkdir(save_folder)
     # 2nd parameter (=breakpoint) is the coordinate value of x until to loop.
-    for db in get_data(ds, 2000):
+    for db in get_data(ds):
         counter += 1
         data,x,y = db
         if np.mod(counter,100) == 0:
@@ -228,23 +237,26 @@ def scanner():
 
         if data.min() < -1e6: continue # black area around image data is NaN (-1e-38)
 
+        orig[y/blocksize,x/blocksize]=data.mean() 
         handlers = []
         for i,code in enumerate(action_codes):
             eval('handlers.append(ImgHandler(data.copy(),x,y,code))')
-        #blobs[y/blocksize,x/blocksize]=handler2.n 
-        fig = plt.figure(figsize=(14,10))
-        ax=fig.add_subplot(221)
-        ax.imshow(data)
-        ax.set_title(str(x)+'_'+str(y))
-        for handler,subplot in zip(handlers,[222,223,224]):
-            ax=fig.add_subplot(subplot)
-            ax.imshow(handler.labels)
-            ax.set_title(str(handler.n)+' blobs found, '+handler.action_code+\
-                        ' '+str(handler.area))
-        save_fname = get_fname([save_folder+'/subframe',x,y,'.png'])
-        fig.savefig(save_fname)
-        plt.close(fig)
+        blobs[y/blocksize,x/blocksize]=handlers[0].area
+		if do_plot == True:
+	        fig = plt.figure(figsize=(14,10))
+	        ax=fig.add_subplot(221)
+	        ax.imshow(data)
+	        ax.set_title(str(x)+'_'+str(y))
+	        for handler,subplot in zip(handlers,[222,223,224]):
+	            ax=fig.add_subplot(subplot)
+	            ax.imshow(handler.labels)
+	            ax.set_title(str(handler.n)+' blobs, '+handler.action_code+\
+	                        ' '+str(handler.area))
+	        save_fname = get_fname([save_folder+'/subframe',x,y,'.png'])
+	        fig.savefig(save_fname)
+	        plt.close(fig)
     np.save(save_folder+'/blobs',blobs)
+    np.save(save_folder+'/orig',orig)
     
 def test_blob_array():
     ds = get_dataset()
