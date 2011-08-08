@@ -16,7 +16,7 @@ from hirise_tools import save_plot
 np.seterr(all='raise')
 ndimage = nd
 numpy = np
-save_rootpath='/Users/aye/results/fan_finder/'
+save_rootpath='/Users/maye/results/fan_finder/'
 
 blocks = ['768_5120',
         '768_5248',
@@ -345,7 +345,7 @@ def test_local_thresholds():
 
 if __name__ == '__main__':
     # test_blob_array()
-    # scanner(fname='/Users/aye/Data/hirise/PSP_002380_0985_RED.cal.norm.map.equ.mos.cub')
+    # scanner(fname='/Users/maye/Data/hirise/PSP_002380_0985_RED.cal.norm.map.equ.mos.cub')
     scanner(fname=None)
     # test_grey_morph()
     # test_gaussian_filters()
