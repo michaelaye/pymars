@@ -1,0 +1,9 @@
+<VRTDataset rasterXSize="10240" rasterYSize="10240">
+  <VRTRasterBand dataType="UInt16" band="1" subClass="VRTRawRasterBand">
+    <SourceFilename relativetoVRT="1">megt_s_128_1.img.1</SourceFilename>
+    <ImageOffset>0</ImageOffset>
+    <PixelOffset>2</PixelOffset>
+    <LineOffset>20480</LineOffset>
+    <ByteOrder>MSB</ByteOrder>
+  </VRTRasterBand>
+ </VRTDataset>

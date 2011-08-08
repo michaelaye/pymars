@@ -1,0 +1,9 @@
+<VRTDataset rasterXSize="12288" rasterYSize="12288">
+  <VRTRasterBand dataType="Byte" band="1" subClass="VRTRawRasterBand">
+    <SourceFilename relativetoVRT="1">megc_s_512.img</SourceFilename>
+    <ImageOffset>0</ImageOffset>
+    <PixelOffset>2</PixelOffset>
+    <LineOffset>12288</LineOffset>
+    <ByteOrder>MSB</ByteOrder>
+  </VRTRasterBand>
+ </VRTDataset>
