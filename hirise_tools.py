@@ -6,7 +6,7 @@ from matplotlib import colors
 
 FROM_BASE = "/imgdata/"
 if sys.platform == 'darwin':
-    DEST_BASE = "/Users/aye/Data/hirise/"
+    DEST_BASE = os.environ['HOME']+"/Data/hirise/"
 else:
     DEST_BASE = '/processed_data/'
 
