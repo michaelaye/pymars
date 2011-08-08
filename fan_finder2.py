@@ -16,7 +16,7 @@ from hirise_tools import save_plot
 np.seterr(all='raise')
 ndimage = nd
 numpy = np
-save_rootpath='/Users/maye/results/fan_finder/'
+save_rootpath=os.environ['HOME'] + '/results/fan_finder/'
 
 
 default_fname = '/Users/maye/Data/hirise/PSP_002380_0985_RED.cal.norm.map.equ.mos.cub'    
