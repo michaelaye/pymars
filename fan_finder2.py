@@ -194,14 +194,18 @@ class ImgHandler():
     def get_label_area(self,resolution=0.5):
         slices = nd.find_objects(self.labels)
         areas = []
+        labeled_pixels = []
         for i in range(self.n):
             y1 = slices[i][0].start
             y2 = slices[i][0].stop
             x1 = slices[i][1].start
             x2 = slices[i][1].stop
-            area = self.binarized[slices[i]].sum()*resolution*resolution
+            pixel_count = self.binarized[slices[i]].sum()
+            area = pixel_count*resolution*resolution
             areas.append(area)
+            labeled_pixels.append(pixel_count)
         self.area = sum(areas)
+        self.labeled_pixels = sum(labeled_pixels)
 
 
 def scanner(fname=None, do_plot = False, blocksize=256):
@@ -238,8 +242,8 @@ def scanner(fname=None, do_plot = False, blocksize=256):
     for db in df.get_data():
         counter += 1
         data,x,y = db
-        if np.mod(counter,100) == 0 or counter == 1:
-            print("{0:3d} %".format(x*100//X))
+        if np.mod(counter,10) == 0 or counter == 1:
+            print("{0:3d} % of x-axis pixels.".format(x*100//X))
         
         if data.min() < -1e6: continue # black area around image data is NaN (-1e-38)
         
@@ -247,7 +251,7 @@ def scanner(fname=None, do_plot = False, blocksize=256):
         handlers = []
         for i,code in enumerate(action_codes):
             eval('handlers.append(ImgHandler(data.copy(),x,y,code))')
-        blobs[y/df.blocksize,x/df.blocksize]=handlers[0].area
+        blobs[y/df.blocksize,x/df.blocksize]=handlers[0].labeled_pixels/blocksize**2
         if do_plot == True:
             fig = plt.figure(figsize=(14,10))
             ax=fig.add_subplot(221)
