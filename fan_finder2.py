@@ -242,15 +242,15 @@ def scanner(fname=None, do_plot = False):
             eval('handlers.append(ImgHandler(data.copy(),x,y,code))')
         blobs[y/blocksize,x/blocksize]=handlers[0].area
         if do_plot == True:
-               fig = plt.figure(figsize=(14,10))
-               ax=fig.add_subplot(221)
-               ax.imshow(data)
-               ax.set_title(str(x)+'_'+str(y))
-               for handler,subplot in zip(handlers,[222,223,224]):
-                   ax=fig.add_subplot(subplot)
-                   ax.imshow(handler.labels)
-                   ax.set_title(str(handler.n)+' blobs, '+handler.action_code+\
-                               ' '+str(handler.area))
+            fig = plt.figure(figsize=(14,10))
+            ax=fig.add_subplot(221)
+            ax.imshow(data)
+            ax.set_title(str(x)+'_'+str(y))
+            for handler,subplot in zip(handlers,[222,223,224]):
+                ax=fig.add_subplot(subplot)
+                ax.imshow(handler.labels)
+                ax.set_title(str(handler.n)+' blobs, '+handler.action_code+\
+                           ' '+str(handler.area))
             save_fname = get_fname([save_folder+'/subframe',x,y,'.png'])
             fig.savefig(save_fname)
             plt.close(fig)
