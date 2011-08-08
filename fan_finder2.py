@@ -196,9 +196,8 @@ class ImgHandler():
             areas.append(area)
         self.area = sum(areas)
 
-def scanner(do_plot = False):
-    # ds = get_dataset(fname='/Users/aye/Data/hirise/PSP_002380_0985_RED.cal.norm.map.equ.mos.cub')
-    ds = get_dataset()
+def scanner(fname=None, do_plot = False):
+    ds = get_dataset(fname=fname)
     obsid = getObsIDFromPath(ds.GetFileList()[0])
     X= ds.RasterXSize
     Y= ds.RasterYSize
@@ -346,7 +345,8 @@ def test_local_thresholds():
 
 if __name__ == '__main__':
     # test_blob_array()
-    scanner()
+    # scanner(fname='/Users/aye/Data/hirise/PSP_002380_0985_RED.cal.norm.map.equ.mos.cub')
+    scanner(fname=None)
     # test_grey_morph()
     # test_gaussian_filters()
     # test_local_thresholds()
