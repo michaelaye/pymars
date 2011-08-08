@@ -18,7 +18,21 @@ ndimage = nd
 numpy = np
 save_rootpath='/Users/maye/results/fan_finder/'
 
-blocks = ['768_5120',
+
+default_fname = '/Users/maye/Data/hirise/PSP_002380_0985_RED.cal.norm.map.equ.mos.cub'    
+
+####
+debug = True
+####
+
+
+def get_fname(aList):
+    """get a string filename out of list of elements"""
+    return '_'.join([str(i) for i in aList])
+
+class DataFinder():
+    """class to provide data from different sources"""
+    blocks = ['768_5120',
         '768_5248',
         '896_3200',
         '896_3328',
@@ -28,27 +42,13 @@ blocks = ['768_5120',
         '128_3072',
         '256_3456']
 
-blocksize=256
-    
-
-def get_fan_no(index):
-    block = blocks[index]
-    x,y = block.split('_')
-    ds = get_dataset()
-    data = ds.ReadAsArray(int(x),int(y),blocksize,blocksize)
-    return data
-
-def get_fname(aList):
-    """get a string filename out of list of elements"""
-    return '_'.join([str(i) for i in aList])
-
-class DataFinder():
-    """class to provide data from different sources"""
-    def __init__(self, obsid=None,fname=None, foldername=None, noOfFiles=None):
+    def __init__(self, obsid=None,fname=None, foldername=None, noOfFiles=None, blocksize=256):
+        if debug: print obsid,fname,foldername,noOfFiles
         self.fname = fname
         self.obsid = obsid
         self.foldername = foldername
         self.noOfFiles = noOfFiles
+        self.blocksize=blocksize
         self.data_root = hirise_tools.DEST_BASE
         if not np.any([obsid,fname,foldername,noOfFiles]):
             self.fname = os.path.join(self.data_root,
@@ -56,55 +56,62 @@ class DataFinder():
                                       'PSP_003092_0985_RED.cal.norm.map.equ.mos.cub')
             self.data_type = 'single'
         elif obsid:
+            if debug: print('in obsid elif of DataFinder')
             self.fname = getStoredPathFromID(self.obsid)
         self.get_dataset()
     
     def get_dataset(self):
         # if self.data_type == 'single':
+        if debug: print self.fname
+        self.obsid = getObsIDFromPath(self.fname)
         self.ds = gdal.Open(self.fname)
+        self.xSize = self.ds.RasterXSize
+        self.ySize = self.ds.RasterYSize
+
+    def get_fan_no(self,index):
+        """get data blocks from the pre-defined coordinates, defined for the default 3092 image."""
+        block = self.blocks[index]
+        x,y = block.split('_')
+        data = self.ds.ReadAsArray(int(x),int(y),blocksize,blocksize)
+        return data
+
+    def get_fan_blocks(self):
+        """deliver block coords"""
+        for block in self.blocks:
+            x,y = block.split('_')
+            yield (int(x),int(y),blocksize,blocksize)
+
+    def get_data(self, predefined=False, breakpoint=1e8):
+        """provide image data.
+        
+        in:breakpoint counts the number of pixels in x-axis to reach until this returns.
+        No check for data quality is done, should be done at caller function.
+        """
+        # this to get blocks with fans, a predefined set above
+        if predefined:
+            band = self.ds.GetRasterBand(1)
+            for t in self.get_fan_blocks():
+                yield band.ReadAsArray(*t),t[0],t[1]
+        else:
+            #this is the standard loop through the big image
+            band = self.ds.GetRasterBand(1)
+            blockSize = (self.blocksize, self.blocksize)
+            for x in range(0,self.xSize,blockSize[0]):
+                if x + blockSize[0] > self.xSize: continue
+                if x > breakpoint: break
+                for y in range(0, self.ySize, blockSize[1]):
+                    if y+blockSize[1] > self.ySize: continue
+                    data = band.ReadAsArray(x,y,blockSize[0],blockSize[1])
+                    yield (data,x,y)
 
 def get_dataset(obsid=None,fname=None):
-    df = DataFinder(obsid,fname)
+    df = DataFinder(obsid=obsid, fname=fname)
     return df.ds
 
 def labeling(data):
     struc8 = np.ones((3, 3))
     labels, n = nd.label(data, struc8)
     return (labels, n)
-
-def get_fan_blocks():
-    """deliver block coords"""
-    for block in blocks:
-        x,y = block.split('_')
-        yield (int(x),int(y),blocksize,blocksize)
-
-def get_data(dataset = None,breakpoint=1e8):
-    """provide image data.
-    
-    If a dataset is provided loop through it in sizes of GDAL blocksize.
-    If not, provide the data for blocks with fans as provided by get_fan_blocks
-    No check for data quality is done, should be done at caller function
-    """
-    # this to get blocks with fans, a predefined set above
-    if dataset == None:
-        ds = get_dataset()
-        band=ds.GetRasterBand(1)
-        for t in get_fan_blocks():
-            yield band.ReadAsArray(*t),t[0],t[1]
-    else:
-        #this is the standard loop through the big image
-        xSize = dataset.RasterXSize
-        ySize = dataset.RasterYSize
-        band = dataset.GetRasterBand(1)
-        blockSize = (blocksize,blocksize) # global var above
-        for x in range(0,xSize,blockSize[0]):
-            if x + blockSize[0] > xSize: continue
-            if x > breakpoint: break
-            for y in range(0,ySize,blockSize[1]):
-                if y+blockSize[1] > ySize: continue
-                data = band.ReadAsArray(x,y,blockSize[0],blockSize[1])
-                yield (data,x,y)
-
 
 def get_uint_image(data):
     data *= np.round(255/data.max())
@@ -196,13 +203,13 @@ class ImgHandler():
             areas.append(area)
         self.area = sum(areas)
 
-def scanner(fname=None, do_plot = False):
-    ds = get_dataset(fname=fname)
-    obsid = getObsIDFromPath(ds.GetFileList()[0])
-    X= ds.RasterXSize
-    Y= ds.RasterYSize
-    blobs = np.zeros((Y/blocksize,X/blocksize))
-    orig = np.zeros((Y/blocksize,X/blocksize))
+
+def scanner(fname=None, do_plot = False, blocksize=256):
+    df = DataFinder(fname=fname,blocksize=blocksize)
+    X= df.ds.RasterXSize
+    Y= df.ds.RasterYSize
+    blobs = np.zeros((Y/df.blocksize,X/df.blocksize))
+    orig = np.zeros((Y/df.blocksize,X/df.blocksize))
     # sigmas_orig = np.zeros((Y/blocksize,X/blocksize))
     # sigmas_stretched = np.zeros((Y/blocksize,X/blocksize))
     counter = 0
@@ -224,23 +231,23 @@ def scanner(fname=None, do_plot = False):
     #                 's1_15_o31_c11_l1',
     #                 's1_20_o21_c11_l1']
     
-    save_folder = save_rootpath+obsid+'_'+'__'.join(action_codes)
+    save_folder = save_rootpath + df.obsid + '_' +str(blocksize) +'_'+ '__'.join(action_codes)
     if not os.path.isdir(save_folder):
         os.mkdir(save_folder)
     # 2nd parameter (=breakpoint) is the coordinate value of x until to loop.
-    for db in get_data(ds):
+    for db in df.get_data():
         counter += 1
         data,x,y = db
-        if np.mod(counter,100) == 0:
+        if np.mod(counter,100) == 0 or counter == 1:
             print("{0:3d} %".format(x*100//X))
         
         if data.min() < -1e6: continue # black area around image data is NaN (-1e-38)
         
-        orig[y/blocksize,x/blocksize]=data.mean()
+        orig[y/df.blocksize,x/df.blocksize]=data.mean()
         handlers = []
         for i,code in enumerate(action_codes):
             eval('handlers.append(ImgHandler(data.copy(),x,y,code))')
-        blobs[y/blocksize,x/blocksize]=handlers[0].area
+        blobs[y/df.blocksize,x/df.blocksize]=handlers[0].area
         if do_plot == True:
             fig = plt.figure(figsize=(14,10))
             ax=fig.add_subplot(221)
