@@ -29,8 +29,8 @@ blocks = ['768_5120',
         '256_3456']
 
 blocksize=256
-
     
+
 def get_fan_no(index):
     block = blocks[index]
     x,y = block.split('_')
@@ -41,7 +41,7 @@ def get_fan_no(index):
 def get_fname(aList):
     """get a string filename out of list of elements"""
     return '_'.join([str(i) for i in aList])
-    
+
 class DataFinder():
     """class to provide data from different sources"""
     def __init__(self, obsid=None,fname=None, foldername=None, noOfFiles=None):
@@ -58,20 +58,20 @@ class DataFinder():
         elif obsid:
             self.fname = getStoredPathFromID(self.obsid)
         self.get_dataset()
-        
+    
     def get_dataset(self):
         # if self.data_type == 'single':
         self.ds = gdal.Open(self.fname)
-           
+
 def get_dataset(obsid=None,fname=None):
     df = DataFinder(obsid,fname)
     return df.ds
- 
+
 def labeling(data):
     struc8 = np.ones((3, 3))
     labels, n = nd.label(data, struc8)
     return (labels, n)
-  
+
 def get_fan_blocks():
     """deliver block coords"""
     for block in blocks:
@@ -109,7 +109,7 @@ def get_data(dataset = None,breakpoint=1e8):
 def get_uint_image(data):
     data *= np.round(255/data.max())
     return data.astype(np.uint)
- 
+
 def get_grad_mag(image):
     grad_x = ndimage.sobel(image, 0)
     grad_y = ndimage.sobel(image, 1)
@@ -123,7 +123,7 @@ class ImgHandler():
         filter, e.g. c2 means closing with 2 iterations.
         So a combination of 2 closings and 3 openings would be encoded:
         'c2o3'
-        """        
+        """
         self.img = img
         self.x = x
         self.y = y
@@ -143,7 +143,7 @@ class ImgHandler():
             # median filtering
             if code == 'm':
                 self.img = nd.median_filter(self.img, param)
-                
+            
             # stretching image to max: param
             elif code == 's':
                 img = self.img
@@ -179,11 +179,11 @@ class ImgHandler():
                 # trick to have float factor for exclusion
                 factor = float(code+'.'+str(param))
                 img = self.img
-                self.binarized = img < np.median(img) - factor * img.std()        
+                self.binarized = img < np.median(img) - factor * img.std()
             
             else:
                 print('No defined action found for: ',code,param)
-                
+    
     def get_label_area(self,resolution=0.5):
         slices = nd.find_objects(self.labels)
         areas = []
@@ -214,16 +214,16 @@ def scanner(fname=None, do_plot = False):
     # TODO: compare with median filtering
     # TODO: compare with and without stretching
     # TODO: compare 4 and 8 connected labeling/opening/closing
-
+    
     action_codes = ['s1_23_o21_c11_l1',
                     # 's1_25_o21_c11_l1',
                     # 's1_27_o21_c11_l1'
                     ]
-
+    
     # action_codes = ['s1_15_o31_l1',
     #                 's1_15_o31_c11_l1',
     #                 's1_20_o21_c11_l1']
-
+    
     save_folder = save_rootpath+obsid+'_'+'__'.join(action_codes)
     if not os.path.isdir(save_folder):
         os.mkdir(save_folder)
@@ -233,30 +233,30 @@ def scanner(fname=None, do_plot = False):
         data,x,y = db
         if np.mod(counter,100) == 0:
             print("{0:3d} %".format(x*100//X))
-
+        
         if data.min() < -1e6: continue # black area around image data is NaN (-1e-38)
-
-        orig[y/blocksize,x/blocksize]=data.mean() 
+        
+        orig[y/blocksize,x/blocksize]=data.mean()
         handlers = []
         for i,code in enumerate(action_codes):
             eval('handlers.append(ImgHandler(data.copy(),x,y,code))')
         blobs[y/blocksize,x/blocksize]=handlers[0].area
-		if do_plot == True:
-	        fig = plt.figure(figsize=(14,10))
-	        ax=fig.add_subplot(221)
-	        ax.imshow(data)
-	        ax.set_title(str(x)+'_'+str(y))
-	        for handler,subplot in zip(handlers,[222,223,224]):
-	            ax=fig.add_subplot(subplot)
-	            ax.imshow(handler.labels)
-	            ax.set_title(str(handler.n)+' blobs, '+handler.action_code+\
-	                        ' '+str(handler.area))
-	        save_fname = get_fname([save_folder+'/subframe',x,y,'.png'])
-	        fig.savefig(save_fname)
-	        plt.close(fig)
+        if do_plot == True:
+               fig = plt.figure(figsize=(14,10))
+               ax=fig.add_subplot(221)
+               ax.imshow(data)
+               ax.set_title(str(x)+'_'+str(y))
+               for handler,subplot in zip(handlers,[222,223,224]):
+                   ax=fig.add_subplot(subplot)
+                   ax.imshow(handler.labels)
+                   ax.set_title(str(handler.n)+' blobs, '+handler.action_code+\
+                               ' '+str(handler.area))
+            save_fname = get_fname([save_folder+'/subframe',x,y,'.png'])
+            fig.savefig(save_fname)
+            plt.close(fig)
     np.save(save_folder+'/blobs',blobs)
     np.save(save_folder+'/orig',orig)
-    
+
 def test_blob_array():
     ds = get_dataset()
     X= ds.RasterXSize
@@ -278,8 +278,8 @@ def test_blob_array():
     im = ax.imshow(newblobs,aspect='equal')
     plt.colorbar(im)
     plt.show()
-
       
+
 def test_grey_morph():
     root = 'local_histos/'
     final_t = 0 # for get_new_t
@@ -321,7 +321,7 @@ def test_gaussian_filters():
             ax2.set_title(str(n))
             plt.savefig('local_histos/gaussian_fan'+str(i)+'_sigma'+str(sigma)+'.png')
             plt.close(fig)
-    
+
 def test_local_thresholds():
     ds = get_dataset()
     band = ds.GetRasterBand(1)
