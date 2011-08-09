@@ -242,7 +242,7 @@ def scanner(fname=None, do_plot = False, blocksize=256):
     for db in df.get_data():
         counter += 1
         data,x,y = db
-        if np.mod(counter,10) == 0 or counter == 1:
+        if np.mod(counter,100) == 0 or counter == 1:
             print("{0:3d} % of x-axis pixels.".format(x*100//X))
         
         if data.min() < -1e6: continue # black area around image data is NaN (-1e-38)
