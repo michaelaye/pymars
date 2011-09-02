@@ -245,7 +245,8 @@ def scanner(fname=None, do_plot = False, blocksize=256):
         if np.mod(counter,10) == 0 or counter == 1:
             print("{0:3d} % of x-axis pixels.".format(x*100//X))
         
-        if data.min() < -1e6 or data.max()-data.min() < 0.5: continue # black area around image data is NaN (-1e-38)
+        # black area around image data is NaN (-1e-38)
+        if data.min() < -1e6 or data.max()-data.min() < 0.5: continue 
         
         orig[y/df.blocksize,x/df.blocksize]=data.mean()
         handlers = []
