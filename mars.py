@@ -42,7 +42,7 @@ class MapNotSetError(Error):
         self.msg = msg
 
 class Point():
-    """Little Point class to manage pixel and map points.
+    """Point class to manage pixel and map points and their transformations.
     
     Requires: gdal to enable sample/line<-> map coords tra'fo's
     >>> p = Point(0,1)
