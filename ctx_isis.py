@@ -12,7 +12,7 @@ import sys
 import os
 from glob import glob
 from pprint import pprint
-from subprocess import check_call
+from subprocess import check_call,CalledProcessError
 op = os.path
 
 class ISIS_Cube():
@@ -52,8 +52,17 @@ class ISIS_Cube():
                 self.fname = self.fRoot + '.' + ext 
                 return
             
-            
+
+    def do_process(self, cmd, state, fname):
+        print(cmd)
+        try:
+            check_call(cmd)
+        except CalledProcessError,e:
+            print 'Got error from subprocess:',e.output
+        self.state = state
+        self.fname = fname
     def do_cube(self):
+        """Import IMG into ISIS and do SPICEINIT."""
         if self.state != 'IMG':
             print 'Wrong state for cube production'
             return
@@ -61,14 +70,12 @@ class ISIS_Cube():
         cmd = ('mroctx2isis',
                 'from='+self.fname,
                 'to='+newFileName)
-        print(cmd)
-        check_call(cmd)
+        self.do_process(cmd,'cub',newFileName)
+        self.do_spice()
+    def do_spice(self):
         cmd = ('spiceinit',
-                'from='+newFileName)
-        print(cmd)
-        check_call(cmd)
-        self.state = 'cub'
-        self.fname = newFileName
+                'from='+self.fname)
+        self.do_process(cmd,'cub',self.fname)
     def do_cal(self):
         if self.state != 'cub':
             print 'Wrong state for calibration'
@@ -77,10 +84,7 @@ class ISIS_Cube():
         cmd = ('ctxcal',
                 'from='+self.fname,
                 'to='+newFileName)
-        print(cmd)
-        check_call(cmd)
-        self.state ='cal'
-        self.fname = newFileName
+        self.do_process(cmd,'cal',newFileName)
     def do_destripe(self):
         if self.state != 'cal':
             print 'Wrong state for destriping'
@@ -89,11 +93,11 @@ class ISIS_Cube():
         cmd = ('ctxevenodd',
                 'from='+self.fname,
                 'to='+newFileName)
-        print(cmd)
-        check_call(cmd)
-        self.state ='des'
-        self.fname = newFileName
+        self.do_process(cmd,'des',newFileName)
     def do_map(self):
+        if self.nomap == True: 
+            print 'Map projection denied by request.'
+            return
         if self.state != 'des':
             print 'Wrong state for mapping'
             return
@@ -102,21 +106,21 @@ class ISIS_Cube():
                 'from='+self.fname,
                 'to='+newFileName,
                 'pixres=map',
-                'map=/Users/aye/Data/ctx/ctx_polar_stereo.map')
-        print(cmd)
-        check_call(cmd)
-        self.state = 'map'
-        self.fname = newFileName
+                'map='+os.getenv('HOME')+'/Data/ctx/ctx_polar_stereo.map')
+        self.do_process(cmd,'map',newFileName)
+            
         
         
 def main():
-    fList = sys.argv[1:]
+    mapping, fList = sys.argv[1],sys.argv[2:]
     if not fList:
         print('provide a filename or list (with ls *.???).')
         sys.exit(1)
     for i,f in enumerate(fList):
         print 'processing {0}'.format(f)
         data = ISIS_Cube(f,search=True)
+        if mapping == 'nomap':
+            data.nomap = True
         data.do_all()
         print("\n###\n{0:2.2f}% done.\n###\n".format((i+1)/len(fList)*100.))
 
