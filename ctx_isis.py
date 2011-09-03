@@ -110,12 +110,10 @@ class ISIS_Cube():
         
         
 def main():
-    try:
-        location = sys.argv[1]
-    except IndexError:
-        print('provide a location string like "ithaca" or "manhattan".')
+    fList = sys.argv[1:]
+    if not fList:
+        print('provide a filename or list (with ls *.???).')
         sys.exit(1)
-    fList = glob('/Users/aye/Data/ctx/'+location+'/*.IMG')
     for i,f in enumerate(fList):
         print 'processing {0}'.format(f)
         data = ISIS_Cube(f,search=True)
