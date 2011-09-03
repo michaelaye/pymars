@@ -35,13 +35,11 @@ class ISIS_Cube():
             self.search_other_states()
         print 'File status:',self.state
         print self.fname
-   
     def do_all(self):
         self.do_cube()
         self.do_cal()
         self.do_destripe()
         self.do_map()
-        
     def search_other_states(self):
         fnames = glob(self.fRoot+'*')
         extensions = [op.basename(fname).partition('.')[2] for fname in fnames]
@@ -51,8 +49,6 @@ class ISIS_Cube():
                 self.state = state
                 self.fname = self.fRoot + '.' + ext 
                 return
-            
-
     def do_process(self, cmd, state, fname):
         print(cmd)
         try:
