@@ -209,9 +209,9 @@ class Window():
         return
     
     def get_corners_from_center(self):
-        """docstring for get_corners_from_center
+        """Create symmetric window around given center point.
         
-        create symmetric window around given sample/line point and return
+        Create symmetric window around given sample/line point and return
         to Point objects for each corner point of the window
         >>> win = Window(centerPoint=Point(100,100),width=50)
         >>> win.ul.sample, win.ul.line, win.lr.sample, win.lr.line
