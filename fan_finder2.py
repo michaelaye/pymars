@@ -12,13 +12,16 @@ import sys
 import os
 from canny import canny
 from hirise_tools import save_plot
+import platform
 
 np.seterr(all='raise')
 ndimage = nd
 numpy = np
 save_rootpath=os.environ['HOME'] + '/results/fan_finder/'
-
-
+if platform.system() == 'Darwin':
+    data_path = '/Users/maye/Data/'
+else:
+    data_path = '/imgdata/'
 default_fname = '/Users/maye/Data/hirise/PSP_002380_0985_RED.cal.norm.map.equ.mos.cub'    
 
 ####
@@ -360,7 +363,7 @@ def test_local_thresholds():
 if __name__ == '__main__':
     # test_blob_array()
     # scanner(fname='/Users/maye/Data/hirise/PSP_002380_0985_RED.cal.norm.map.equ.mos.cub')
-    scanner(fname='/Users/maye/Data/ctx/P04_002652_0930_XI_87S262W.cal.des.cub',do_plot=True)
+    scanner(fname=data_path+'ctx/P04_002652_0930_XI_87S262W.cal.des.cub',do_plot=True)
     # test_grey_morph()
     # test_gaussian_filters()
     # test_local_thresholds()
