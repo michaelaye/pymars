@@ -1,7 +1,7 @@
 from __future__ import division
 from osgeo import gdal
 import matplotlib
-matplotlib.use('TkAgg')
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.ndimage as nd
@@ -212,6 +212,7 @@ def scanner(fname=None, do_plot = False, blocksize=256):
     df = DataFinder(fname=fname,blocksize=blocksize)
     X= df.ds.RasterXSize
     Y= df.ds.RasterYSize
+    if debug: print 'X,Y: ',X,Y
     blobs = np.zeros((Y/df.blocksize,X/df.blocksize))
     orig = np.zeros((Y/df.blocksize,X/df.blocksize))
     # sigmas_orig = np.zeros((Y/blocksize,X/blocksize))
@@ -236,6 +237,7 @@ def scanner(fname=None, do_plot = False, blocksize=256):
     #                 's1_20_o21_c11_l1']
     
     save_folder = save_rootpath + df.obsid + '_' +str(blocksize) +'_'+ '__'.join(action_codes)
+    if debug: print 'saving in',save_folder
     if not os.path.isdir(save_folder):
         os.mkdir(save_folder)
     # 2nd parameter (=breakpoint) is the coordinate value of x until to loop.
@@ -246,7 +248,7 @@ def scanner(fname=None, do_plot = False, blocksize=256):
             print("{0:3d} % of x-axis pixels.".format(x*100//X))
         
         # black area around image data is NaN (-1e-38)
-        if data.min() < -1e6 or data.max()-data.min() < 0.5: continue 
+        if data.min() < -1e6 or data.max()-data.min() < 0.0005: continue 
         
         orig[y/df.blocksize,x/df.blocksize]=data.mean()
         handlers = []
@@ -358,7 +360,7 @@ def test_local_thresholds():
 if __name__ == '__main__':
     # test_blob_array()
     # scanner(fname='/Users/maye/Data/hirise/PSP_002380_0985_RED.cal.norm.map.equ.mos.cub')
-    scanner(fname=None)
+    scanner(fname='/Users/maye/Data/ctx/P04_002652_0930_XI_87S262W.cal.des.cub',do_plot=True)
     # test_grey_morph()
     # test_gaussian_filters()
     # test_local_thresholds()
