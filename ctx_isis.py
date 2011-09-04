@@ -55,6 +55,7 @@ class ISIS_Cube():
             check_call(cmd)
         except CalledProcessError,e:
             print 'Got error from subprocess:',e
+            sys.exit(-1)
         self.state = state
         self.fname = fname
     def do_cube(self):
