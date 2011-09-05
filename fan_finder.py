@@ -109,7 +109,7 @@ def grey_processing(inputImg):
     data = nd.grey_opening(data,footprint=fp)
     return data
 
-def hist_equal(data):
+def hist_equal(data, dst=np.array()):
     "needs integer as input!!"
     # range is +2 to have the highest luminance to get into correct bin
     bins = numpy.arange(np.min(data), np.max(data) + 2)
