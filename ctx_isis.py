@@ -81,7 +81,9 @@ class ISIS_Cube():
         cmd = ('ctxcal',
                 'from='+self.fname,
                 'to='+newFileName)
+        oldfname = self.fname
         self.do_process(cmd,'cal',newFileName)
+        os.remove(oldfname)
     def do_destripe(self):
         if self.state != 'cal':
             print 'Wrong state for destriping'
@@ -90,7 +92,9 @@ class ISIS_Cube():
         cmd = ('ctxevenodd',
                 'from='+self.fname,
                 'to='+newFileName)
+        oldfname = self.fname
         self.do_process(cmd,'des',newFileName)
+        os.remove(oldfname)
     def do_map(self):
         if self.nomap == True: 
             print 'Map projection denied by request.'
@@ -104,8 +108,9 @@ class ISIS_Cube():
                 'to='+newFileName,
                 'pixres=map',
                 'map='+os.getenv('HOME')+'/Data/ctx/ctx_polar_stereo.map')
+        oldfname = self.fname
         self.do_process(cmd,'map',newFileName)
-            
+        os.remove(oldfname)
         
         
 def main():
