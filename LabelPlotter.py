@@ -2,10 +2,9 @@
 
 from pds.core.common import open_pds
 from pds.core.parser import Parser
-from subprocess import Popen
 import matplotlib.pyplot as plt
-import os
 import glob
+import csv
 
 def get_labels(fname):
     parser = Parser()
@@ -31,3 +30,14 @@ def plot_labels_in_folder(folder, label):
     ax = fig.add_subplot(111)
     ax.plot(data)
     plt.show()
+
+def read_atlas_report(atlas_filename):
+    """Scan through atlas PDS search csv and return dictionary with all data."""
+    with open(atlas_filename) as f:
+        keys = f.readline()
+        keys = [key.strip() for key in keys.split(',')]
+        reader = csv.DictReader(f,fieldnames=keys)
+        atlas_data = {}
+        for row in reader:
+            atlas_data[row['PRODUCT_ID'].strip()] = row
+        return atlas_data
