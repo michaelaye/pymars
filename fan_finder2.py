@@ -13,7 +13,11 @@ import os
 from canny import canny
 from hirise_tools import save_plot
 import platform
-
+try:
+    from cv import EqualizeHist as hist_equal
+except ImportError:
+    from fan_finder import hist_equal
+    
 np.seterr(all='raise')
 ndimage = nd
 numpy = np
@@ -28,6 +32,91 @@ default_fname = '/Users/maye/Data/hirise/PSP_002380_0985_RED.cal.norm.map.equ.mo
 debug = True
 ####
 
+
+def test_blob_array():
+    ds = get_dataset()
+    X= ds.RasterXSize
+    Y= ds.RasterYSize
+    bs = 128
+    newblobs = np.zeros((Y//bs,X//bs))
+    for xNow in range(0,X,bs):
+        print xNow
+        if xNow+bs > X: continue
+        for yNow in range(0,Y,bs):
+            if yNow+bs > Y: continue
+            data = ds.ReadAsArray(xNow,yNow, bs, bs)
+            myMax = data.max()
+            if myMax < 0: continue
+            newblobs[yNow//bs,xNow//bs]=myMax
+    print newblobs
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    im = ax.imshow(newblobs,aspect='equal')
+    plt.colorbar(im)
+    plt.show()
+      
+
+def test_grey_morph():
+    root = 'local_histos/'
+    final_t = 0 # for get_new_t
+    for datablock in get_data():
+        data,x,y = datablock
+        data = get_uint_image(data)
+        print(x,y)
+        for i in range(0,30,4):
+            mdata = nd.grey_opening(data,(i,i))
+            R = mahotas.thresholding.rc(mdata)
+            gradient = get_grad_mag(mdata)
+            fig = plt.figure(figsize=(12,12))
+            ax1 = fig.add_subplot(211)
+            ax1.imshow(gradient)
+            ax1.set_title(str(i)+', R: '+str(R))
+            ax2 = fig.add_subplot(212)
+            ax2.hist(gradient.flatten(),50)
+            plt.savefig(get_fname([root+'img',x,y,i,'.png']))
+            plt.close(fig)
+
+def test_gaussian_filters():
+    for i,datablock in enumerate(get_data(ds)):
+        data, x,y = datablock
+        print(block)
+        for sigma in range(5,10):
+            fig = plt.figure()
+            ax = fig.add_subplot(211)
+            fdata = nd.gaussian_filter(data,sigma)
+            fdata = (fdata * 256).astype(np.uint)
+            T = mahotas.thresholding.otsu(fdata)
+            R = mahotas.thresholding.rc(fdata)
+            im = ax.imshow(fdata,interpolation='nearest')
+            ax.set_title('Sigma: ' + str(sigma)+', T='+str(T)+', R='+str(R))
+            plt.colorbar(im)
+            ax2 = fig.add_subplot(212)
+            # ax2.hist(fdata.flatten(),50)
+            labels,n = nd.label(fdata<R,np.ones((3,3)))
+            ax2.imshow(labels)
+            ax2.set_title(str(n))
+            plt.savefig('local_histos/gaussian_fan'+str(i)+'_sigma'+str(sigma)+'.png')
+            plt.close(fig)
+
+def test_local_thresholds():
+    ds = get_dataset()
+    band = ds.GetRasterBand(1)
+    for coords in get_block_coords():
+        data = band.ReadAsArray(*coords)
+        if data.min() < -1e6: continue # no data values in the block
+        data = data * 256
+        data = data.astype(np.uint)
+        print 'doing ', coords
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        T = mahotas.thresholding.rc(data)
+        labels, n = labeling (data < T)
+        # ax.imshow(data,cmap=cm.gray)
+        ax.hist(data.flatten(),15,log=True)
+        ax.set_title(str(T))
+        plt.savefig(os.path.join('local_histos',
+                                 'block_'+str(coords[0])+'_'+str(coords[1])+'.png'))
+        plt.close(fig)
 
 def get_fname(aList):
     """get a string filename out of list of elements"""
@@ -191,6 +280,11 @@ class ImgHandler():
                 img = self.img
                 self.binarized = img < np.median(img) - factor * img.std()
             
+            # equalizeHist to normalize the brightnesses
+            elif code == 'h':
+                ndata = (self.img*255/self.img.max()).astype(np.uint8)
+                hdata = hist_equal(ndata)
+                self.img = hdata
             else:
                 print('No defined action found for: ',code,param)
     
@@ -230,9 +324,9 @@ def scanner(fname=None, do_plot = False, blocksize=256):
     # TODO: compare with and without stretching
     # TODO: compare 4 and 8 connected labeling/opening/closing
     
-    action_codes = ['s1_23_o21_c11_l1',
-                    # 's1_25_o21_c11_l1',
-                    # 's1_27_o21_c11_l1'
+    action_codes = ['s1_17_c11_o11_l1',
+                    's1_17_c11_o21_l1',
+                    's1_17_c11_o31_l1'
                     ]
     
     # action_codes = ['s1_15_o31_l1',
@@ -244,7 +338,7 @@ def scanner(fname=None, do_plot = False, blocksize=256):
     if not os.path.isdir(save_folder):
         os.mkdir(save_folder)
     # 2nd parameter (=breakpoint) is the coordinate value of x until to loop.
-    for db in df.get_data():
+    for db in df.get_data(breakpoint=500):
         counter += 1
         data,x,y = db
         if np.mod(counter,100) == 0 or counter == 1:
@@ -274,96 +368,13 @@ def scanner(fname=None, do_plot = False, blocksize=256):
     np.save(save_folder+'/blobs',blobs)
     np.save(save_folder+'/orig',orig)
 
-def test_blob_array():
-    ds = get_dataset()
-    X= ds.RasterXSize
-    Y= ds.RasterYSize
-    bs = 128
-    newblobs = np.zeros((Y//bs,X//bs))
-    for xNow in range(0,X,bs):
-        print xNow
-        if xNow+bs > X: continue
-        for yNow in range(0,Y,bs):
-            if yNow+bs > Y: continue
-            data = ds.ReadAsArray(xNow,yNow, bs, bs)
-            myMax = data.max()
-            if myMax < 0: continue
-            newblobs[yNow//bs,xNow//bs]=myMax
-    print newblobs
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-    im = ax.imshow(newblobs,aspect='equal')
-    plt.colorbar(im)
-    plt.show()
-      
-
-def test_grey_morph():
-    root = 'local_histos/'
-    final_t = 0 # for get_new_t
-    for datablock in get_data():
-        data,x,y = datablock
-        data = get_uint_image(data)
-        print(x,y)
-        for i in range(0,30,4):
-            mdata = nd.grey_opening(data,(i,i))
-            R = mahotas.thresholding.rc(mdata)
-            gradient = get_grad_mag(mdata)
-            fig = plt.figure(figsize=(12,12))
-            ax1 = fig.add_subplot(211)
-            ax1.imshow(gradient)
-            ax1.set_title(str(i)+', R: '+str(R))
-            ax2 = fig.add_subplot(212)
-            ax2.hist(gradient.flatten(),50)
-            plt.savefig(get_fname([root+'img',x,y,i,'.png']))
-            plt.close(fig)
-
-def test_gaussian_filters():
-    for i,datablock in enumerate(get_data(ds)):
-        data, x,y = datablock
-        print(block)
-        for sigma in range(5,10):
-            fig = plt.figure()
-            ax = fig.add_subplot(211)
-            fdata = nd.gaussian_filter(data,sigma)
-            fdata = (fdata * 256).astype(np.uint)
-            T = mahotas.thresholding.otsu(fdata)
-            R = mahotas.thresholding.rc(fdata)
-            im = ax.imshow(fdata,interpolation='nearest')
-            ax.set_title('Sigma: ' + str(sigma)+', T='+str(T)+', R='+str(R))
-            plt.colorbar(im)
-            ax2 = fig.add_subplot(212)
-            # ax2.hist(fdata.flatten(),50)
-            labels,n = nd.label(fdata<R,np.ones((3,3)))
-            ax2.imshow(labels)
-            ax2.set_title(str(n))
-            plt.savefig('local_histos/gaussian_fan'+str(i)+'_sigma'+str(sigma)+'.png')
-            plt.close(fig)
-
-def test_local_thresholds():
-    ds = get_dataset()
-    band = ds.GetRasterBand(1)
-    for coords in get_block_coords():
-        data = band.ReadAsArray(*coords)
-        if data.min() < -1e6: continue # no data values in the block
-        data = data * 256
-        data = data.astype(np.uint)
-        print 'doing ', coords
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-        T = mahotas.thresholding.rc(data)
-        labels, n = labeling (data < T)
-        # ax.imshow(data,cmap=cm.gray)
-        ax.hist(data.flatten(),15,log=True)
-        ax.set_title(str(T))
-        plt.savefig(os.path.join('local_histos',
-                                 'block_'+str(coords[0])+'_'+str(coords[1])+'.png'))
-        plt.close(fig)
 
 
 if __name__ == '__main__':
     # test_blob_array()
     # scanner(fname='/Users/maye/Data/hirise/PSP_002380_0985_RED.cal.norm.map.equ.mos.cub')
-    scanner(fname=data_path+'ctx/P04_002652_0930_XI_87S262W.cal.des.cub',do_plot=True)
+    scanner(fname=data_path+'ctx/P06_003453_0948_XI_85S178W.cal.des.cub',do_plot=True)
+    # scanner(fname=data_path+'ctx/P04_002652_0930_XI_87S262W.cal.des.cub',do_plot=True)
     # test_grey_morph()
     # test_gaussian_filters()
     # test_local_thresholds()
