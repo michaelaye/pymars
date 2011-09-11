@@ -4,10 +4,11 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 from matplotlib import colors
 
-FROM_BASE = "/imgdata/"
 if sys.platform == 'darwin':
+    FROM_BASE = os.environ['HOME']+'/Data/'
     DEST_BASE = os.environ['HOME']+"/Data/hirise/"
 else:
+    FROM_BASE = '/imgdata/'
     DEST_BASE = '/processed_data/'
 
 # mosaic_extensions = '.cal.norm.map.equ.mos.cub'
