@@ -21,7 +21,7 @@ def main():
     std_data = {}
     length = len(fnames)
     for i,fname in enumerate(fnames):
-        print i/length*100
+        print i/length*100,'%', fname
         cmd = cmd_base+[fname]
         output = sub.Popen(cmd, stdout=sub.PIPE).communicate()[0]
         std = output.split()[-1].split('=')[-1]
