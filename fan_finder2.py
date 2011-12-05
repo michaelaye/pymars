@@ -6,12 +6,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import scipy.ndimage as nd
 import hirise_tools
-from hirise_tools import save_plot,getStoredPathFromID, getObsIDFromPath
+from hirise_tools import getStoredPathFromID, getObsIDFromPath
 import mahotas
-import sys
 import os
-from canny import canny
-from hirise_tools import save_plot
+# from canny import canny
 import platform
 try:
     from cv import EqualizeHist as hist_equal
@@ -58,7 +56,6 @@ def test_blob_array():
 
 def test_grey_morph():
     root = 'local_histos/'
-    final_t = 0 # for get_new_t
     for datablock in get_data():
         data,x,y = datablock
         data = get_uint_image(data)
@@ -293,10 +290,6 @@ class ImgHandler():
         areas = []
         labeled_pixels = []
         for i in range(self.n):
-            y1 = slices[i][0].start
-            y2 = slices[i][0].stop
-            x1 = slices[i][1].start
-            x2 = slices[i][1].stop
             pixel_count = self.binarized[slices[i]].sum()
             area = pixel_count*resolution*resolution
             areas.append(area)
@@ -315,10 +308,6 @@ def scanner(fname=None, do_plot = False, blocksize=256):
     # sigmas_orig = np.zeros((Y/blocksize,X/blocksize))
     # sigmas_stretched = np.zeros((Y/blocksize,X/blocksize))
     counter = 0
-    kernel_half = [[0,1,0],
-              [1,1,1],
-              [0,1,0]]
-    kernel = np.ones((3,3))
     
     # TODO: compare with median filtering
     # TODO: compare with and without stretching
