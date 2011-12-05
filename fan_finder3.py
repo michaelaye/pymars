@@ -32,7 +32,7 @@ class KMeans(HasTraits):
     def _data_changed(self):
         codebook, distortion = vq.kmeans(self.data, self.k, self.k_iter )
         self.feedback += str(codebook.min()) + '\n'
-        self.feedback2 += str(distortion)
+        self.feedback2 += str(distortion) + '\n'
     
     def _framesize_changed(self):
         self._read_data()
