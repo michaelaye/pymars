@@ -17,6 +17,8 @@ class KMeans(HasTraits):
     fname = File()
     next = Button
     data = Array
+    xoff = Int(0)
+    yoff = Int(0)
     k_iter = Enum(20,40,60,80,100)
     k = Int(2)
     framesize = Enum(128,256,512,1024)
@@ -26,16 +28,27 @@ class KMeans(HasTraits):
     traits_view = View(HGroup(
                         'framesize',
                         Item('k',
-                             editor=RangeEditor(low=2, high=20, mode='spinner')),
-                        'k_iter'
+                             editor=RangeEditor(low=2, high=30, mode='spinner')),
+                        'k_iter',
+                        'next'
                        ),
-                       'fname', 'limit','distortion',
+                       'fname',
+                       HGroup('limit','distortion'),
                        UItem('plot',editor=ComponentEditor(size=(700,400)),
                                 height=0.7),
                        resizable=True,
                        buttons=['OK'],
                        )        
     
+    def _next_fired(self):
+        if (self.xoff + self.framesize) > self.XSize:
+            self.xoff = 0
+            self.yoff += self.framesize
+        else:
+            self.xoff += self.framesize
+        self._read_data()
+        self.pd.set_data('orig',self.data)
+        
     @on_trait_change( 'k, k_iter, data')
     def _data_changed(self):
         codebook, distortion = vq.kmeans(self.data.flatten(), self.k, self.k_iter )
@@ -68,7 +81,7 @@ class KMeans(HasTraits):
         ds = gdal.Open(self.fname)
         self.XSize = ds.RasterXSize
         self.YSize = ds.RasterYSize
-        self.data = ds.ReadAsArray(0,0,self.framesize,self.framesize)
+        self.data = ds.ReadAsArray(self.xoff,self.yoff,self.framesize,self.framesize)
         
     def _fname_changed(self):
         if not os.path.exists(self.fname):
