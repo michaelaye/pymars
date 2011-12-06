@@ -33,7 +33,7 @@ class KMeans(HasTraits):
                         'next'
                        ),
                        'fname',
-                       HGroup('limit','distortion'),
+                       HGroup('limit','distortion','xoff','yoff'),
                        UItem('plot',editor=ComponentEditor(size=(700,400)),
                                 height=0.7),
                        resizable=True,
@@ -41,7 +41,7 @@ class KMeans(HasTraits):
                        )        
     
     def _next_fired(self):
-        if (self.xoff + self.framesize) > self.XSize:
+        if (self.xoff + 2*self.framesize) > self.XSize:
             self.xoff = 0
             self.yoff += self.framesize
         else:
