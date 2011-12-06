@@ -2,7 +2,7 @@ from __future__ import division
 from osgeo import gdal
 import numpy as np
 import scipy.ndimage as nd
-from traits.api import File, HasTraits, Str, Button, Array, Int,Enum
+from traits.api import File, HasTraits, Str, Button, Array, Int,Enum, on_trait_change
 from traitsui.api import View, Item, UItem,HGroup
 import os
 from scipy.cluster import vq
@@ -29,6 +29,7 @@ class KMeans(HasTraits):
                        buttons=['OK'],
                        )        
     
+    @on_trait_change( 'k, k_iter, data')
     def _data_changed(self):
         codebook, distortion = vq.kmeans(self.data, self.k, self.k_iter )
         self.feedback += str(codebook.min()) + '\n'
@@ -36,7 +37,7 @@ class KMeans(HasTraits):
     
     def _framesize_changed(self):
         self._read_data()
-        
+     
     def _read_data(self):
         ds = gdal.Open(self.fname)
         self.XSize = ds.RasterXSize
