@@ -16,7 +16,7 @@ from osgeo import gdal,osr
 from matplotlib.pyplot import figure, show
 import matplotlib.pyplot as plt
 import sys
-import os.path
+import os
 import matplotlib.cm as cm
 from mpl_toolkits.axes_grid.anchored_artists import AnchoredSizeBar
 import numpy as np
@@ -367,7 +367,7 @@ class ImgData():
 class MOLA(ImgData):
     """docstring for MOLA"""
     def __init__(self,
-                 fname='/Users/aye/Data/mola/megr_s_512_1.cub'):
+                 fname=os.path.join(os.getenv('HOME'),'Data/mola/megr_s_512_1.cub')):
         ImgData.__init__(self,fname)
 
 class CTX(ImgData):
