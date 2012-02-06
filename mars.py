@@ -339,6 +339,11 @@ class ImgData():
         self.window.ul.lonlat_to_pixel(self.geotransform,self.projection)
         self.window.lr.lonlat_to_pixel(self.geotransform,self.projection) 
         
+    def normalize(self):
+        new_data = self.data - self.data.min()
+        new_data /= new_data.max()
+        self.data = new_data
+        
     def show(self, lonlat=False):
         fig = figure()
         ax = fig.add_subplot(111)
@@ -373,7 +378,7 @@ class MOLA(ImgData):
 class CTX(ImgData):
     """docstring for CTX"""
     def __init__(self,
-                 fname='/Users/aye/Data/ctx/inca_city/ESP_011412_0985/'\
+                 fname=os.getenv('HOME')+'/Data/ctx/inca_city/ESP_011412_0985/'\
                  'B05_011412_0985_XI_81S063W.cal.des.cub.map.cub'):
         ImgData.__init__(self,fname)
 
@@ -401,7 +406,7 @@ class CTX(ImgData):
 class HiRISE(ImgData):
     """docstring for HiRISE"""
     def __init__(self,
-                 fname='/Users/aye/Data/hirise/'\
+                 fname=os.getenv('HOME')+'/Data/hirise/'\
                             'PSP_002380_0985_RED.cal.norm.map.equ.mos.cub'):
         ImgData.__init__(self,fname)
                 
