@@ -344,6 +344,11 @@ class ImgData():
         new_data /= new_data.max()
         self.data = new_data
         
+    def convert_to_uint8(self):
+        self.normalize()
+        self.data=np.array(self.data*256,dtype=np.uint8)
+        return self.data
+        
     def show(self, lonlat=False):
         fig = figure()
         ax = fig.add_subplot(111)
