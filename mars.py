@@ -384,7 +384,7 @@ class CTX(ImgData):
     """docstring for CTX"""
     def __init__(self,
                  fname=os.getenv('HOME')+'/Data/ctx/inca_city/ESP_011412_0985/'\
-                 'B05_011412_0985_XI_81S063W.cal.des.cub.map.cub'):
+                 'B05_011412_0985_XI_81S063W.cal.des.map.cub'):
         ImgData.__init__(self,fname)
 
     def add_mola_contours(self):
