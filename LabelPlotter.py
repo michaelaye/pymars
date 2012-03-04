@@ -11,15 +11,15 @@ def get_labels(fname):
     labels = parser.parse(open_pds(fname))
     return labels
 
-def print_labels_in_folder(folder, label):
-    files = glob.glob(folder + "*.IMG")
+def print_labels_in_folder(folder, label, ext='IMG'):
+    files = glob.glob(folder + "*."+ext)
     for f in files:
         print f
         labels = get_labels(f)
         print labels[label.upper()]
         
-def plot_labels_in_folder(folder, label):
-    files = glob.glob(folder + "*.IMG")
+def plot_labels_in_folder(folder, label,ext="IMG"):
+    files = glob.glob(folder + "*."+ext)
     data = []
     for f in files:
         print f
