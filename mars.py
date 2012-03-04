@@ -267,10 +267,12 @@ class ImgData():
         self.fname = fname
         self.dataset = gdal.Open(self.fname)
         self.ds = self.dataset
+        self.band = self.ds.GetRasterBand(1)
+        self.get_center_from_dataset()
         self.geotransform = self.dataset.GetGeoTransform()
         self.projection = self.dataset.GetProjection()
         
-    def get_sample_data(self,width=500):
+    def read_center_window(self,width=500):
         """Get some sample data from the center of the dataset
         
         Input: width of square data array, default 500
@@ -283,19 +285,14 @@ class ImgData():
         >>> mola.data.max()
         3382383.8
         """
-        ds = self.dataset
-        self.get_center_from_dataset()
         self.window = Window(centerPoint=self.center,width=width)
-        self.data = ds.ReadAsArray(*self.window.get_gdal_window())
+        self.data = self.band.ReadAsArray(*self.window.get_gdal_window())
         return self.data
   
-    def get_center_from_dataset(self, dataset=None):
-        if not dataset:
-            dataset = self.dataset
-        xSize = dataset.RasterXSize
-        ySize = dataset.RasterYSize
+    def get_center_from_dataset(self):
+        xSize = self.dataset.RasterXSize
+        ySize = self.dataset.RasterYSize
         self.center = Point(xSize//2,ySize//2)
-        return self.center
         
     def read_window(self, ul_or_win, lrPoint=None):
         """get data for Window object or 2 Point objects
@@ -320,12 +317,8 @@ class ImgData():
             self.window = ul_or_win
         else:
             self.window = Window(ul_or_win, lrPoint)
-        self.data = self.dataset.ReadAsArray(*self.window.get_gdal_window())
+        self.data = self.band.ReadAsArray(*self.window.get_gdal_window())
         return self.data
-
-    def read_center_window(self, width=300):
-        self.window = Window(centerPoint=self.get_center_from_dataset(),width=width)
-        self.read_window(self.window)
         
     def window_coords_to_meter(self):
         self.window.ul.pixel_to_meter(self.geotransform)
@@ -411,10 +404,19 @@ class CTX(ImgData):
 class HiRISE(ImgData):
     """docstring for HiRISE"""
     def __init__(self,
-                 fname=os.getenv('HOME')+'/Data/hirise/'\
+                 fname=os.getenv('HOME')+'/Data/hirise/inca_city/'\
                             'PSP_002380_0985_RED.cal.norm.map.equ.mos.cub'):
         ImgData.__init__(self,fname)
-                
+        self.bands = []
+        for rc in range(self.ds.RasterCount):
+            self.bands.append(self.ds.GetRasterBand(rc+1)) # bands count from 1
+
+    def read_center_window(self,width=500):
+        self.window = Window(centerPoint=self.center,width=width)
+        self.data = []
+        for band in self.bands:
+            self.data.append(band.ReadAsArray(*self.window.get_gdal_window()))
+
 
 def combine_ctx_and_mola(ctxFilename, ctxSample, ctxLine, ctxWidth):
     """combine CTX and MOLA data.
