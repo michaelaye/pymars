@@ -34,7 +34,15 @@ class Spicer(HasTraits):
         self.trgepoch, self.srfvec, self.phase, self.solar, self.emission = \
             output
         return output
-                             
+    def srfrec(self, body, lon, lat):
+        """Convert body to spice id if it's not a number.
+        
+        Input of angles in degrees, conversion is done here.
+        """
+        if not str(body).isdigit():
+            body = spice.bodn2c(body)
+        self.rectan = spice.srfrec(body, np.deg2rad(lon), np.deg2rad(lat))
+        return self.rectan
                              
 class MarsSpicer(Spicer):
     target = 'MARS'
@@ -43,6 +51,7 @@ class MarsSpicer(Spicer):
     def __init__(self, time=None, obs=None):
         super(MarsSpicer, self).__init__(time)
         self.obs = 'MRO' if obs is None else obs
+        self.target_id = spice.bodn2c(self.target)
 
 
 if __name__ == '__main__':
@@ -51,3 +60,4 @@ if __name__ == '__main__':
     mspicer.subpnt()
     mspicer.ilumin()
     print(np.rad2deg(mspicer.solar))
+    print(mspicer.srfrec('mars', 296, -81.3))
