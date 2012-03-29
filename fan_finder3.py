@@ -4,6 +4,8 @@ import numpy as np
 import scipy.ndimage as nd
 import os
 from scipy.cluster import vq
+# my mars data interface
+import mars
 # traits imports
 from traits.api import File, HasTraits, Str, Button, Array, Int,Enum, \
         on_trait_change, Instance, DelegatesTo, Float,Range
@@ -78,15 +80,22 @@ class KMeans(HasTraits):
         return container
         
     def _read_data(self):
-        ds = gdal.Open(self.fname)
-        self.XSize = ds.RasterXSize
-        self.YSize = ds.RasterYSize
-        self.data = ds.ReadAsArray(self.xoff,self.yoff,self.framesize,self.framesize)
+        img = mars.ImgData(self.fname)
+        self.XSize = img.ds.RasterXSize
+        self.YSize = img.ds.RasterYSize
+        img.read_center_window(width=self.framesize)
+        self.data = img.data
         
     def _fname_changed(self):
         if not os.path.exists(self.fname):
             pass
         self._read_data()
-        
-kmeans = KMeans(fname='/Users/maye/Data/hirise/PSP_003092_0985/PSP_003092_0985_RED5.cal.norm.cub')
+
+local_fname = '/Users/maye/Data/hirise/inca_city/PSP_003092_0985/PSP_003092_0985_RED5.cal.norm.cub'
+if os.path.exists(local_fname):
+    kmeans = KMeans(fname=local_fname)
+else:
+    kmeans = KMeans()
+    print("Found no local file.")
+
 kmeans.configure_traits()
