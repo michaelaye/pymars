@@ -4,6 +4,7 @@ from traits.api import HasTraits, Str, Float, ListStr, Enum, Date, Property
 import datetime as dt
 import dateutil.parser as tparser
 import matplotlib.pyplot as plt
+from matplotlib.dates import HourLocator, drange
 
 spice.furnsh('mars.mk')
 
@@ -73,12 +74,18 @@ if __name__ == '__main__':
     mspicer.ilumin()
     print(np.rad2deg(mspicer.solar))
     angles = []
-    tdeltas = np.arange(1440)+1
-    one_minute = dt.timedelta(minutes=1)
-    for tdelta in tdeltas:
-        mspicer.time += one_minute
+    time1 = mspicer.time
+    time2 = mspicer.time + dt.timedelta(1)
+    delta = dt.timedelta(minutes = 1)
+    times = drange(time1, time2, delta)
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    for time in times:
+        mspicer.time += delta
         mspicer.ilumin()
         angles.append(np.rad2deg(mspicer.solar))
-    plt.plot(tdeltas, angles)
+    ax.plot_date(times, angles)
+    fig.autofmt_xdate()
+    
     plt.show()
         
