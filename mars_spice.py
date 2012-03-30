@@ -3,6 +3,7 @@ import numpy as np
 from traits.api import HasTraits, Str, Float, ListStr, Enum, Date, Property
 import datetime as dt
 import dateutil.parser as tparser
+import matplotlib.pyplot as plt
 
 spice.furnsh('mars.mk')
 
@@ -71,5 +72,13 @@ if __name__ == '__main__':
     print(mspicer.et2lst())
     mspicer.ilumin()
     print(np.rad2deg(mspicer.solar))
-    # for minute in np.arange(1440)+1:
+    angles = []
+    tdeltas = np.arange(1440)+1
+    one_minute = dt.timedelta(minutes=1)
+    for tdelta in tdeltas:
+        mspicer.time += one_minute
+        mspicer.ilumin()
+        angles.append(np.rad2deg(mspicer.solar))
+    plt.plot(tdeltas, angles)
+    plt.show()
         
