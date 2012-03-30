@@ -1,6 +1,6 @@
 import spice
 import numpy as np
-from traits.api import HasTraits, Str, Float, ListStr, Enum
+from traits.api import HasTraits, Str, Float, ListStr, Enum, Date, Property
 import datetime as dt
 import dateutil.parser as tparser
 
@@ -14,15 +14,20 @@ class Spicer(HasTraits):
     corr = Str('LT+S')
     et = Float
     obs = Str
+    time = Date
+    utc = Property(depends_on = 'datetime')
+    et = Property(depends_on = 'utc')
     def __init__(self, time=None):
         if time is None:
             print('Uninitialised time. You still need to set it.')
         else:
             self.init_time(time)
     def init_time(self,t):
-        self.datetime = tparser.parse(t)
-        self.utc = self.datetime.isoformat()
-        self.et = spice.utc2et(self.utc)
+        self.time = tparser.parse(t)
+    def _get_utc(self):
+        return self.time.isoformat()
+    def _get_et(self):
+        return spice.utc2et(self.utc)
     def subpnt(self):
         output = spice.subpnt(self.method, self.target, self.et, self.ref_frame, 
                               self.corr, self.obs)
@@ -39,11 +44,16 @@ class Spicer(HasTraits):
         
         Input of angles in degrees, conversion is done here.
         """
+        self.lon = lon
+        self.lat = lat
         if not str(body).isdigit():
-            body = spice.bodn2c(body)
-        self.rectan = spice.srfrec(body, np.deg2rad(lon), np.deg2rad(lat))
-        return self.rectan
-                             
+            self.body = spice.bodn2c(body)
+        self.spoint = spice.srfrec(self.body, np.deg2rad(lon), np.deg2rad(lat))
+        return self.spoint
+    def et2lst(self):
+        self.lst = spice.et2lst(self.et, self.body, self.lon, "PLANETOCENTRIC")
+        return self.lst
+        
 class MarsSpicer(Spicer):
     target = 'MARS'
     ref_frame = 'IAU_MARS'
@@ -55,9 +65,11 @@ class MarsSpicer(Spicer):
 
 
 if __name__ == '__main__':
-    utc = '2012-03-14T03:38:58.482'
+    utc = '7 Jan 2009 15:00'
     mspicer = MarsSpicer(time=utc)
-    mspicer.subpnt()
+    print(mspicer.srfrec('mars', 296, -81.3))
+    print(mspicer.et2lst())
     mspicer.ilumin()
     print(np.rad2deg(mspicer.solar))
-    print(mspicer.srfrec('mars', 296, -81.3))
+    # for minute in np.arange(1440)+1:
+        
