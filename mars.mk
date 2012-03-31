@@ -6,5 +6,6 @@
 		'/Users/maye/Data/spice/mars/mgs_ext22.bsp'
 		'/Users/maye/Data/spice/mars/spk_psp_rec26374_26369_26734_p-v1.bsp'
 		'/Users/maye/Data/spice/mars/mro_psp10.bsp'
+		'/Users/maye/Data/spice/mars/mro_v14.tf'
     )
 \begintext
