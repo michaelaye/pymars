@@ -2,20 +2,22 @@ import spice
 from collections import namedtuple
 import numpy as np
 from traits.api import HasTraits, Str, Int, Float, ListStr, Enum, Date, Property, \
-    Tuple, Range
+    Tuple, Range, cached_property
 import datetime as dt
 import dateutil.parser as tparser
 import matplotlib.pyplot as plt
 from matplotlib.dates import HourLocator, drange
+from sunpy.sun.constants import luminosity as L_sol
 
 # spice.furnsh('/Users/maye/Data/spice/mars/mro_2009_v06_090107_090110.tm')
 # spice.furnsh('/Users/maye/Data/spice/mars/mro_2007_v07_070127_070128.tm')
-spice.furnsh('/Users/maye/Data/spice/mars/mro_2007_v07_070216_070217.tm')
+# spice.furnsh('/Users/maye/Data/spice/mars/mro_2007_v07_070216_070217.tm')
 
+spice.furnsh('mars.tm')
 Coords = namedtuple('Coords', 'radius lon lat')
 Radii = namedtuple('Radii', 'a b c')
 IllumAngles = namedtuple('IllumAngles', 'phase solar emission')
-
+    
 class Spicer(HasTraits):
     # Constants
     method = Str('Near point:ellipsoid')
@@ -29,6 +31,7 @@ class Spicer(HasTraits):
     target = Str
     target_id = Property(depends_on = 'target')
     radii = Property(depends_on = 'target')
+    solar_constant = Property(depends_on ='target')
     
     # Init Parameters and their dependents
     time = Date
@@ -47,23 +50,34 @@ class Spicer(HasTraits):
     
     def __init__(self, time=None):
         if time is None:
-            print('Uninitialised time. You still need to set it.')
+            self.time = dt.datetime.now()
         else:
             self.time = tparser.parse(time)
             
     def _get_utc(self):
         return self.time.isoformat()
 
+    @cached_property
     def _get_et(self):
         return spice.utc2et(self.utc)
 
+    @cached_property
     def _get_target_id(self):
         return spice.bodn2c(self.target)
 
+    @cached_property
     def _get_radii(self):
         _, radii = spice.bodvrd(self.target, "RADII",3)
         return Radii(*radii)
+
+    @cached_property
+    def _get_solar_constant(self):
+        center_to_sun, lighttime = self.target_to_object("SUN")
+        dist = spice.vnorm(center_to_sun)
+        # SPICE returns in [km] !!
+        return L_sol / (4 * np.pi * (dist * 1e3)**2)
         
+    @cached_property
     def _get_instrument_id(self):
         if not self.instrument:
             print("Instrument is not set yet.")
@@ -137,10 +151,12 @@ class Spicer(HasTraits):
         dlat = np.rad2deg(self.coords.lat)
         return Coords(self.coords.radius, dlon, dlat)
         
+    @cached_property
     def _get_snormal(self):
         a, b, c = self.radii
         return spice.surfnm(a, b, c, self.spoint)
         
+    @cached_property
     def _get_illum_angles(self):
         "Ilumin returns (trgepoch, srfvec, phase, solar, emission)"
         if self.obs is not None:
@@ -160,13 +176,16 @@ class Spicer(HasTraits):
             dangles.append(np.rad2deg(angle))
         return IllumAngles(*dangles)
 
+    @cached_property
     def _get_local_soltime(self):
         lst = spice.et2lst(self.et, self.target_id, self.coords.lon, "PLANETOCENTRIC")
         return lst
     
+    @cached_property
     def _get_l_s(self):
         return np.rad2deg(spice.lspcn(self.target, self.et, self.corr))
     
+    @cached_property
     def get_subsolar(self):
         subsolar, _, _ = spice.subslr(self.method, self.target, self.et, self.ref_frame,
                                       self.corr, self.obs)
@@ -179,7 +198,11 @@ class Spicer(HasTraits):
         """
         output = spice.spkpos(object, self.et, self.ref_frame, self.corr, self.target)
         return output
-        
+
+class EarthSpicer(Spicer):
+    target = 'EARTH'
+    ref_frame = 'IAU_EARTH'
+    
 class MarsSpicer(Spicer):
     target = 'MARS'
     ref_frame = 'IAU_MARS'
