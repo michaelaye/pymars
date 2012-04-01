@@ -1,164 +1,201 @@
 import spice
+from collections import namedtuple
 import numpy as np
 from traits.api import HasTraits, Str, Int, Float, ListStr, Enum, Date, Property, \
-    Tuple
+    Tuple, Range
 import datetime as dt
 import dateutil.parser as tparser
 import matplotlib.pyplot as plt
 from matplotlib.dates import HourLocator, drange
 
 # spice.furnsh('mars.mk')
-spice.furnsh('/Users/maye/Data/spice/mars/mro_2009_v06_090107_090110.tm')
+# spice.furnsh('/Users/maye/Data/spice/mars/mro_2009_v06_090107_090110.tm')
 spice.furnsh('/Users/maye/Data/spice/mars/mro_2007_v07_070127_070128.tm')
 # spice.furnsh('/Users/maye/isis3/data/base/kernels/lsk/naif0009.tls')
 
+Coords = namedtuple('Coords', 'radius lon lat')
+Radii = namedtuple('Radii', 'a b c')
+IllumAngles = namedtuple('IllumAngles', 'phase solar emission')
+
 class Spicer(HasTraits):
-    timestr = Str
-    target = Str
-    target_ID = Property(depends_on = 'target')
-    ref_frame = Str
-    instrument = Str
-    instrument_ID = Property(depends_on = 'instrument')
+    # Constants
     method = Str('Near point:ellipsoid')
     corr = Str('LT+S')
-    et = Float
+    
+    # 'Constants' set by child class
+    ref_frame = Str
+    instrument = Str
+    instrument_id = Property(depends_on = 'instrument')
     obs = Str
+    target = Str
+    target_id = Property(depends_on = 'target')
+    radii = Property(depends_on = 'target')
+    
+    # Init Parameters and their dependents
     time = Date
     utc = Property(depends_on = 'time')
     et = Property(depends_on = 'utc')
+    l_s = Property(depends_on = 'et')
+    
+    # surface point related attributes
     spoint = Tuple
-    lon = Float
-    lat = Float
-    dlon = Property(depends_on = 'lon')
-    lat = Float
-    dlat = Property(depends_on = 'lat')
+    coords = Property(depends_on = 'spoint')
+    dcoords = Property(depends_on = 'coords')
+    snormal = Property(depends_on = 'spoint')
+    illum_angles = Property(depends_on = ['spoint','et'])
+    dillum_angles = Property(depends_on = 'illum_angles')
+    local_soltime = Property(depends_on = ['spoint','et'])
     
-    
-    def __init__(self, time=None, target=None):
+    def __init__(self, time=None):
         if time is None:
             print('Uninitialised time. You still need to set it.')
         else:
-            self.init_time(time)
-        _, (self.a, self.b, self.c) = spice.bodvrd(target, "RADII",3)
-    def _spoint_changed(self):
-        self.reclat()
-        self.surfnm()
-        
-    def surfnm(self):
-        return spice.surfnm(self.a, self.b, self.c, self.spoint)
-        
-    def _get_dlon(self):
-        dlon = np.rad2deg(self.lon)
-        if dlon < 0:
-            dlon = 360 - abs(dlon)
-        return dlon
-        
-    def _get_dlat(self):
-        return np.rad2deg(self.lat)
-        
-    def init_time(self,t):
-        self.time = tparser.parse(t)
-
+            self.time = tparser.parse(time)
+            
     def _get_utc(self):
         return self.time.isoformat()
 
     def _get_et(self):
         return spice.utc2et(self.utc)
 
-    def _get_target_ID(self):
+    def _get_target_id(self):
         return spice.bodn2c(self.target)
 
-    def _get_instrument_ID(self):
+    def _get_radii(self):
+        _, radii = spice.bodvrd(self.target, "RADII",3)
+        return Radii(*radii)
+        
+    def _get_instrument_id(self):
         return spice.bodn2c(self.instrument)
         
-    def subpnt(self):
-        output = spice.subpnt(self.method, self.target, self.et, self.ref_frame, 
-                              self.corr, self.obs)
-        self.spoint, self.trgepoch, self.srfvec = output
-        # call rectangular to latitudinal coords conv to keep lat, lon consistent
-        return output
-
-    def reclat(self):
-        self.radius, self.lon, self.lat = spice.reclat(self.spoint)
-
-    def ilumin(self):
-        output = spice.ilumin("Ellipsoid", self.target, self.et, self.ref_frame,
-                              self.corr, self.obs, self.spoint)
-        self.trgepoch, self.srfvec, self.phase, self.solar, self.emission = \
-            output
-        self.dsolar = np.rad2deg(self.solar)
-        self.demission = np.rad2deg(self.emission)
-        self.dphase = np.rad2deg(self.phase)
-        return output
-
-    def srfrec(self, body, lon, lat):
-        """Convert body to spice id if it's not a number.
+    def set_spoint_by(self, func_str=None, lon=None, lat=None):
+        """This executes the class method with the name stored in the dict.
+        
+        ... and sets attribute spoint to the first item of the return.
+        This works because both sincpt and subpnt return spoint as first item.
+        """
+        if func_str == 'subpnt':
+            self.spoint = self.subpnt()[0]
+        elif func_str == 'sincpt':
+            self.spoint = self.sincpt()[0]
+        elif (lon and lat):
+            self.lon = lon
+            self.lat = lat
+            self.spoint = self.srfrec(lon, lat)
+        else:
+            print("No valid method recognized.")
+            
+    def srfrec(self, lon, lat, body=None):
+        """Convert planetocentric longitude and latitude of a surface point on a
+        specified body to rectangular coordinates.
         
         Input of angles in degrees, conversion is done here.
+        If the body is not a SPICE ID, it will be converted.
         """
-        self.lon = lon
-        self.lat = lat
+        if body is None:
+            body = self.target_id
         if not str(body).isdigit():
-            self.body = spice.bodn2c(body)
-        self.spoint = spice.srfrec(self.body, np.deg2rad(lon), np.deg2rad(lat))
-        return self.spoint
+            body = spice.bodn2c(body)
+        return spice.srfrec(body, np.deg2rad(lon), np.deg2rad(lat))
 
-    def et2lst(self):
-        self.local_soltime = spice.et2lst(self.et, self.target_ID, self.lon, "PLANETOCENTRIC")
-        return self.local_soltime
-    
-    def lspcn(self):
-        return spice.lspcn(self.target_ID, self.et, self.corr)
-
-    def sincpt(self):
+    def getfov(self):
         # hardcoded 5 in PySPICE wrapper, hotfix to get around [] in bounds array
-        self.shape, self.frame, self.bsight, _, _ = spice.getfov(self.instrument_ID, 5)
-        output = spice.sincpt("Ellipsoid", self.target, self.et, self.ref_frame,
-                              self.corr, self.obs, self.frame, self.bsight)
-        self.spoint, self.trgepoch, self.srfvec = output
-        return self.spoint
+        return spice.getfov(self.instrument_id, 5)
         
-    def subslr(self):
+    def sincpt(self):
+        """Surface intercept point.
+        
+        Sets the spoint depending on the current active instrument's boresight.
+        """
+        # _ are dummy variables I don't need
+        shape, frame, bsight, _, _ = self.getfov()
+        return spice.sincpt("Ellipsoid", self.target, self.et, self.ref_frame,
+                              self.corr, self.obs, frame, bsight)
+
+    def subpnt(self):
+        "output = (spoint, trgepoch, srfvec)"
+        output = spice.subpnt(self.method, self.target, self.et, self.ref_frame, 
+                              self.corr, self.obs)
+        return output
+
+    def _get_coords(self):
+        return Coords(*spice.reclat(self.spoint))
+        
+    def _get_dcoords(self):
+        dlon = np.rad2deg(self.coords.lon)
+        if dlon < 0:
+            dlon = 360 - abs(dlon)
+        dlat = np.rad2deg(self.coords.lat)
+        return Coords(self.coords.radius, dlon, dlat)
+        
+    def _get_snormal(self):
+        a, b, c = self.radii
+        return spice.surfnm(a, b, c, self.spoint)
+        
+    def _get_illum_angles(self):
+        "Ilumin returns (trgepoch, srfvec, phase, solar, emission)"
+        if self.obs is not None:
+            output = spice.ilumin("Ellipsoid", self.target, self.et, self.ref_frame,
+                                  self.corr, self.obs, self.spoint)
+            return IllumAngles(*output[2:]) 
+        else:
+            center_to_sun, lighttime = self.target_to_object("SUN")
+            surf_to_sun = spice.vsub(center_to_sun, self.spoint)
+            solar = spice.vsep(surf_to_sun, self.snormal)
+            # leaving at 0 what I don't have
+            return IllumAngles(0, solar, 0)
+            
+    def _get_dillum_angles(self):
+        dangles = []
+        for angle in self.illum_angles:
+            dangles.append(np.rad2deg(angle))
+        return IllumAngles(*dangles)
+
+    def _get_local_soltime(self):
+        lst = spice.et2lst(self.et, self.target_id, self.coords.lon, "PLANETOCENTRIC")
+        return lst
+    
+    def _get_l_s(self):
+        return spice.lspcn(self.target, self.et, self.corr)
+    
+    def get_subsolar(self):
         subsolar, _, _ = spice.subslr(self.method, self.target, self.et, self.ref_frame,
                                       self.corr, self.obs)
-        self.subsolar = subsolar
         return subsolar
         
-        
-class MarsSpicer(Spicer):
-    target = 'MARS'
-    ref_frame = 'IAU_MARS'
-    obs = Enum(['MRO','MGS','MEX'])
-    instrument = Enum(['MRO_HIRISE','MRO_CRISM','MRO_CTX'])
-    def __init__(self, time=None, obs=None, inst=None):
-        super(MarsSpicer, self).__init__(time, self.target)
-        self.obs = 'MRO' if obs is None else obs
-        self.instrument = 'MRO_HIRISE' if inst is None else inst
-        self.target_id = spice.bodn2c(self.target)
-    def mars_to_object(self, object):
+    def target_to_object(self, object):
         """Object should be string of body, e.g. 'SUN'.
         
         Output has (object_vector[3], lighttime)
         """
         output = spice.spkpos(object, self.et, self.ref_frame, self.corr, self.target)
         return output
+        
+class MarsSpicer(Spicer):
+    target = 'MARS'
+    ref_frame = 'IAU_MARS'
+    obs = Enum([None, 'MRO','MGS','MEX'])
+    instrument = Enum([None,'MRO_HIRISE','MRO_CRISM','MRO_CTX'])
+    # Coords dictionary to store often used coords
+    coords = dict(inca=(220.09830399469547, -440.60853011059214, -3340.5081261541495))
 
-if __name__ == '__main__':
-    utc = '2007-01-28T21:12:55'
-    mspicer = MarsSpicer(time=utc)
-    # Inca City coords in Mars frame
-    mspicer.sincpt()
-    # mspicer.spoint = (220.09830399469547, -440.60853011059214, -3340.5081261541495)
-    mspicer.ilumin()
-    print('Solar incidence: {0:g}'.format(mspicer.dsolar))
-    print('Emission angle: {0:g}'.format(mspicer.demission))
-    print('Phase angle: {0:g}'.format(mspicer.dphase))
-    center_to_sun, lt = mspicer.mars_to_object("SUN")
-    print(center_to_sun)
-    surf_to_sun = spice.vsub(center_to_sun, mspicer.spoint)
-    snormal = mspicer.surfnm()
-    print("Diff: {0}".format(np.rad2deg(spice.vsep(surf_to_sun, snormal))))
-    print(snormal)
+    def __init__(self, time=None, obs=None, inst=None):
+        """ Initialising MarsSpicer class.
+        
+        >>> utc = '2007-01-27T12:00:00'
+        >>> mspicer = MarsSpicer(time=utc)
+        >>> mspicer.set_spoint_by('sincpt')
+        >>> mspicer.set_spoint_by('subpnt')
+        >>> mspicer.set_spoint_by(lon=300, lat = -80)
+        """
+        super(MarsSpicer, self).__init__(time)
+        self.obs = obs
+        self.instrument = inst
+        
+    def goto(self, loc_string):
+        self.spoint = self.coords[loc_string]
+
+def plot_times():
     angles = []
     time1 = tparser.parse(mspicer.local_soltime[4])
     time2 = time1 + dt.timedelta(1) # adding 1 day
@@ -172,6 +209,18 @@ if __name__ == '__main__':
         angles.append(np.rad2deg(mspicer.solar))
     ax.plot_date(times, angles)
     fig.autofmt_xdate()
-    
     plt.show()
+    
+if __name__ == '__main__':
+    utc = '2007-01-28T21:12:55'
+    mspicer = MarsSpicer(time=utc)
+    print('Solar incidence: {0:g}'.format(mspicer.dsolar))
+    print('Emission angle: {0:g}'.format(mspicer.demission))
+    print('Phase angle: {0:g}'.format(mspicer.dphase))
+    center_to_sun, lt = mspicer.mars_to_object("SUN")
+    print(center_to_sun)
+    surf_to_sun = spice.vsub(center_to_sun, mspicer.spoint)
+    snormal = mspicer.surfnm()
+    print("Diff: {0}".format(np.rad2deg(spice.vsep(surf_to_sun, snormal))))
+    print(snormal)
         
