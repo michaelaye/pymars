@@ -11,12 +11,56 @@ from sunpy.sun.constants import luminosity as L_sol
 
 # spice.furnsh('/Users/maye/Data/spice/mars/mro_2009_v06_090107_090110.tm')
 # spice.furnsh('/Users/maye/Data/spice/mars/mro_2007_v07_070127_070128.tm')
-# spice.furnsh('/Users/maye/Data/spice/mars/mro_2007_v07_070216_070217.tm')
+spice.furnsh('/Users/maye/Data/spice/mars/mro_2007_v07_070216_070217.tm')
 
-spice.furnsh('mars.tm')
-Coords = namedtuple('Coords', 'radius lon lat')
+# spice.furnsh('mars.tm')
 Radii = namedtuple('Radii', 'a b c')
-IllumAngles = namedtuple('IllumAngles', 'phase solar emission')
+
+class IllumAngles(HasTraits):
+    phase = Float
+    solar = Float
+    emission = Float
+    dphase = Property(depends_on = 'phase')
+    dsolar = Property(depends_on = 'solar')
+    demission = Property(depends_on = 'emission')
+
+    def __init__(self, args):
+        self.phase = args[0]
+        self.solar = args[1]
+        self.emission = args[2]
+        
+    def _get_dphase(self):
+        return np.rad2deg(self.phase)
+    def _get_dsolar(self):
+        return np.rad2deg(self.solar)
+    def _get_demission(self):
+        return np.rad2deg(self.emission)
+        
+class Coords(HasTraits):
+    lon = Float
+    lat = Float
+    dlon = Property(depends_on = 'lon')
+    dlat = Property(depends_on = 'lat')
+    
+    def __init__(self, args):
+        self.lon = args[0]
+        self.lat = args[1]
+    def _get_dlon(self):
+        dlon = np.rad2deg(self.lon)
+        # force 360 eastern longitude:
+        if dlon < 0:
+            dlon = 360 - abs(dlon)
+        return dlon        
+    def _get_dlat(self):
+        return np.rad2deg(self.lat)
+
+        
+class Coords3D(Coords):
+    radius = Float
+    def __init__(self, *args):
+        super(Coords3D, self).__init__(args[1:])
+        self.radius = args[0]
+
     
 class Spicer(HasTraits):
     # Constants
@@ -42,10 +86,8 @@ class Spicer(HasTraits):
     # surface point related attributes
     spoint = Tuple
     coords = Property(depends_on = 'spoint')
-    dcoords = Property(depends_on = 'coords')
     snormal = Property(depends_on = 'spoint')
     illum_angles = Property(depends_on = ['spoint','et'])
-    dillum_angles = Property(depends_on = 'illum_angles')
     local_soltime = Property(depends_on = ['spoint','et'])
     
     def __init__(self, time=None):
@@ -142,7 +184,8 @@ class Spicer(HasTraits):
         if len(self.spoint) == 0:
             print("Surface point 'spoint' not set yet.")
             return
-        return Coords(*spice.reclat(self.spoint))
+        out = spice.reclat(self.spoint)
+        return Coords3D(*out)
         
     def _get_dcoords(self):
         dlon = np.rad2deg(self.coords.lon)
@@ -162,20 +205,14 @@ class Spicer(HasTraits):
         if self.obs is not None:
             output = spice.ilumin("Ellipsoid", self.target, self.et, self.ref_frame,
                                   self.corr, self.obs, self.spoint)
-            return IllumAngles(*output[2:]) 
+            return IllumAngles(output[2:]) 
         else:
             center_to_sun, lighttime = self.target_to_object("SUN")
             surf_to_sun = spice.vsub(center_to_sun, self.spoint)
             solar = spice.vsep(surf_to_sun, self.snormal)
             # leaving at 0 what I don't have
-            return IllumAngles(0, solar, 0)
+            return IllumAngles((0, solar, 0))
             
-    def _get_dillum_angles(self):
-        dangles = []
-        for angle in self.illum_angles:
-            dangles.append(np.rad2deg(angle))
-        return IllumAngles(*dangles)
-
     @cached_property
     def _get_local_soltime(self):
         lst = spice.et2lst(self.et, self.target_id, self.coords.lon, "PLANETOCENTRIC")
@@ -222,17 +259,17 @@ class MarsSpicer(Spicer):
         Observer and/or instrument have to be set first.
         >>> dummy = mspicer.set(obs='MRO', instrument='MRO_HIRISE')
         >>> mspicer.set_spoint_by('sinc')
-        >>> print('Incidence angle: {0:g}'.format(mspicer.dillum_angles.solar))
+        >>> print('Incidence angle: {0:g}'.format(mspicer.illum_angles.dsolar))
         Incidence angle: 87.6614
 
         >>> mspicer = MarsSpicer(time='2007-01-27T12:00:00')
         >>> mspicer.goto('inca')
-        >>> print('Incidence angle: {0:g}'.format(mspicer.dillum_angles.solar))
+        >>> print('Incidence angle: {0:g}'.format(mspicer.illum_angles.dsolar))
         Incidence angle: 87.3537
         
         >>> mspicer = MarsSpicer(time='2007-01-27T12:00:00')
         >>> mspicer.set_spoint_by(lon=300, lat = -80)
-        >>> print('Incidence angle: {0:g}'.format(mspicer.dillum_angles.solar))
+        >>> print('Incidence angle: {0:g}'.format(mspicer.illum_angles.dsolar))
         Incidence angle: 85.8875
         """
         super(MarsSpicer, self).__init__(time)
