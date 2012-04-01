@@ -8,10 +8,9 @@ import dateutil.parser as tparser
 import matplotlib.pyplot as plt
 from matplotlib.dates import HourLocator, drange
 
-# spice.furnsh('mars.mk')
 # spice.furnsh('/Users/maye/Data/spice/mars/mro_2009_v06_090107_090110.tm')
-spice.furnsh('/Users/maye/Data/spice/mars/mro_2007_v07_070127_070128.tm')
-# spice.furnsh('/Users/maye/isis3/data/base/kernels/lsk/naif0009.tls')
+# spice.furnsh('/Users/maye/Data/spice/mars/mro_2007_v07_070127_070128.tm')
+spice.furnsh('/Users/maye/Data/spice/mars/mro_2007_v07_070216_070217.tm')
 
 Coords = namedtuple('Coords', 'radius lon lat')
 Radii = namedtuple('Radii', 'a b c')
@@ -66,6 +65,9 @@ class Spicer(HasTraits):
         return Radii(*radii)
         
     def _get_instrument_id(self):
+        if not self.instrument:
+            print("Instrument is not set yet.")
+            return
         return spice.bodn2c(self.instrument)
         
     def set_spoint_by(self, func_str=None, lon=None, lat=None):
@@ -74,16 +76,20 @@ class Spicer(HasTraits):
         ... and sets attribute spoint to the first item of the return.
         This works because both sincpt and subpnt return spoint as first item.
         """
-        if func_str == 'subpnt':
-            self.spoint = self.subpnt()[0]
-        elif func_str == 'sincpt':
-            self.spoint = self.sincpt()[0]
+        if func_str is not None:
+            if not self.instrument or not self.obs:
+                print("Observer and/or instrument have to be set first.")
+                return
+            if func_str in 'subpnt':
+                self.spoint = self.subpnt()[0]
+            elif func_str in 'sincpt':
+                self.spoint = self.sincpt()[0]
+            else:
+                print("No valid method recognized.")
         elif (lon and lat):
             self.lon = lon
             self.lat = lat
             self.spoint = self.srfrec(lon, lat)
-        else:
-            print("No valid method recognized.")
             
     def srfrec(self, lon, lat, body=None):
         """Convert planetocentric longitude and latitude of a surface point on a
@@ -119,6 +125,9 @@ class Spicer(HasTraits):
         return output
 
     def _get_coords(self):
+        if len(self.spoint) == 0:
+            print("Surface point 'spoint' not set yet.")
+            return
         return Coords(*spice.reclat(self.spoint))
         
     def _get_dcoords(self):
@@ -156,7 +165,7 @@ class Spicer(HasTraits):
         return lst
     
     def _get_l_s(self):
-        return spice.lspcn(self.target, self.et, self.corr)
+        return np.rad2deg(spice.lspcn(self.target, self.et, self.corr))
     
     def get_subsolar(self):
         subsolar, _, _ = spice.subslr(self.method, self.target, self.et, self.ref_frame,
@@ -177,23 +186,38 @@ class MarsSpicer(Spicer):
     obs = Enum([None, 'MRO','MGS','MEX'])
     instrument = Enum([None,'MRO_HIRISE','MRO_CRISM','MRO_CTX'])
     # Coords dictionary to store often used coords
-    coords = dict(inca=(220.09830399469547, -440.60853011059214, -3340.5081261541495))
+    location_coords = dict(inca=(220.09830399469547, 
+                                  -440.60853011059214, 
+                                  -3340.5081261541495))
 
     def __init__(self, time=None, obs=None, inst=None):
         """ Initialising MarsSpicer class.
         
-        >>> utc = '2007-01-27T12:00:00'
-        >>> mspicer = MarsSpicer(time=utc)
-        >>> mspicer.set_spoint_by('sincpt')
-        >>> mspicer.set_spoint_by('subpnt')
+        >>> from mars_spice import MarsSpicer
+        >>> mspicer = MarsSpicer(time='2007-02-16T17:45:48.642')
+        >>> mspicer.set_spoint_by('sinc')
+        Observer and/or instrument have to be set first.
+        >>> dummy = mspicer.set(obs='MRO', instrument='MRO_HIRISE')
+        >>> mspicer.set_spoint_by('sinc')
+        >>> print('Incidence angle: {0:g}'.format(mspicer.dillum_angles.solar))
+        Incidence angle: 87.6614
+
+        >>> mspicer = MarsSpicer(time='2007-01-27T12:00:00')
+        >>> mspicer.goto('inca')
+        >>> print('Incidence angle: {0:g}'.format(mspicer.dillum_angles.solar))
+        Incidence angle: 87.3537
+        
+        >>> mspicer = MarsSpicer(time='2007-01-27T12:00:00')
         >>> mspicer.set_spoint_by(lon=300, lat = -80)
+        >>> print('Incidence angle: {0:g}'.format(mspicer.dillum_angles.solar))
+        Incidence angle: 85.8875
         """
         super(MarsSpicer, self).__init__(time)
         self.obs = obs
         self.instrument = inst
         
     def goto(self, loc_string):
-        self.spoint = self.coords[loc_string]
+        self.spoint = self.location_coords[loc_string.lower()]
 
 def plot_times():
     angles = []
