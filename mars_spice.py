@@ -87,6 +87,7 @@ class Spicer(HasTraits):
     spoint = Tuple
     coords = Property(depends_on = 'spoint')
     snormal = Property(depends_on = 'spoint')
+    sun_direction = Property(depends_on = ['spoint','et'])
     illum_angles = Property(depends_on = ['spoint','et'])
     local_soltime = Property(depends_on = ['spoint','et'])
     
@@ -200,6 +201,11 @@ class Spicer(HasTraits):
         return spice.surfnm(a, b, c, self.spoint)
         
     @cached_property
+    def _get_sun_direction(self):
+        center_to_sun, lighttime = self.target_to_object("SUN")
+        return spice.vsub(center_to_sun, self.spoint)
+            
+    @cached_property
     def _get_illum_angles(self):
         "Ilumin returns (trgepoch, srfvec, phase, solar, emission)"
         if self.obs is not None:
@@ -207,9 +213,7 @@ class Spicer(HasTraits):
                                   self.corr, self.obs, self.spoint)
             return IllumAngles(output[2:]) 
         else:
-            center_to_sun, lighttime = self.target_to_object("SUN")
-            surf_to_sun = spice.vsub(center_to_sun, self.spoint)
-            solar = spice.vsep(surf_to_sun, self.snormal)
+            solar = spice.vsep(self.sun_direction, self.snormal)
             # leaving at 0 what I don't have
             return IllumAngles((0, solar, 0))
             
