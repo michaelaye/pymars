@@ -154,6 +154,9 @@ class Spicer(HasTraits):
         
         Input of angles in degrees, conversion is done here.
         If the body is not a SPICE ID, it will be converted.
+        >>> mspice = MarsSpicer()
+        >>> print('{0:g} {1:g} {2:g}'.format(*mspice.srfrec(0,85)))
+        294.268 0 3363.5
         """
         if body is None:
             body = self.target_id
