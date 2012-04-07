@@ -25,6 +25,7 @@ class IllumAngles(HasTraits):
     demission = Property(depends_on = 'emission')
 
     def __init__(self, args):
+        super(IllumAngles, self).__init__(args)
         self.phase = args[0]
         self.solar = args[1]
         self.emission = args[2]
@@ -43,6 +44,7 @@ class Coords(HasTraits):
     dlat = Property(depends_on = 'lat')
     
     def __init__(self, args):
+        super(Coords, self).__init__(args)
         self.lon = args[0]
         self.lat = args[1]
     def _get_dlon(self):
@@ -88,10 +90,11 @@ class Spicer(HasTraits):
     coords = Property(depends_on = 'spoint')
     snormal = Property(depends_on = 'spoint')
     sun_direction = Property(depends_on = ['spoint','et'])
-    illum_angles = Property(depends_on = ['spoint','et'])
+    illum_angles = Property(depends_on = ['et','snormal'])
     local_soltime = Property(depends_on = ['spoint','et'])
     
     def __init__(self, time=None):
+        super(Spicer, self).__init__()
         if time is None:
             self.time = dt.datetime.now()
         else:
@@ -143,7 +146,7 @@ class Spicer(HasTraits):
                 self.spoint = self.sincpt()[0]
             else:
                 print("No valid method recognized.")
-        elif (lon and lat):
+        elif lon is not None and lat is not None:
             self.lon = lon
             self.lat = lat
             self.spoint = self.srfrec(lon, lat)
@@ -184,6 +187,9 @@ class Spicer(HasTraits):
                               self.corr, self.obs)
         return output
 
+    def _default_coords(self):
+        return Coords3D(0,0,0)
+        
     def _get_coords(self):
         if len(self.spoint) == 0:
             print("Surface point 'spoint' not set yet.")
@@ -198,10 +204,13 @@ class Spicer(HasTraits):
         dlat = np.rad2deg(self.coords.lat)
         return Coords(self.coords.radius, dlon, dlat)
         
-    @cached_property
     def _get_snormal(self):
         a, b, c = self.radii
-        return spice.surfnm(a, b, c, self.spoint)
+        self.snormal = spice.surfnm(a, b, c, self.spoint)
+        
+    def _set_snormal(self):
+        "User provides new, possibly rotated snormal vector."
+        # What here???
         
     @cached_property
     def _get_sun_direction(self):
