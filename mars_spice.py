@@ -20,12 +20,12 @@ class IllumAngles(HasTraits):
     phase = Float
     solar = Float
     emission = Float
-    dphase = Property(depends_on = 'phase')
-    dsolar = Property(depends_on = 'solar')
-    demission = Property(depends_on = 'emission')
+    dphase = Property
+    dsolar = Property
+    demission = Property
 
     def __init__(self, args):
-        super(IllumAngles, self).__init__(args)
+        super(IllumAngles, self).__init__()
         self.phase = args[0]
         self.solar = args[1]
         self.emission = args[2]
@@ -40,11 +40,11 @@ class IllumAngles(HasTraits):
 class Coords(HasTraits):
     lon = Float
     lat = Float
-    dlon = Property(depends_on = 'lon')
-    dlat = Property(depends_on = 'lat')
+    dlon = Property
+    dlat = Property
     
     def __init__(self, args):
-        super(Coords, self).__init__(args)
+        super(Coords, self).__init__()
         self.lon = args[0]
         self.lat = args[1]
     def _get_dlon(self):
@@ -59,7 +59,7 @@ class Coords(HasTraits):
         
 class Coords3D(Coords):
     radius = Float
-    def __init__(self, *args):
+    def __init__(self, args):
         super(Coords3D, self).__init__(args[1:])
         self.radius = args[0]
 
@@ -78,16 +78,18 @@ class Spicer(HasTraits):
     target_id = Property(depends_on = 'target')
     radii = Property(depends_on = 'target')
     solar_constant = Property(depends_on ='target')
-    
+
     # Init Parameters and their dependents
     time = Date
-    utc = Property(depends_on = 'time')
+    utc = Property
     et = Property(depends_on = 'utc')
-    l_s = Property(depends_on = 'et')
+    l_s = Property(depends_on = ['et', 'target'])
+    # should actually be target_center_to_sun, but i don't do this distinction yet
+    center_to_sun = Property(depends_on = ['et', 'target'] )
     
     # surface point related attributes
     spoint = Tuple
-    coords = Property(depends_on = 'spoint')
+    coords = Property
     snormal = Property(depends_on = 'spoint')
     sun_direction = Property(depends_on = ['spoint','et'])
     illum_angles = Property(depends_on = ['et','snormal'])
@@ -118,8 +120,7 @@ class Spicer(HasTraits):
 
     @cached_property
     def _get_solar_constant(self):
-        center_to_sun, lighttime = self.target_to_object("SUN")
-        dist = spice.vnorm(center_to_sun)
+        dist = spice.vnorm(self.center_to_sun)
         # SPICE returns in [km] !!
         return L_sol / (4 * np.pi * (dist * 1e3)**2)
         
@@ -187,7 +188,7 @@ class Spicer(HasTraits):
                               self.corr, self.obs)
         return output
 
-    def _default_coords(self):
+    def _coords_default(self):
         return Coords3D(0,0,0)
         
     def _get_coords(self):
@@ -196,26 +197,24 @@ class Spicer(HasTraits):
             return
         out = spice.reclat(self.spoint)
         return Coords3D(*out)
-        
-    def _get_dcoords(self):
-        dlon = np.rad2deg(self.coords.lon)
-        if dlon < 0:
-            dlon = 360 - abs(dlon)
-        dlat = np.rad2deg(self.coords.lat)
-        return Coords(self.coords.radius, dlon, dlat)
-        
+
+    @cached_property
     def _get_snormal(self):
         a, b, c = self.radii
-        self.snormal = spice.surfnm(a, b, c, self.spoint)
+        return spice.surfnm(a, b, c, self.spoint)
         
     def _set_snormal(self):
         "User provides new, possibly rotated snormal vector."
         # What here???
+    
+    @cached_property
+    def _get_center_to_sun(self):
+        center_to_sun, lighttime = self.target_to_object("SUN")
+        return center_to_sun
         
     @cached_property
     def _get_sun_direction(self):
-        center_to_sun, lighttime = self.target_to_object("SUN")
-        return spice.vsub(center_to_sun, self.spoint)
+        return spice.vsub(self.center_to_sun, self.spoint)
             
     @cached_property
     def _get_illum_angles(self):
@@ -231,8 +230,7 @@ class Spicer(HasTraits):
             
     @cached_property
     def _get_local_soltime(self):
-        lst = spice.et2lst(self.et, self.target_id, self.coords.lon, "PLANETOCENTRIC")
-        return lst
+        return spice.et2lst(self.et, self.target_id, self.coords.lon, "PLANETOCENTRIC")
     
     @cached_property
     def _get_l_s(self):
@@ -317,10 +315,6 @@ if __name__ == '__main__':
     print('Solar incidence: {0:g}'.format(mspicer.dsolar))
     print('Emission angle: {0:g}'.format(mspicer.demission))
     print('Phase angle: {0:g}'.format(mspicer.dphase))
-    center_to_sun, lt = mspicer.mars_to_object("SUN")
-    print(center_to_sun)
-    surf_to_sun = spice.vsub(center_to_sun, mspicer.spoint)
-    snormal = mspicer.surfnm()
-    print("Diff: {0}".format(np.rad2deg(spice.vsep(surf_to_sun, snormal))))
+    print(mspicer.center_to_sun)
     print(snormal)
         
