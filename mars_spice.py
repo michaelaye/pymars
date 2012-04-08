@@ -2,7 +2,7 @@ import spice
 from collections import namedtuple
 import numpy as np
 from traits.api import HasTraits, Str, Int, Float, ListStr, Enum, Date, Property, \
-    Tuple, Range, cached_property
+    Tuple, Range, cached_property, Instance
 import datetime as dt
 import dateutil.parser as tparser
 import matplotlib.pyplot as plt
@@ -63,6 +63,12 @@ class Coords3D(Coords):
         super(Coords3D, self).__init__(args[1:])
         self.radius = args[0]
 
+class Surface(HasTraits):
+    coords = Instance(Coords3D)
+    lon = DelegateTo('coords')
+    lat = DelegateTo('coords')
+    dlat = DelegateTo('coords')
+    dlon = DelegateTo('coords')
     
 class Spicer(HasTraits):
     # Constants
