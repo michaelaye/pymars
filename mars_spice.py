@@ -2,7 +2,7 @@ import spice
 from collections import namedtuple
 import numpy as np
 from traits.api import HasTraits, Str, Int, Float, ListStr, Enum, Date, Property, \
-    Tuple, Range, cached_property, Instance, DelegatesTo
+    Tuple, Range, cached_property, Instance, DelegatesTo, Bool
 import datetime as dt
 import dateutil.parser as tparser
 import matplotlib.pyplot as plt
@@ -15,6 +15,30 @@ spice.furnsh('/Users/maye/Data/spice/mars/mro_2007_v07_070216_070217.tm')
 
 # spice.furnsh('mars.tm')
 Radii = namedtuple('Radii', 'a b c')
+
+def make_axis_rotation_matrix(direction, angle):
+    """
+    Create a rotation matrix corresponding to the rotation around a general
+    axis by a specified angle.
+
+    R = dd^T + cos(a) (I - dd^T) + sin(a) skew(d)
+
+    Parameters:
+
+        angle : float a
+        direction : array d
+    """
+    d = np.array(direction, dtype=np.float64)
+    d /= np.linalg.norm(d)
+
+    eye = np.eye(3, dtype=np.float64)
+    ddt = np.outer(d, d)
+    skew = np.array([[    0,  d[2], -d[1]],
+                     [-d[2],    0,   d[0]],
+                     [ d[1], -d[0],    0]], dtype=np.float64)
+
+    mtx = ddt + np.cos(angle) * (eye - ddt) + np.sin(angle) * skew
+    return mtx
 
 class IllumAngles(HasTraits):
     phase = Float
@@ -64,11 +88,7 @@ class Coords3D(Coords):
         self.radius = args[0]
 
 class Surface(HasTraits):
-    coords = Instance(Coords3D)
-    lon = DelegatesTo('coords')
-    lat = DelegatesTo('coords')
-    dlat = DelegatesTo('coords')
-    dlon = DelegatesTo('coords')
+    normal = Tuple
     
 class Spicer(HasTraits):
     # Constants
@@ -84,7 +104,9 @@ class Spicer(HasTraits):
     target_id = Property(depends_on = 'target')
     radii = Property(depends_on = 'target')
     solar_constant = Property(depends_on ='target')
-
+    north_pole = Property
+    south_pole = Property
+    
     # Init Parameters and their dependents
     time = Date
     utc = Property
@@ -94,6 +116,7 @@ class Spicer(HasTraits):
     center_to_sun = Property(depends_on = ['et', 'target'] )
     
     # surface point related attributes
+    spoint_set = Bool
     spoint = Tuple
     coords = Property
     snormal = Property(depends_on = 'spoint')
@@ -137,6 +160,15 @@ class Spicer(HasTraits):
             return
         return spice.bodn2c(self.instrument)
         
+    def _get_pole(self, factor=1):
+        return (0.0, 0.0, factor*self.radii.c)
+        
+    def _get_north_pole(self):
+        return self._get_pole()
+
+    def _get_south_pole(self):
+        return self._get_pole(-1)    
+        
     def set_spoint_by(self, func_str=None, lon=None, lat=None):
         """This executes the class method with the name stored in the dict.
         
@@ -148,16 +180,18 @@ class Spicer(HasTraits):
                 print("Observer and/or instrument have to be set first.")
                 return
             if func_str in 'subpnt':
-                self.spoint = self.subpnt()[0]
+                spoint = self.subpnt()[0]
             elif func_str in 'sincpt':
-                self.spoint = self.sincpt()[0]
+                spoint = self.sincpt()[0]
             else:
-                print("No valid method recognized.")
+                raise Exeption("No valid method recognized.")
         elif lon is not None and lat is not None:
             self.lon = lon
             self.lat = lat
-            self.spoint = self.srfrec(lon, lat)
-            
+            spoint = self.srfrec(lon, lat)
+        self.spoint_set = True    
+        self.spoint = spoint
+        
     def srfrec(self, lon, lat, body=None):
         """Convert planetocentric longitude and latitude of a surface point on a
         specified body to rectangular coordinates.
@@ -206,13 +240,12 @@ class Spicer(HasTraits):
 
     @cached_property
     def _get_snormal(self):
+        if not self.spoint_set:
+            print("Surface point was not defined yet.")
+            return
         a, b, c = self.radii
         return spice.surfnm(a, b, c, self.spoint)
-        
-    def _set_snormal(self):
-        "User provides new, possibly rotated snormal vector."
-        # What here???
-    
+            
     @cached_property
     def _get_center_to_sun(self):
         center_to_sun, lighttime = self.target_to_object("SUN")
@@ -297,6 +330,7 @@ class MarsSpicer(Spicer):
         self.instrument = inst
         
     def goto(self, loc_string):
+        self.spoint_set = True
         self.spoint = self.location_coords[loc_string.lower()]
 
 def plot_times():
