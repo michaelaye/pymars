@@ -134,6 +134,9 @@ class Spicer(HasTraits):
     def _get_utc(self):
         return self.time.isoformat()
 
+    def _set_utc(self, utc):
+        self.time = tparser.parse(utc)
+        
     @cached_property
     def _get_et(self):
         return spice.utc2et(self.utc)
