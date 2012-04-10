@@ -8,6 +8,7 @@ import dateutil.parser as tparser
 import matplotlib.pyplot as plt
 from matplotlib.dates import HourLocator, drange
 from sunpy.sun.constants import luminosity as L_sol
+import math
 
 # spice.furnsh('/Users/maye/Data/spice/mars/mro_2009_v06_090107_090110.tm')
 # spice.furnsh('/Users/maye/Data/spice/mars/mro_2007_v07_070127_070128.tm')
@@ -37,7 +38,7 @@ def make_axis_rotation_matrix(direction, angle):
                      [-d[2],    0,   d[0]],
                      [ d[1], -d[0],    0]], dtype=np.float64)
 
-    mtx = ddt + np.cos(angle) * (eye - ddt) + np.sin(angle) * skew
+    mtx = ddt + math.cos(angle) * (eye - ddt) + math.sin(angle) * skew
     return mtx
 
 class IllumAngles(HasTraits):
@@ -122,6 +123,7 @@ class Spicer(HasTraits):
     snormal = Property(depends_on = 'spoint')
     sun_direction = Property(depends_on = ['spoint','et'])
     illum_angles = Property(depends_on = ['et','snormal'])
+    Fcos = Property
     local_soltime = Property(depends_on = ['spoint','et'])
     
     def __init__(self, time=None):
@@ -268,6 +270,12 @@ class Spicer(HasTraits):
             solar = spice.vsep(self.sun_direction, self.snormal)
             # leaving at 0 what I don't have
             return IllumAngles((0, solar, 0))
+            
+    def _get_Fcos(self):
+        if self.illum_angles.dsolar > 90:
+            return 0
+        else:
+            return self.solar_constant * math.cos(self.illum_angles.solar)
             
     @cached_property
     def _get_local_soltime(self):
