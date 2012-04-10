@@ -109,7 +109,7 @@ class Spicer(HasTraits):
     
     # Init Parameters and their dependents
     time = Date
-    utc = Property
+    utc = Property(depends_on = 'time')
     et = Property(depends_on = 'utc')
     l_s = Property(depends_on = ['et', 'target'])
     # should actually be target_center_to_sun, but i don't do this distinction yet
@@ -313,6 +313,9 @@ class Spicer(HasTraits):
         new_vec = np.matrix.dot(rotmat, self.tnormal)
         self.aspect = angle
         self.trnormal = new_vec
+        
+    def advance_time_by(self, secs):
+        self.time += dt.timedelta(seconds=secs)
         
 class EarthSpicer(Spicer):
     target = 'EARTH'
