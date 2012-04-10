@@ -5,7 +5,7 @@ import numpy as np
 from matplotlib.pyplot import figure, show
 import datetime as dt
 
-def inner_loop(ls_res, vector,time_res=3600):
+def inner_loop(mspice, ls_res, vector,time_res=3600):
     """
     This is the inner loop that samples over <ls_res> L_s values and returns
     the integral for that time interval.
@@ -17,11 +17,11 @@ def inner_loop(ls_res, vector,time_res=3600):
                  tilted and rotated normal: trnormal)
         time_res - seconds over which to sample the energy, default is 1 hour
     """
-    ls_start = mspice.l_s
-    times = []
+    start_ls = mspice.l_s
+    old_ls = 0
     data = []
-    while (mspice.l_s - ls_start) < ls_res:
-        times.append(mspice.l_s)
+    while (mspice.l_s < start_ls + ls_res) and (mspice.l_s > old_ls):
+        old_ls = mspice.l_s
         diff_angle = vsep(getattr(mspice,vector), mspice.sun_direction)
         if np.degrees(diff_angle) > 90:
             to_append = 0
@@ -30,75 +30,80 @@ def inner_loop(ls_res, vector,time_res=3600):
             # to_append = mspice.solar_constant*np.cos(diff_angle)
         data.append(to_append)
         mspice.advance_time_by(time_res)
-    return (times, data)
+    return data
 
-def outer_loop(stop_ls, ls_res, vector, time_res = 3600):
+def outer_loop(mspice, end_ls, ls_res, vector, time_res = 3600):
     bigtimes = []
     energies = []
-    while not np.allclose([mspice.l_s],[stop_ls],atol=ls_res):
+    old_ls = 0
+    while mspice.l_s > old_ls:
+        old_ls = mspice.l_s
         ls_start = mspice.l_s
-        print(ls_start)
         bigtimes.append(ls_start)
-        times, data = inner_loop(ls_res, vector, time_res)
-        energies.append(np.sum(data))
+        data = inner_loop(mspice, ls_res, vector, time_res)
+        energies.append(np.sum(data)*10.0/ls_res)
     return (bigtimes, energies)
     
 
- # default time is now:
-mspice = MarsSpicer()
+def main():
+     # default time is now:
+    mspice = MarsSpicer()
 
-# set up location
-mspice.set_spoint_by(lat=85, lon = 0)
+    # set up location
+    mspice.set_spoint_by(lat=85, lon = 0)
 
-# set up starting time of analysis
-mspice.time -= dt.timedelta(200)
+    # set up starting time of analysis, l_s = 0
+    mspice.utc = '2011-09-13T14:24:33.733548'
 
-# stopping l_s value
-end_ls = 360
+    # stopping l_s value
+    end_ls = 360
 
-# l_s resolution
-ls_res = 10
+    # l_s resolution
+    ls_res = 5
 
-# save this time for multiple runs for resetting mspice each time
-start_time = mspice.time
+    # save this time for multiple runs for resetting mspice each time
+    start_time = mspice.time
 
-# container for all energy arrays
-energies = []
+    # container for all energy arrays
+    energies = []
 
-# labels for the plotting
-labels = []
+    # labels for the plotting
+    labels = []
 
-# tilt the surface normal by 30 degree to the north (north = default)
-# this creates an instance variable called 'tnormal'
-mspice.get_tilted_normal(30)
+    # tilt the surface normal by 30 degree to the north (north = default)
+    # this creates an instance variable called 'tnormal'
+    mspice.get_tilted_normal(30)
 
-# first time, save the bigtimes array
-bigtimes, energies_t30 = outer_loop(end_ls, ls_res, 'tnormal')
-energies.append(energies_t30)
-labels.append('t30')
+    # first time, save the bigtimes array
+    bigtimes, energies_t30 = outer_loop(mspice, end_ls, ls_res, 'tnormal')
+    energies.append(energies_t30)
+    labels.append('t30')
 
-# rotate the tilted vector around the local surface normal to create an aspect 
-# angle
-# this creates an instance variable called 'trnormal'
-mspice.rotate_tnormal(90)
+    # rotate the tilted vector around the local surface normal to create an aspect 
+    # angle
+    # this creates an instance variable called 'trnormal'
+    mspice.rotate_tnormal(90)
 
-mspice.time = start_time
-energies.append(outer_loop(end_ls, ls_res, 'trnormal')[1])
-labels.append('t30_a90')
+    mspice.time = start_time
+    energies.append(outer_loop(mspice, end_ls, ls_res, 'trnormal')[1])
+    labels.append('t30_a90')
 
-mspice.time = start_time
-energies.append(outer_loop(end_ls, ls_res, 'snormal')[1])
-labels.append('flat')
+    mspice.time = start_time
+    energies.append(outer_loop(mspice, end_ls, ls_res, 'snormal')[1])
+    labels.append('flat')
 
 
-mspice.rotate_tnormal(180)
-mspice.time = start_time
-energies.append(outer_loop(end_ls, ls_res, 'trnormal')[1])
-labels.append('t30,a180')
+    mspice.rotate_tnormal(180)
+    mspice.time = start_time
+    energies.append(outer_loop(mspice, end_ls, ls_res, 'trnormal')[1])
+    labels.append('t30,a180')
 
-fig = figure()
-ax = fig.add_subplot(111)
-for energy,label in zip(energies,labels):
-    ax.plot(bigtimes,energy, label = label)
-ax.legend(loc='best')
-show()
+    fig = figure()
+    ax = fig.add_subplot(111)
+    for energy,label in zip(energies,labels):
+        ax.plot(bigtimes,energy, label = label)
+    ax.legend(loc='best')
+    show()
+    
+if __name__ == '__main__':
+    main()
