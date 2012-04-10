@@ -67,10 +67,6 @@ class Coords(HasTraits):
     dlon = Property
     dlat = Property
     
-    def __init__(self, args):
-        super(Coords, self).__init__()
-        self.lon = args[0]
-        self.lat = args[1]
     def _get_dlon(self):
         dlon = np.rad2deg(self.lon)
         # force 360 eastern longitude:
@@ -83,12 +79,16 @@ class Coords(HasTraits):
         
 class Coords3D(Coords):
     radius = Float
-    def __init__(self, args):
-        super(Coords3D, self).__init__(args[1:])
-        self.radius = args[0]
 
+    def __init__(self, arg):
+        super(Coords3D,self).__init__()
+        self.radius = arg[0]
+        self.lon = arg[1]
+        self.lat = arg[2]
+        
 class Surface(HasTraits):
     normal = Tuple
+    aspect = Float
     
 class Spicer(HasTraits):
     # Constants
@@ -235,8 +235,7 @@ class Spicer(HasTraits):
         if len(self.spoint) == 0:
             print("Surface point 'spoint' not set yet.")
             return
-        out = spice.reclat(self.spoint)
-        return Coords3D(*out)
+        return Coords3D(spice.reclat(self.spoint))
 
     @cached_property
     def _get_snormal(self):
@@ -289,6 +288,32 @@ class Spicer(HasTraits):
         output = spice.spkpos(object, self.et, self.ref_frame, self.corr, self.target)
         return output
 
+    def get_tilted_normal(self, angle):
+        """
+        Create a tilted normal vector for an inclined surface by <angle>.
+        
+        By default tilt the snormal vector towards north.
+        Parameters:
+            angle   Angle to rotate in degrees
+        """
+        to_north = spice.vsub(self.north_pole, self.spoint)
+        axis = spice.vcrss(to_north, self.spoint)
+        rotmat = make_axis_rotation_matrix(axis, np.radians(angle))
+        new_vec = np.matrix.dot(rotmat, self.snormal)
+        self.tnormal = new_vec
+        return new_vec
+        
+    def rotate_tnormal(self, angle):
+        """
+        Rotate the tilted normal around the snormal to create an aspect angle.
+        
+        Angle should be in degrees.
+        """
+        rotmat = make_axis_rotation_matrix(self.snormal, np.radians(angle))
+        new_vec = np.matrix.dot(rotmat, self.tnormal)
+        self.aspect = angle
+        self.trnormal = new_vec
+        
 class EarthSpicer(Spicer):
     target = 'EARTH'
     ref_frame = 'IAU_EARTH'
@@ -350,11 +375,8 @@ def plot_times():
     plt.show()
     
 if __name__ == '__main__':
-    utc = '2007-01-28T21:12:55'
-    mspicer = MarsSpicer(time=utc)
-    print('Solar incidence: {0:g}'.format(mspicer.dsolar))
-    print('Emission angle: {0:g}'.format(mspicer.demission))
-    print('Phase angle: {0:g}'.format(mspicer.dphase))
-    print(mspicer.center_to_sun)
-    print(snormal)
-        
+    import doctest
+    doctest.testmod()
+    # mspice = MarsSpicer()
+    # mspice.goto('inca')
+    # mspice.configure_traits()
