@@ -104,7 +104,6 @@ class Spicer(HasTraits):
     target = Str
     target_id = Property(depends_on = 'target')
     radii = Property(depends_on = 'target')
-    solar_constant = Property(depends_on ='target')
     north_pole = Property
     south_pole = Property
     
@@ -115,6 +114,7 @@ class Spicer(HasTraits):
     l_s = Property(depends_on = ['et', 'target'])
     # should actually be target_center_to_sun, but i don't do this distinction yet
     center_to_sun = Property(depends_on = ['et', 'target'] )
+    solar_constant = Property(depends_on ='center_to_sun')
     
     # surface point related attributes
     spoint_set = Bool
@@ -123,7 +123,7 @@ class Spicer(HasTraits):
     snormal = Property(depends_on = 'spoint')
     sun_direction = Property(depends_on = ['spoint','et'])
     illum_angles = Property(depends_on = ['et','snormal'])
-    Fcos = Property
+    Fcos = Property(depends_on = 'solar_constant')
     local_soltime = Property(depends_on = ['spoint','et'])
     
     def __init__(self, time=None):
@@ -133,6 +133,9 @@ class Spicer(HasTraits):
         else:
             self.time = tparser.parse(time)
             
+    def goto_ls_0(self):
+        self.utc = '2011-09-13T14:24:33.733548'
+        
     def _get_utc(self):
         return self.time.isoformat()
 
