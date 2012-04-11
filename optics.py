@@ -4,7 +4,7 @@
 optics.py
 
 Created by Klaus-Michael Aye on 2011-04-07.
-Copyright (c) 2011 __MyCompanyName__. All rights reserved.
+Copyright (c) 2011 All rights reserved.
 """
 
 import numpy as np
