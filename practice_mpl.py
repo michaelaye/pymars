@@ -6,14 +6,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 
-X = 10*np.random.rand(5,3)
-
-fig = plt.figure()
-ax = fig.add_subplot(111)
-ax.imshow(X, cmap=cm.jet, interpolation='nearest')
-
-numrows, numcols = X.shape
 def format_coord(x, y):
+    global X
+    numrows, numcols = X.shape
     col = int(x+0.5)
     row = int(y+0.5)
     if col>=0 and col<numcols and row>=0 and row<numrows:
@@ -22,5 +17,12 @@ def format_coord(x, y):
     else:
         return 'x=%1.4f, y=%1.4f'%(x, y)
 
-ax.format_coord = format_coord
-plt.show()
+# X = 10*np.random.rand(5,3)
+
+def imshow(X, *args, **kwargs):
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    ax.imshow(X, cmap=cm.jet, interpolation='nearest')
+    numrows, numcols = X.shape
+    ax.format_coord = format_coord
+    plt.show()
