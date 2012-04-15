@@ -87,20 +87,20 @@ def main():
 
     # tilt the surface normal by 30 degree to the north (north = default)
     # this creates an instance variable called 'tnormal'
-    mspice.get_tilted_normal(30)
+    mspice.tilt = 30
 
     # first time, save the bigtimes array
-    bigtimes, energies_t30 = outer_loop(mspice, end_ls, ls_res, 'tnormal',time_res=time_res)
+    bigtimes, energies_t30 = outer_loop(mspice, end_ls, ls_res, 'tilted_normal',time_res=time_res)
     energies.append(energies_t30)
     labels.append('t30')
 
     # rotate the tilted vector around the local surface normal to create an aspect 
     # angle
     # this creates an instance variable called 'trnormal'
-    mspice.rotate_tnormal(90)
+    mspice.aspect = 90
 
     mspice.time = start_time
-    energies.append(outer_loop(mspice, end_ls, ls_res, 'trnormal',time_res=time_res)[1])
+    energies.append(outer_loop(mspice, end_ls, ls_res, 'tilted_rotated_normal',time_res=time_res)[1])
     labels.append('t30_a90')
 
     mspice.time = start_time
@@ -108,9 +108,9 @@ def main():
     labels.append('flat')
 
 
-    mspice.rotate_tnormal(180)
+    mspice.aspect = 180
     mspice.time = start_time
-    energies.append(outer_loop(mspice, end_ls, ls_res, 'trnormal',time_res=time_res)[1])
+    energies.append(outer_loop(mspice, end_ls, ls_res, 'tilted_rotated_normal',time_res=time_res)[1])
     labels.append('t30,a180')
 
     fig = figure()
