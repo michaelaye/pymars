@@ -337,7 +337,23 @@ class Spicer(HasTraits):
         
     def advance_time_by(self, secs):
         self.time += dt.timedelta(seconds=secs)
-
+    
+    def time_series(self, flux_name, no_of_steps, dt, provide_times = False):
+        """
+        Provide time series of fluxes with a <dt> in seconds as sampling intervals.
+        
+        This returns the fluxes as E/(dt*m**2), so it multiplies the internal fluxes by <dt>.
+        """
+        saved_time = self.time
+        ets = []
+        energies = []
+        for _ in range(no_of_steps):
+            if provide_times: ets.append(self.et)
+            energies.append(getattr(self,flux_name))
+            self.advance_time_by(dt)
+        self.time = saved_time
+        if provide_times: return (ets, energies)
+        else: return energies
         
 class EarthSpicer(Spicer):
     target = 'EARTH'
@@ -402,6 +418,7 @@ def main():
     mspicer.set_spoint_by(lat=85, lon=0)
     print("Set mspicer to 85N, 0E.")
     print("Local soltime: {0}".format(mspicer.local_soltime[3]))
+    print("L_s: {0}".format(mspicer.l_s))
     print("Incidence angle: {0:g}".format(mspicer.illum_angles.dsolar))
     print("F_flat: {0:g}".format(mspicer.F_flat))
     mspicer.tilt = 30
@@ -410,7 +427,13 @@ def main():
     print("Angle between trnormal and sun: {0}".format(np.degrees(spice.vsep(mspicer.tilted_rotated_normal,
                                                                   mspicer.sun_direction))))
     print("F_aspect: {0:g}".format(mspicer.F_aspect))
-    
+    energies = mspicer.time_series('F_flat', 100, 3600)
+    energies_aspect = mspicer.time_series('F_aspect', 100, 3600)
+    plt.plot(energies, label='flat',linewidth=2)
+    plt.plot(energies_aspect, label='aspect: 180',linewidth=2)
+    plt.legend()
+    plt.show()
+     
 if __name__ == '__main__':
     import doctest
     doctest.testmod()
