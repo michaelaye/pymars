@@ -338,21 +338,22 @@ class Spicer(HasTraits):
     def advance_time_by(self, secs):
         self.time += dt.timedelta(seconds=secs)
     
-    def time_series(self, flux_name, no_of_steps, dt, provide_times = False):
+    def time_series(self, flux_name, no_of_steps, dt, provide_times = None):
         """
         Provide time series of fluxes with a <dt> in seconds as sampling intervals.
         
         This returns the fluxes as E/(dt*m**2), so it multiplies the internal fluxes by <dt>.
+        provide_times, if wanted should be one of ['time','utc','et','l_s']
         """
         saved_time = self.time
-        ets = []
+        times = []
         energies = []
         for _ in range(no_of_steps):
-            if provide_times: ets.append(self.et)
+            if provide_times: times.append(getattr(self, provide_times))
             energies.append(getattr(self,flux_name))
             self.advance_time_by(dt)
         self.time = saved_time
-        if provide_times: return (ets, energies)
+        if provide_times: return (times, energies)
         else: return energies
         
 class EarthSpicer(Spicer):
@@ -427,10 +428,10 @@ def main():
     print("Angle between trnormal and sun: {0}".format(np.degrees(spice.vsep(mspicer.tilted_rotated_normal,
                                                                   mspicer.sun_direction))))
     print("F_aspect: {0:g}".format(mspicer.F_aspect))
-    energies = mspicer.time_series('F_flat', 100, 3600)
+    l_s, energies = mspicer.time_series('F_flat', 100, 3600, provide_times='l_s')
     energies_aspect = mspicer.time_series('F_aspect', 100, 3600)
-    plt.plot(energies, label='flat',linewidth=2)
-    plt.plot(energies_aspect, label='aspect: 180',linewidth=2)
+    plt.plot(l_s, energies, label='flat',linewidth=2)
+    plt.plot(l_s, energies_aspect, label='aspect: 180',linewidth=2)
     plt.legend()
     plt.show()
      
