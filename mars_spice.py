@@ -2,7 +2,7 @@ import spice
 from collections import namedtuple
 import numpy as np
 from traits.api import HasTraits, Str, Int, Float, ListStr, Enum, Date, Property, \
-    Tuple, Range, cached_property, Instance, DelegatesTo, Bool
+    Tuple, Range, cached_property, Instance, DelegatesTo, Bool, List
 import datetime as dt
 import dateutil.parser as tparser
 import matplotlib.pyplot as plt
@@ -99,33 +99,43 @@ class Spicer(HasTraits):
     # 'Constants' set by child class
     ref_frame = Str
     instrument = Str
-    instrument_id = Property(depends_on = 'instrument')
+    instrument_id = Property# (depends_on = 'instrument')
     obs = Str
     target = Str
-    target_id = Property(depends_on = 'target')
-    radii = Property(depends_on = 'target')
+    target_id = Property# (depends_on = 'target')
+    radii = Property# (depends_on = 'target')
     north_pole = Property
     south_pole = Property
     
     # Init Parameters and their dependents
     time = Date
-    utc = Property(depends_on = 'time')
-    et = Property(depends_on = 'utc')
-    l_s = Property(depends_on = ['et', 'target'])
+    utc = Property# (depends_on = 'time')
+    et = Property# (depends_on = 'utc')
+    l_s = Property# (depends_on = ['et', 'target'])
     # should actually be target_center_to_sun, but i don't do this distinction yet
-    center_to_sun = Property(depends_on = ['et', 'target'] )
-    solar_constant = Property(depends_on ='center_to_sun')
+    center_to_sun = Property# (depends_on = ['et', 'target'] )
+    solar_constant = Property# (depends_on ='center_to_sun')
     
     # surface point related attributes
     spoint_set = Bool
     spoint = Tuple
     coords = Property
-    snormal = Property(depends_on = 'spoint')
-    sun_direction = Property(depends_on = ['spoint','et'])
-    illum_angles = Property(depends_on = ['et','snormal'])
-    Fcos = Property(depends_on = 'solar_constant')
-    local_soltime = Property(depends_on = ['spoint','et'])
+    snormal = Property# (depends_on = 'spoint')
+    sun_direction = Property# (depends_on = ['spoint','et'])
+    illum_angles = Property# (depends_on = ['et','snormal'])
+    local_soltime = Property# (depends_on = ['spoint','et'])
+    to_north = Property
+    F_flat = Property# (depends_on = ['solar_constant','illum_angles'])
+    tilt = Range(low=0.0, high = 90.0)
+    aspect = Range(low=0.0, high=180.0)
+    tilted_normal = Property# (depends_on = ['snormal','tilt'])
+    tilted_rotated_normal = Property# (depends_on = ['spoint','tilted_normal','aspect'])
+    F_tilt = Property# (depends_on = ['solar_constant','illum_angles',
+                                    # 'sun_direction', 'tilted_normal'])
+    F_aspect = Property# (depends_on = ['solar_constant','illum_angles',
+                                      # 'sun_direction','tilted_rotated_normal'])
     
+
     def __init__(self, time=None):
         super(Spicer, self).__init__()
         if time is None:
@@ -142,26 +152,21 @@ class Spicer(HasTraits):
     def _set_utc(self, utc):
         self.time = tparser.parse(utc)
         
-    @cached_property
     def _get_et(self):
         return spice.utc2et(self.utc)
 
-    @cached_property
     def _get_target_id(self):
         return spice.bodn2c(self.target)
 
-    @cached_property
     def _get_radii(self):
         _, radii = spice.bodvrd(self.target, "RADII",3)
         return Radii(*radii)
 
-    @cached_property
     def _get_solar_constant(self):
         dist = spice.vnorm(self.center_to_sun)
         # SPICE returns in [km] !!
         return L_sol / (4 * np.pi * (dist * 1e3)**2)
         
-    @cached_property
     def _get_instrument_id(self):
         if not self.instrument:
             print("Instrument is not set yet.")
@@ -245,7 +250,6 @@ class Spicer(HasTraits):
             return
         return Coords3D(spice.reclat(self.spoint))
 
-    @cached_property
     def _get_snormal(self):
         if not self.spoint_set:
             print("Surface point was not defined yet.")
@@ -253,16 +257,13 @@ class Spicer(HasTraits):
         a, b, c = self.radii
         return spice.surfnm(a, b, c, self.spoint)
             
-    @cached_property
     def _get_center_to_sun(self):
         center_to_sun, lighttime = self.target_to_object("SUN")
         return center_to_sun
         
-    @cached_property
     def _get_sun_direction(self):
         return spice.vsub(self.center_to_sun, self.spoint)
             
-    @cached_property
     def _get_illum_angles(self):
         "Ilumin returns (trgepoch, srfvec, phase, solar, emission)"
         if self.obs is not None:
@@ -274,21 +275,18 @@ class Spicer(HasTraits):
             # leaving at 0 what I don't have
             return IllumAngles((0, solar, 0))
             
-    def _get_Fcos(self):
+    def _get_F_flat(self):
         if self.illum_angles.dsolar > 90:
             return 0
         else:
             return self.solar_constant * math.cos(self.illum_angles.solar)
             
-    @cached_property
     def _get_local_soltime(self):
         return spice.et2lst(self.et, self.target_id, self.coords.lon, "PLANETOCENTRIC")
     
-    @cached_property
     def _get_l_s(self):
         return np.rad2deg(spice.lspcn(self.target, self.et, self.corr))
     
-    @cached_property
     def get_subsolar(self):
         subsolar, _, _ = spice.subslr(self.method, self.target, self.et, self.ref_frame,
                                       self.corr, self.obs)
@@ -301,40 +299,51 @@ class Spicer(HasTraits):
         """
         output = spice.spkpos(object, self.et, self.ref_frame, self.corr, self.target)
         return output
+    
+    def _get_to_north(self):
+        return spice.vsub(self.north_pole, self.spoint)
 
-    def get_tilted_normal(self, angle):
+    def _get_tilted_normal(self):
         """
-        Create a tilted normal vector for an inclined surface by <angle>.
+        Create a tilted normal vector for an inclined surface by self.tilt
         
-        By default tilt the snormal vector towards north.
-        Parameters:
-            angle   Angle to rotate in degrees
+        By default the tilt is applied to the snormal vector towards north.
         """
-        to_north = spice.vsub(self.north_pole, self.spoint)
-        axis = spice.vcrss(to_north, self.spoint)
-        rotmat = make_axis_rotation_matrix(axis, np.radians(angle))
-        new_vec = np.matrix.dot(rotmat, self.snormal)
-        self.tnormal = new_vec
-        return new_vec
+        axis = spice.vcrss(self.to_north, self.spoint) # cross product
+        rotmat = make_axis_rotation_matrix(axis, np.radians(self.tilt))
+        return np.matrix.dot(rotmat, self.snormal)
         
-    def rotate_tnormal(self, angle):
+    def _get_flux(self, vector):
+        diff_angle = spice.vsep(vector, self.sun_direction)
+        if (self.illum_angles.dsolar > 90) or (np.degrees(diff_angle) > 90):
+            return 0
+        else:
+            return self.solar_constant * math.cos(diff_angle)        
+                    
+    def _get_F_tilt(self):
+        return self._get_flux(self.tilted_normal)        
+
+    def _get_tilted_rotated_normal(self):
         """
         Rotate the tilted normal around the snormal to create an aspect angle.
         
         Angle should be in degrees.
         """
-        rotmat = make_axis_rotation_matrix(self.snormal, np.radians(angle))
-        new_vec = np.matrix.dot(rotmat, self.tnormal)
-        self.aspect = angle
-        self.trnormal = new_vec
+        rotmat = make_axis_rotation_matrix(self.snormal, np.radians(self.aspect))
+        return np.matrix.dot(rotmat, self.tilted_normal)
+        
+    def _get_F_aspect(self):
+        return self._get_flux(self.tilted_rotated_normal)
         
     def advance_time_by(self, secs):
         self.time += dt.timedelta(seconds=secs)
+
         
 class EarthSpicer(Spicer):
     target = 'EARTH'
     ref_frame = 'IAU_EARTH'
     
+
 class MarsSpicer(Spicer):
     target = 'MARS'
     ref_frame = 'IAU_MARS'
@@ -376,7 +385,6 @@ class MarsSpicer(Spicer):
         self.spoint = self.location_coords[loc_string.lower()]
 
 def plot_times():
-    angles = []
     time1 = tparser.parse(mspicer.local_soltime[4])
     time2 = time1 + dt.timedelta(1) # adding 1 day
     delta = dt.timedelta(minutes = 30)
@@ -385,15 +393,28 @@ def plot_times():
     ax = fig.add_subplot(111)
     for time in times:
         mspicer.time += delta
-        mspicer.ilumin()
-        angles.append(np.rad2deg(mspicer.solar))
     ax.plot_date(times, angles)
     fig.autofmt_xdate()
     plt.show()
     
+def main():
+    mspicer = MarsSpicer()
+    mspicer.set_spoint_by(lat=85, lon=0)
+    print("Set mspicer to 85N, 0E.")
+    print("Local soltime: {0}".format(mspicer.local_soltime[3]))
+    print("Incidence angle: {0:g}".format(mspicer.illum_angles.dsolar))
+    print("F_flat: {0:g}".format(mspicer.F_flat))
+    mspicer.tilt = 30
+    mspicer.aspect = 180
+    print("F_tilt: {0:g}".format(mspicer.F_tilt))
+    print("Angle between trnormal and sun: {0}".format(np.degrees(spice.vsep(mspicer.tilted_rotated_normal,
+                                                                  mspicer.sun_direction))))
+    print("F_aspect: {0:g}".format(mspicer.F_aspect))
+    
 if __name__ == '__main__':
     import doctest
     doctest.testmod()
+    main()
     # mspice = MarsSpicer()
     # mspice.goto('inca')
     # mspice.configure_traits()
