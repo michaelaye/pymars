@@ -338,24 +338,51 @@ class Spicer(HasTraits):
     def advance_time_by(self, secs):
         self.time += dt.timedelta(seconds=secs)
     
-    def time_series(self, flux_name, no_of_steps, dt, provide_times = None):
+    def time_series(self, flux_name, dt, no_of_steps=None, delta_l_s=None, provide_times=None):
         """
         Provide time series of fluxes with a <dt> in seconds as sampling intervals.
         
-        This returns the fluxes as E/(dt*m**2), so it multiplies the internal fluxes by <dt>.
-        provide_times, if wanted should be one of ['time','utc','et','l_s']
+        Parameters
+        ----------
+        flux_name : String. Decides which of flux vector attributes to integrate. 
+            Should be one of ['F_flat','F_tilt','F_aspect']   
+        dt : delta time for the time series, in seconds
+        no_of_steps : number of steps to add to time series
+        delta_l_s : Either this or <no_of_steps> needs to be provided. Decides about the 
+            end of the loop.
+        provide_times : Should be set to one of ['time','utc','et','l_s'] if wanted.
+        
+        Returns
+        -------
+        if provide_times == None:
+            out : ndarray
+            Array of evenly spaced flux values, given as E/(dt*m**2). 
+            I.e. the internal fluxes are multiplied by dt.
         """
         saved_time = self.time
         times = []
         energies = []
-        for _ in range(no_of_steps):
+        i = 0
+        start_l_s = self.l_s
+        if no_of_steps:
+            criteria = (i < no_of_steps)
+        else:
+            criteria = (self.l_s < (start_l_s + delta_l_s))
+        while criteria:
             if provide_times: times.append(getattr(self, provide_times))
-            energies.append(getattr(self,flux_name))
+            energies.append(getattr(self, flux_name) * dt)
             self.advance_time_by(dt)
+            if no_of_steps:
+                i += 1
+                criteria = (i < no_of_steps)
+            else:
+                criteria = (self.l_s < (start_l_s + delta_l_s))
+                
         self.time = saved_time
-        if provide_times: return (times, energies)
-        else: return energies
-        
+        if provide_times: return (np.array(times), np.array(energies))
+        else: return np.array(energies)
+                    
+            
 class EarthSpicer(Spicer):
     target = 'EARTH'
     ref_frame = 'IAU_EARTH'
@@ -428,10 +455,14 @@ def main():
     print("Angle between trnormal and sun: {0}".format(np.degrees(spice.vsep(mspicer.tilted_rotated_normal,
                                                                   mspicer.sun_direction))))
     print("F_aspect: {0:g}".format(mspicer.F_aspect))
-    l_s, energies = mspicer.time_series('F_flat', 100, 3600, provide_times='l_s')
-    energies_aspect = mspicer.time_series('F_aspect', 100, 3600)
+    l_s, energies = mspicer.time_series('F_flat', 3600, no_of_steps=100, provide_times='l_s')
+    energies_aspect = mspicer.time_series('F_aspect', 3600, no_of_steps=100)
+    l_s10, energies_10ls = mspicer.time_series('F_aspect', 3600, delta_l_s=10, provide_times='l_s')
     plt.plot(l_s, energies, label='flat',linewidth=2)
     plt.plot(l_s, energies_aspect, label='aspect: 180',linewidth=2)
+    plt.figure()
+    plt.plot(l_s10, energies_10ls, label='until delta_l_s=2')
+    print('sum over energies_10ls: {0}'.format((energies_10ls[:-1].sum()+energies_10ls[1:].sum())/2.0))
     plt.legend()
     plt.show()
      
