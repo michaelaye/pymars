@@ -267,6 +267,8 @@ class ImgData():
         self.fname = fname
         self.dataset = gdal.Open(self.fname)
         self.ds = self.dataset
+        self.X = self.ds.RasterXSize
+        self.Y = self.ds.RasterYSize
         self.band = self.ds.GetRasterBand(1)
         self.get_center_from_dataset()
         self.geotransform = self.dataset.GetGeoTransform()
