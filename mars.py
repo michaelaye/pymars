@@ -269,7 +269,9 @@ class ImgData():
         self.ds = self.dataset
         self.X = self.ds.RasterXSize
         self.Y = self.ds.RasterYSize
-        self.band = self.ds.GetRasterBand(1)
+        for i in range(self.ds.RasterCount):
+            setattr(self,'band'+str(i+1), self.ds.GetRasterBand(i+1))
+        self.band = self.band1 # keep with older interface of just 1 band
         self.get_center_from_dataset()
         self.geotransform = self.dataset.GetGeoTransform()
         self.projection = self.dataset.GetProjection()
@@ -295,6 +297,32 @@ class ImgData():
         xSize = self.dataset.RasterXSize
         ySize = self.dataset.RasterYSize
         self.center = Point(xSize//2,ySize//2)
+        
+    def read_all(self, maxdim=1024):
+        """
+        This reads all data into a max_dim sized buffer. GDAL is doing the downsampling."""
+        src_ds = self.ds
+        b = self.band1
+        ndv = b.GetNoDataValue()
+        ns = src_ds.RasterXSize
+        nl = src_ds.RasterYSize
+
+        #Don't want to load the entire dataset for stats computation
+        #This is maximum dimension for reduced resolution array
+        max_dim = maxdim
+
+        scale_ns = ns/max_dim
+        scale_nl = nl/max_dim
+        scale_max = max(scale_ns, scale_nl)
+
+        if scale_max > 1:
+            nl = round(nl/scale_max)
+            ns = round(ns/scale_max)
+
+        #The buf_size parameters determine the final array dimensions
+        bm = np.ma.masked_equal(np.array(b.ReadAsArray(buf_xsize=ns, buf_ysize=nl)), ndv)
+        self.data = bm
+        return bm
         
     def read_window(self, ul_or_win, lrPoint=None):
         """get data for Window object or 2 Point objects
@@ -378,8 +406,8 @@ class MOLA(ImgData):
 class CTX(ImgData):
     """docstring for CTX"""
     def __init__(self,
-                 fname=os.getenv('HOME')+'/Data/ctx/inca_city/PSP_004226_0984/'\
-                 'P08_004226_0984_XI_81S063W.cal.des.map.cub'):
+                 fname=os.getenv('HOME')+'/Data/ctx/inca_city/PSP_004226_0984/'
+                                         'P08_004226_0984_XI_81S063W.cal.des.map.cub'):
         ImgData.__init__(self,fname)
 
     def add_mola_contours(self):
@@ -406,8 +434,8 @@ class CTX(ImgData):
 class HiRISE(ImgData):
     """docstring for HiRISE"""
     def __init__(self,
-                 fname=os.getenv('HOME')+'/Data/hirise/inca_city/'\
-                            'PSP_002380_0985_RED.cal.norm.map.equ.mos.cub'):
+                 fname=os.getenv('HOME')+'/Data/hirise/inca_city/'
+                                         'PSP_002380_0985_RED.cal.norm.map.equ.mos.cub'):
         ImgData.__init__(self,fname)
         self.bands = []
         for rc in range(self.ds.RasterCount):
