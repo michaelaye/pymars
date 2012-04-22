@@ -61,6 +61,10 @@ class IllumAngles(HasTraits):
         return np.rad2deg(self.solar)
     def _get_demission(self):
         return np.rad2deg(self.emission)
+    def __call__(self):
+        print("Phase: {0},\nIncidence: {1}\nEmission: {2}".format(self.dphase,
+                                                                  self.dsolar,
+                                                                  self.demission))
         
 class Coords(HasTraits):
     lon = Float

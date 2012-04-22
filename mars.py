@@ -148,6 +148,8 @@ class Point():
         srsLatLon = srs.CloneGeogCS()
         ct = osr.CoordinateTransformation(srs, srsLatLon)
         self.lon, self.lat, height = ct.TransformPoint(self.x,self.y)
+        if self.lon < 0:
+            self.lon = 360.0 - abs(self.lon)
         return (self.lon,self.lat)
         
     def lonlat_to_meter(self, projection):
@@ -294,7 +296,6 @@ class ImgData():
         """
         self.window = Window(centerPoint=self.center, width=width)
         self.data = self.band.ReadAsArray(*self.window.get_gdal_window())
-        return self.data
   
     def get_center_from_dataset(self):
         xSize = self.dataset.RasterXSize
@@ -380,6 +381,12 @@ class ImgData():
         ax = fig.add_subplot(111)
         extent = self.window.get_extent(self.dataset,lonlat)
         ax.imshow(self.data,extent=extent)#,origin='image')
+        if lonlat:
+            ax.set_xlabel('Longitude [deg]')
+            ax.set_ylabel('Latitude [deg]')
+        else:
+            ax.set_xlabel('Rectangular X [m]')
+            ax.set_ylabel('Rectangular Y [m]')
         self.ax = ax
         show()
 
