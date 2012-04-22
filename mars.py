@@ -194,6 +194,9 @@ class Window():
                            lon = self.lr.lon, lat = self.lr.lat))
         return win
         
+    def __call__(self):
+        return self.ul(), self.lr(), self.width, self.center()
+        
     def get_lr_from_width(self):
         lrSample = self.ul.sample+self.width
         lrLine = self.ul.line+self.width
