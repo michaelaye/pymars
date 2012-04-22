@@ -255,7 +255,7 @@ class Window():
         if lonlat==False:
             self.ul.pixel_to_meter(dataset.GetGeoTransform())
             self.lr.pixel_to_meter(dataset.GetGeoTransform())
-            return [self.ul.x/1000,self.lr.x/1000,self.lr.y/1000,self.ul.y/1000]
+            return [self.ul.x,self.lr.x,self.lr.y,self.ul.y]
         elif lonlat == True:
             self.ul.pixel_to_lonlat(dataset.GetGeoTransform(),
                                     dataset.GetProjection())
@@ -292,7 +292,7 @@ class ImgData():
         >>> mola.data.max()
         3382383.8
         """
-        self.window = Window(centerPoint=self.center,width=width)
+        self.window = Window(centerPoint=self.center, width=width)
         self.data = self.band.ReadAsArray(*self.window.get_gdal_window())
         return self.data
   
@@ -440,15 +440,6 @@ class HiRISE(ImgData):
                  fname=os.getenv('HOME')+'/Data/hirise/inca_city/'
                                          'PSP_002380_0985_RED.cal.norm.map.equ.mos.cub'):
         ImgData.__init__(self,fname)
-        self.bands = []
-        for rc in range(self.ds.RasterCount):
-            self.bands.append(self.ds.GetRasterBand(rc+1)) # bands count from 1
-
-    def read_center_window(self,width=500):
-        self.window = Window(centerPoint=self.center,width=width)
-        self.data = []
-        for band in self.bands:
-            self.data.append(band.ReadAsArray(*self.window.get_gdal_window()))
 
 
 def combine_ctx_and_mola(ctxFilename, ctxSample, ctxLine, ctxWidth):
