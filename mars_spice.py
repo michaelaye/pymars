@@ -49,11 +49,9 @@ class IllumAngles(HasTraits):
     dsolar = Property
     demission = Property
 
-    def __init__(self, args):
-        super(IllumAngles, self).__init__()
-        self.phase = args[0]
-        self.solar = args[1]
-        self.emission = args[2]
+    @classmethod
+    def fromtuple(cls, args, **traits):
+        return cls(phase=args[0],solar=args[1],emission=args[2], **traits)
         
     def _get_dphase(self):
         return np.rad2deg(self.phase)
@@ -85,11 +83,9 @@ class Coords(HasTraits):
 class Coords3D(Coords):
     radius = Float
 
-    def __init__(self, arg):
-        super(Coords3D,self).__init__()
-        self.radius = arg[0]
-        self.lon = arg[1]
-        self.lat = arg[2]
+    @classmethod
+    def fromtuple(cls, args, **traits):
+        return cls(radius=args[0],lon=args[1],lat=args[2], **traits)
         
 class Surface(HasTraits):
     normal = Tuple
@@ -248,13 +244,13 @@ class Spicer(HasTraits):
         return output
 
     def _coords_default(self):
-        return Coords3D(0,0,0)
+        return Coords3D.fromtuple((0,0,0))
         
     def _get_coords(self):
         if len(self.spoint) == 0:
             print("Surface point 'spoint' not set yet.")
             return
-        return Coords3D(spice.reclat(self.spoint))
+        return Coords3D.fromtuple(spice.reclat(self.spoint))
 
     def _get_snormal(self):
         if not self.spoint_set:
@@ -275,11 +271,11 @@ class Spicer(HasTraits):
         if self.obs is not None:
             output = spice.ilumin("Ellipsoid", self.target, self.et, self.ref_frame,
                                   self.corr, self.obs, self.spoint)
-            return IllumAngles(output[2:]) 
+            return IllumAngles.fromtuple(output[2:]) 
         else:
             solar = spice.vsep(self.sun_direction, self.snormal)
             # leaving at 0 what I don't have
-            return IllumAngles((0, solar, 0))
+            return IllumAngles.fromtuple((0, solar, 0))
             
     def _get_F_flat(self):
         if self.illum_angles.dsolar > 90:
