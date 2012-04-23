@@ -119,6 +119,7 @@ class Spicer(HasTraits):
     # should actually be target_center_to_sun, but i don't do this distinction yet
     center_to_sun = Property# (depends_on = ['et', 'target'] )
     solar_constant = Property# (depends_on ='center_to_sun')
+    subsolar = Property
     
     # surface point related attributes
     spoint_set = Bool
@@ -129,6 +130,7 @@ class Spicer(HasTraits):
     illum_angles = Property# (depends_on = ['et','snormal'])
     local_soltime = Property# (depends_on = ['spoint','et'])
     to_north = Property
+    to_south = Property
     F_flat = Property# (depends_on = ['solar_constant','illum_angles'])
     tilt = Range(low=0.0, high = 90.0)
     aspect = Range(low=0.0, high=180.0)
@@ -291,9 +293,9 @@ class Spicer(HasTraits):
     def _get_l_s(self):
         return np.rad2deg(spice.lspcn(self.target, self.et, self.corr))
     
-    def get_subsolar(self):
+    def _get_subsolar(self):
         subsolar, _, _ = spice.subslr(self.method, self.target, self.et, self.ref_frame,
-                                      self.corr, self.obs)
+                                      'NONE', 'EARTH')
         return subsolar
         
     def target_to_object(self, object):
@@ -306,6 +308,9 @@ class Spicer(HasTraits):
     
     def _get_to_north(self):
         return spice.vsub(self.north_pole, self.spoint)
+
+    def _get_to_south(self):
+        return spice.vsub(self.south_pole, self.spoint)
 
     def _get_tilted_normal(self):
         """
