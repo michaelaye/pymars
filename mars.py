@@ -61,7 +61,7 @@ class Point():
     """
     def __init__(self, sample=None, line=None,
                        x=None, y=None,
-                       lat=None,lon=None):
+                       lat=None,lon=None, geotrans=None, proj=None):
         self.sample = sample
         self.line = line
         self.x = x
@@ -69,6 +69,8 @@ class Point():
         self.lat = lat
         self.lon = lon
         self.centered = False
+        self.geotrans = geotrans
+        self.proj = proj
 
     def shift_to_center(self, geotransform):
         # if i'd shift, the centerpoint does not show center coordinates
@@ -238,7 +240,7 @@ class Window():
         >>> win.get_gdal_window()
         [10, 150, 90, 50]
         """
-        return [int(self.ul.sample)-1,int(self.ul.line)-1,
+        return [int(self.ul.sample),int(self.ul.line),
                 int(self.lr.sample-self.ul.sample),
                 int(self.lr.line-self.ul.line)]
                 
@@ -277,11 +279,19 @@ class ImgData():
         for i in range(self.ds.RasterCount):
             setattr(self,'band'+str(i+1), self.ds.GetRasterBand(i+1))
         self.band = self.band1 # keep with older interface of just 1 band
-        self.get_center_from_dataset()
+        self.center = Point(self.X//2, self.Y//2)
         self.geotransform = self.dataset.GetGeoTransform()
         self.projection = self.dataset.GetProjection()
         
-    def read_center_window(self,width=500):
+    def _read_data(self, band):
+        band = getattr(self,band)
+        data = band.ReadAsArray(*self.window.get_gdal_window())
+        ndv = band.GetNoDataValue()
+        mdata = np.ma.masked_equal(data, ndv)
+        self.data = data
+        self.mdata = mdata
+        
+    def read_center_window(self,width=500, band='band1'):
         """Get some sample data from the center of the dataset
         
         Input: width of square data array, default 500
@@ -294,19 +304,15 @@ class ImgData():
         >>> mola.data.max()
         3382383.8
         """
+        width = min(width,self.X, self.Y)
         self.window = Window(centerPoint=self.center, width=width)
-        self.data = self.band.ReadAsArray(*self.window.get_gdal_window())
+        self._read_data(band)
   
-    def get_center_from_dataset(self):
-        xSize = self.dataset.RasterXSize
-        ySize = self.dataset.RasterYSize
-        self.center = Point(xSize//2,ySize//2)
-        
-    def read_all(self, maxdim=1024):
+    def read_all(self, maxdim=1024, band='band1'):
         """
         This reads all data into a max_dim sized buffer. GDAL is doing the downsampling."""
         src_ds = self.ds
-        b = self.band1
+        b = getattr(self,band)
         ndv = b.GetNoDataValue()
         ns = src_ds.RasterXSize
         nl = src_ds.RasterYSize
@@ -328,7 +334,7 @@ class ImgData():
         self.data = bm
         return bm
         
-    def read_window(self, ul_or_win, lrPoint=None):
+    def read_window(self, ul_or_win, lrPoint=None, band='band1'):
         """get data for Window object or 2 Point objects
         
         user can either provide one Window object or 2 Point objects as input
@@ -351,7 +357,7 @@ class ImgData():
             self.window = ul_or_win
         else:
             self.window = Window(ul_or_win, lrPoint)
-        self.data = self.band.ReadAsArray(*self.window.get_gdal_window())
+        self._read_data(band)
         return self.data
         
     def window_coords_to_meter(self):
