@@ -86,11 +86,8 @@ class Coords3D(Coords):
     @classmethod
     def fromtuple(cls, args, **traits):
         return cls(radius=args[0],lon=args[1],lat=args[2], **traits)
+            
         
-class Surface(HasTraits):
-    normal = Tuple
-    aspect = Float
-    
 class Spicer(HasTraits):
     # Constants
     method = Str('Near point:ellipsoid')
@@ -137,7 +134,6 @@ class Spicer(HasTraits):
     F_aspect = Property# (depends_on = ['solar_constant','illum_angles',
                                       # 'sun_direction','tilted_rotated_normal'])
     
-
     def __init__(self, time=None):
         super(Spicer, self).__init__()
         if time is None:
@@ -290,14 +286,14 @@ class Spicer(HasTraits):
         return np.rad2deg(spice.lspcn(self.target, self.et, self.corr))
     
     def _get_subsolar(self):
-        subsolar, _, _ = spice.subslr(self.method, self.target, self.et, self.ref_frame,
-                                      'NONE', 'EARTH')
+        subsolar, _ = spice.nearpt(self.center_to_sun, *self.radii)
         return subsolar
         
     def target_to_object(self, object):
         """Object should be string of body, e.g. 'SUN'.
         
         Output has (object_vector[3], lighttime)
+        # Potential TODO: spkezp would be faster, but it uses body codes instead of names
         """
         output = spice.spkpos(object, self.et, self.ref_frame, self.corr, self.target)
         return output
@@ -387,6 +383,19 @@ class Spicer(HasTraits):
         if provide_times: return (np.array(times), np.array(energies))
         else: return np.array(energies)
                     
+    def compute_azimuth(self, oP, pixel_res = 0.5):
+        """
+        Compute the azimuth in degrees of another Point instance <oP>.
+        """
+        poB = spice.vsub(self.subsolar, self.spoint)
+        upoB = spice.vhat(poB)
+        scale = pixel_res/0.5/2.0
+        supoB = spice.vscl(scale, upoB)
+        nB = spice.vadd(self.spoint, supoB)
+        nB = spice.vhat(nB)
+        nB = spice.vscl(self.coords.radius, nB)
+        nrad, nlon, nlat = spice.reclat(nB)
+        
             
 class EarthSpicer(Spicer):
     target = 'EARTH'
