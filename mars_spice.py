@@ -7,14 +7,15 @@ import datetime as dt
 import dateutil.parser as tparser
 import matplotlib.pyplot as plt
 from matplotlib.dates import HourLocator, drange
-from sunpy.sun.constants import luminosity as L_sol
 import math
+
+L_sol = 3.839e26 # [Watt]
 
 # spice.furnsh('/Users/maye/Data/spice/mars/mro_2009_v06_090107_090110.tm')
 # spice.furnsh('/Users/maye/Data/spice/mars/mro_2007_v07_070127_070128.tm')
-spice.furnsh('/Users/maye/Data/spice/mars/mro_2007_v07_070216_070217.tm')
+# spice.furnsh('/Users/maye/Data/spice/mars/mro_2007_v07_070216_070217.tm')
 
-# spice.furnsh('mars.tm')
+spice.furnsh('mars2.tm')
 Radii = namedtuple('Radii', 'a b c')
 
 def make_axis_rotation_matrix(direction, angle):
@@ -126,7 +127,7 @@ class Spicer(HasTraits):
     to_south = Property
     F_flat = Property# (depends_on = ['solar_constant','illum_angles'])
     tilt = Range(low=0.0, high = 90.0)
-    aspect = Range(low=0.0, high=180.0)
+    aspect = Range(low=0.0, high=360.0)
     tilted_normal = Property# (depends_on = ['snormal','tilt'])
     tilted_rotated_normal = Property# (depends_on = ['spoint','tilted_normal','aspect'])
     F_tilt = Property# (depends_on = ['solar_constant','illum_angles',
@@ -365,19 +366,20 @@ class Spicer(HasTraits):
         energies = []
         i = 0
         start_l_s = self.l_s
+        accumulated_delta_l_s = 0
         if no_of_steps:
             criteria = (i < no_of_steps)
         else:
-            criteria = (self.l_s < (start_l_s + delta_l_s))
+            criteria = (self.l_s < end_l_s)
         while criteria:
+            i += 1
             if provide_times: times.append(getattr(self, provide_times))
             energies.append(getattr(self, flux_name) * dt)
             self.advance_time_by(dt)
             if no_of_steps:
-                i += 1
                 criteria = (i < no_of_steps)
             else:
-                criteria = (self.l_s < (start_l_s + delta_l_s))
+                criteria = (self.l_s < end_l_s)
                 
         self.time = saved_time
         if provide_times: return (np.array(times), np.array(energies))
@@ -386,6 +388,8 @@ class Spicer(HasTraits):
     def compute_azimuth(self, oP, pixel_res = 0.5):
         """
         Compute the azimuth in degrees of another Point instance <oP>.
+        
+        Not finished yet!!
         """
         poB = spice.vsub(self.subsolar, self.spoint)
         upoB = spice.vhat(poB)
@@ -455,6 +459,30 @@ def plot_times():
     fig.autofmt_xdate()
     plt.show()
     
+def test_time_series():
+    mspice = MarsSpicer()
+    mspice.goto_ls_0()
+    mspice.set_spoint_by(lat=-84, lon=0)
+    mspice.tilt = 30
+    mspice.aspect = 90
+    mspice.advance_time_by(24*3600*350)
+    utc = mspice.utc
+    timestep = 3600
+    times, to_east = mspice.time_series('F_aspect', timestep, no_of_steps=300, provide_times='l_s')
+    mspice.utc = utc
+    flat = mspice.time_series('F_flat', timestep, no_of_steps=300)
+    mspice.utc = utc
+    tilted = mspice.time_series('F_tilt', timestep, no_of_steps=300)
+    mspice.utc = utc
+    mspice.aspect = 270
+    to_west = mspice.time_series('F_aspect', timestep, no_of_steps=300)
+    plt.plot(times, flat, label='flat')
+    plt.plot(times, tilted, label='tilted')
+    plt.plot(times, to_east, label='to_east')
+    plt.plot(times, to_west, label = 'to_west')
+    plt.legend()
+    plt.show()
+    
 def main():
     mspicer = MarsSpicer()
     mspicer.set_spoint_by(lat=85, lon=0)
@@ -481,9 +509,10 @@ def main():
     plt.show()
      
 if __name__ == '__main__':
-    import doctest
-    doctest.testmod()
-    main()
+    # import doctest
+    # doctest.testmod()
+    test_time_series()
+    
     # mspice = MarsSpicer()
     # mspice.goto('inca')
     # mspice.configure_traits()
