@@ -71,6 +71,10 @@ class Point():
         self.centered = False
         self.geotrans = geotrans
         self.proj = proj
+        if geotrans is not None:
+            self.pixel_to_meter(geotrans)
+            if proj is not None:
+                self.pixel_to_lonlat(geotrans, proj)
 
     def shift_to_center(self, geotransform):
         # if i'd shift, the centerpoint does not show center coordinates
@@ -279,9 +283,11 @@ class ImgData():
         for i in range(self.ds.RasterCount):
             setattr(self,'band'+str(i+1), self.ds.GetRasterBand(i+1))
         self.band = self.band1 # keep with older interface of just 1 band
-        self.center = Point(self.X//2, self.Y//2)
         self.geotransform = self.dataset.GetGeoTransform()
         self.projection = self.dataset.GetProjection()
+        self.center = Point(self.X//2, self.Y//2,
+                            geotrans=self.geotransform,
+                            proj=self.projection)
         
     def _read_data(self, band):
         band = getattr(self,band)
@@ -311,26 +317,32 @@ class ImgData():
     def read_all(self, maxdim=1024, band='band1'):
         """
         This reads all data into a max_dim sized buffer. GDAL is doing the downsampling."""
+            
         src_ds = self.ds
         b = getattr(self,band)
         ndv = b.GetNoDataValue()
-        ns = src_ds.RasterXSize
-        nl = src_ds.RasterYSize
+        ns = self.X
+        nl = self.Y
+        
+        self.window = Window(ulPoint=Point(0,0),lrPoint=Point(self.X,self.Y))
+        # if full res is smaller than maxdim, get everything
+        if (maxdim > self.X) and (maxdim > self.Y): 
+            bm = np.ma.masked_equal( b.ReadAsArray(), ndv)
+        else:
+            #Don't want to load the entire dataset for stats computation
+            #This is maximum dimension for reduced resolution array
+            max_dim = maxdim
 
-        #Don't want to load the entire dataset for stats computation
-        #This is maximum dimension for reduced resolution array
-        max_dim = maxdim
+            scale_ns = ns/max_dim
+            scale_nl = nl/max_dim
+            scale_max = max(scale_ns, scale_nl)
 
-        scale_ns = ns/max_dim
-        scale_nl = nl/max_dim
-        scale_max = max(scale_ns, scale_nl)
+            if scale_max > 1:
+                nl = round(nl/scale_max)
+                ns = round(ns/scale_max)
 
-        if scale_max > 1:
-            nl = round(nl/scale_max)
-            ns = round(ns/scale_max)
-
-        #The buf_size parameters determine the final array dimensions
-        bm = np.ma.masked_equal(np.array(b.ReadAsArray(buf_xsize=ns, buf_ysize=nl)), ndv)
+            #The buf_size parameters determine the final array dimensions
+            bm = np.ma.masked_equal(np.array(b.ReadAsArray(buf_xsize=ns, buf_ysize=nl)), ndv)
         self.data = bm
         return bm
         
@@ -382,17 +394,19 @@ class ImgData():
         self.data=np.array(self.data*256,dtype=np.uint8)
         return self.data
         
-    def show(self, lonlat=False):
+    def show(self, lonlat=False, cb=False):
         fig = figure()
         ax = fig.add_subplot(111)
         extent = self.window.get_extent(self.dataset,lonlat)
-        ax.imshow(self.data,extent=extent)#,origin='image')
+        im = ax.imshow(self.data,extent=extent)#,origin='image')
         if lonlat:
             ax.set_xlabel('Longitude [deg]')
             ax.set_ylabel('Latitude [deg]')
         else:
             ax.set_xlabel('Rectangular X [m]')
             ax.set_ylabel('Rectangular Y [m]')
+        if cb:
+            fig.colorbar(im)
         self.ax = ax
         show()
 
