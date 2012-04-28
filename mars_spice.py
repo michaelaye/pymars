@@ -463,23 +463,24 @@ def test_time_series():
     mspice = MarsSpicer()
     mspice.goto_ls_0()
     mspice.set_spoint_by(lat=-84, lon=0)
-    mspice.tilt = 30
+    mspice.tilt = 15
     mspice.aspect = 90
-    mspice.advance_time_by(24*3600*350)
+    mspice.advance_time_by(24*3600*356)
     utc = mspice.utc
-    timestep = 3600
-    times, to_east = mspice.time_series('F_aspect', timestep, no_of_steps=300, provide_times='l_s')
+    timestep = 600
+    no_of_steps = 2000
+    times, to_east = mspice.time_series('F_aspect', timestep, no_of_steps, provide_times='l_s')
     mspice.utc = utc
-    flat = mspice.time_series('F_flat', timestep, no_of_steps=300)
+    flat = mspice.time_series('F_flat', timestep, no_of_steps)
     mspice.utc = utc
-    tilted = mspice.time_series('F_tilt', timestep, no_of_steps=300)
+    tilted = mspice.time_series('F_tilt', timestep, no_of_steps)
     mspice.utc = utc
     mspice.aspect = 270
-    to_west = mspice.time_series('F_aspect', timestep, no_of_steps=300)
-    plt.plot(times, flat, label='flat')
-    plt.plot(times, tilted, label='tilted')
-    plt.plot(times, to_east, label='to_east')
-    plt.plot(times, to_west, label = 'to_west')
+    to_west = mspice.time_series('F_aspect', timestep, no_of_steps)
+    plt.plot(times, flat, '*-', label='flat')
+    plt.plot(times, tilted, '*-', label='tilted')
+    plt.plot(times, to_east, '*-', label='to_east')
+    plt.plot(times, to_west, '*-', label = 'to_west')
     plt.legend()
     plt.show()
     
