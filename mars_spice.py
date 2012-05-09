@@ -14,8 +14,9 @@ L_sol = 3.839e26 # [Watt]
 # spice.furnsh('/Users/maye/Data/spice/mars/mro_2009_v06_090107_090110.tm')
 # spice.furnsh('/Users/maye/Data/spice/mars/mro_2007_v07_070127_070128.tm')
 # spice.furnsh('/Users/maye/Data/spice/mars/mro_2007_v07_070216_070217.tm')
+spice.furnsh('/Users/maye/Data/spice/mars/mro_2011_v04_110524_110524.tm')
 
-spice.furnsh('mars2.tm')
+# spice.furnsh('/Users/maye/Dropbox/src/pymars/mars.tm')
 Radii = namedtuple('Radii', 'a b c')
 
 def make_axis_rotation_matrix(direction, angle):
@@ -119,8 +120,9 @@ class Spicer(HasTraits):
     spoint_set = Bool
     spoint = Tuple
     coords = Property
+    srfvec = Property
     snormal = Property# (depends_on = 'spoint')
-    sun_direction = Property# (depends_on = ['spoint','et'])
+    sun_direction = Property(depends_on = ['spoint','et'])
     illum_angles = Property# (depends_on = ['et','snormal'])
     local_soltime = Property# (depends_on = ['spoint','et'])
     to_north = Property
@@ -196,7 +198,7 @@ class Spicer(HasTraits):
             elif func_str in 'sincpt':
                 spoint = self.sincpt()[0]
             else:
-                raise Exeption("No valid method recognized.")
+                raise Exception("No valid method recognized.")
         elif lon is not None and lat is not None:
             self.lon = lon
             self.lat = lat
@@ -231,6 +233,8 @@ class Spicer(HasTraits):
         """
         # _ are dummy variables I don't need
         shape, frame, bsight, _, _ = self.getfov()
+        self.bsight = bsight
+        self.bsight_frame = frame
         return spice.sincpt("Ellipsoid", self.target, self.et, self.ref_frame,
                               self.corr, self.obs, frame, bsight)
 
@@ -259,9 +263,19 @@ class Spicer(HasTraits):
     def _get_center_to_sun(self):
         center_to_sun, lighttime = self.target_to_object("SUN")
         return center_to_sun
-        
+    
+    @cached_property    
     def _get_sun_direction(self):
         return spice.vsub(self.center_to_sun, self.spoint)
+    
+    @cached_property
+    def _get_srfvec(self):
+        if self.obs is None:
+            print("No observer has been set")
+        else:
+            output = spice.ilumin("Ellipsoid", self.target, self.et, self.ref_frame,
+                                  self.corr, self.obs, self.spoint)
+            return output[1]
             
     def _get_illum_angles(self):
         "Ilumin returns (trgepoch, srfvec, phase, solar, emission)"
@@ -484,6 +498,16 @@ def test_time_series():
     plt.legend()
     plt.show()
     
+def test_phase():
+    mspice = MarsSpicer()
+    mspice.utc = '2011-05-24T00:58:08.402'
+    mspice.obs = 'MRO'
+    mspice.instrument = 'MRO_HIRISE'
+    mspice.set_spoint_by('sincpt')
+    print("Phase: %f" % np.degrees(spice.vsep(spice.vminus(mspice.srfvec), mspice.sun_direction)))
+    print("Inc: %f" % np.degrees(spice.vsep(mspice.spoint, mspice.sun_direction)))
+    print("Emis: %f" % np.degrees(spice.vsep(mspice.spoint, spice.vminus(mspice.srfvec))))
+    
 def main():
     mspicer = MarsSpicer()
     mspicer.set_spoint_by(lat=85, lon=0)
@@ -512,8 +536,8 @@ def main():
 if __name__ == '__main__':
     # import doctest
     # doctest.testmod()
-    test_time_series()
-    
+    # test_time_series()
+    test_phase()
     # mspice = MarsSpicer()
     # mspice.goto('inca')
     # mspice.configure_traits()
