@@ -47,20 +47,26 @@ class IllumAngles(HasTraits):
     phase = Float
     solar = Float
     emission = Float
-    dphase = Property
-    dsolar = Property
-    demission = Property
+    dphase = Property(depends_on = 'phase')
+    dsolar = Property(depends_on = 'solar')
+    demission = Property(depends_on = 'emission')
 
     @classmethod
     def fromtuple(cls, args, **traits):
         return cls(phase=args[0],solar=args[1],emission=args[2], **traits)
         
+    @cached_property
     def _get_dphase(self):
         return np.rad2deg(self.phase)
+
+    @cached_property
     def _get_dsolar(self):
         return np.rad2deg(self.solar)
+
+    @cached_property
     def _get_demission(self):
         return np.rad2deg(self.emission)
+
     def __call__(self):
         print("Phase: {0},\nIncidence: {1}\nEmission: {2}".format(self.dphase,
                                                                   self.dsolar,
@@ -69,15 +75,18 @@ class IllumAngles(HasTraits):
 class Coords(HasTraits):
     lon = Float
     lat = Float
-    dlon = Property
-    dlat = Property
+    dlon = Property(depends_on='lon')
+    dlat = Property(depends_on='lat')
     
+    @cached_property
     def _get_dlon(self):
         dlon = np.rad2deg(self.lon)
         # force 360 eastern longitude:
         if dlon < 0:
             dlon = 360 - abs(dlon)
-        return dlon        
+        return dlon 
+        
+    @cached_property       
     def _get_dlat(self):
         return np.rad2deg(self.lat)
 
