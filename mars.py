@@ -21,8 +21,6 @@ import matplotlib.cm as cm
 from mpl_toolkits.axes_grid.anchored_artists import AnchoredSizeBar
 import numpy as np
 
-"""
-"""
 
 gdal.UseExceptions()
 
@@ -41,7 +39,7 @@ class MapNotSetError(Error):
         self.expr = expr
         self.msg = msg
 
-class Point():
+class Point(object):
     """Point class to manage pixel and map points and their transformations.
     
     Requires: gdal to enable sample/line<-> map coords tra'fo's
@@ -64,13 +62,10 @@ class Point():
                        lat=None,lon=None, geotrans=None, proj=None):
         self.sample = sample
         self.line = line
-        self.pixels = np.array([sample,line])
         self.x = x
         self.y = y
-        self.recs = np.array([x,y])
         self.lat = lat
         self.lon = lon
-        self.coords = np.array([lon,lat])
         self.centered = False
         self.geotrans = geotrans
         self.proj = proj
@@ -79,6 +74,14 @@ class Point():
             if proj is not None:
                 self.pixel_to_lonlat(geotrans, proj)
 
+    @property
+    def pixels(self):
+        return np.array([self.sample, self.line])
+    
+    @property
+    def coords(self):
+        return np.array([self.x, self.y])
+    
     def shift_to_center(self, geotransform):
         # if i'd shift, the centerpoint does not show center coordinates
         # so that seems wrong. am i overlooking something?
@@ -172,7 +175,7 @@ class Point():
         return (self.x,self.y)
         
 
-class Window():
+class Window(object):
     """class to manage a window made of corner Points (objects of Point())
     
     when using width, only quadratic windows supported currently
@@ -275,7 +278,7 @@ class Window():
             return [self.ul.lon,self.lr.lon,self.lr.lat,self.ul.lat]                  
                 
                 
-class ImgData():
+class ImgData(object):
     """docstring for ImgData"""
     def __init__(self, fname=None):
         self.fname = fname
