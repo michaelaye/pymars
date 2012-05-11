@@ -64,10 +64,13 @@ class Point():
                        lat=None,lon=None, geotrans=None, proj=None):
         self.sample = sample
         self.line = line
+        self.pixels = np.array([sample,line])
         self.x = x
         self.y = y
+        self.recs = np.array([x,y])
         self.lat = lat
         self.lon = lon
+        self.coords = np.array([lon,lat])
         self.centered = False
         self.geotrans = geotrans
         self.proj = proj
