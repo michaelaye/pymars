@@ -75,9 +75,14 @@ class IllumAngles(HasTraits):
 class Coords(HasTraits):
     lon = Float
     lat = Float
+    radius = Float
     dlon = Property(depends_on='lon')
     dlat = Property(depends_on='lat')
     
+    @classmethod
+    def fromtuple(cls, args, **traits):
+        return cls(radius=args[0],lon=args[1],lat=args[2], **traits)
+
     @cached_property
     def _get_dlon(self):
         dlon = np.rad2deg(self.lon)
@@ -90,15 +95,7 @@ class Coords(HasTraits):
     def _get_dlat(self):
         return np.rad2deg(self.lat)
 
-        
-class Coords3D(Coords):
-    radius = Float
-
-    @classmethod
-    def fromtuple(cls, args, **traits):
-        return cls(radius=args[0],lon=args[1],lat=args[2], **traits)
-            
-        
+                
 class Spicer(HasTraits):
     # Constants
     method = Str('Near point:ellipsoid')
@@ -254,13 +251,13 @@ class Spicer(HasTraits):
         return output
 
     def _coords_default(self):
-        return Coords3D.fromtuple((0,0,0))
+        return Coords.fromtuple((0,0,0))
         
     def _get_coords(self):
         if len(self.spoint) == 0:
             print("Surface point 'spoint' not set yet.")
             return
-        return Coords3D.fromtuple(spice.reclat(self.spoint))
+        return Coords.fromtuple(spice.reclat(self.spoint))
 
     def _get_snormal(self):
         if not self.spoint_set:
