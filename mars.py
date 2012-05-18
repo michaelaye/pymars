@@ -308,10 +308,10 @@ class ImgData(object):
         
         Input: width of square data array, default 500
         >>> mola= MOLA()
-        >>> data = mola.get_sample_data()
-        >>> data.shape
+        >>> mola.read_center_window()
+        >>> mola.data.shape
         (500, 500)
-        >>> data.min()
+        >>> mola.data.min()
         3382217.5
         >>> mola.data.max()
         3382383.8
