@@ -11,12 +11,18 @@ import math
 
 L_sol = 3.839e26 # [Watt]
 
-# spice.furnsh('/Users/maye/Data/spice/mars/mro_2009_v06_090107_090110.tm')
-# spice.furnsh('/Users/maye/Data/spice/mars/mro_2007_v07_070127_070128.tm')
-# spice.furnsh('/Users/maye/Data/spice/mars/mro_2007_v07_070216_070217.tm')
-spice.furnsh('/Users/maye/Data/spice/mars/mro_2011_v04_110524_110524.tm')
+metakernel_paths = [
+    '/Users/maye/Data/spice/mars/mro_2009_v06_090107_090110.tm',
+    '/Users/maye/Data/spice/mars/mro_2007_v07_070127_070128.tm',
+    '/Users/maye/Data/spice/mars/mro_2007_v07_070216_070217.tm',
+    '/Users/maye/Data/spice/mars/mro_2011_v04_110524_110524.tm',
+    ]
 
-# spice.furnsh('/Users/maye/Dropbox/src/pymars/mars.tm')
+# pure planetary bodies meta-kernel without spacecraft data
+spice.furnsh('/Users/maye/Dropbox/src/pymars/mars.tm')
+
+# simple named Radii structure, offering Radii.a Radii.b and Radii.c
+
 Radii = namedtuple('Radii', 'a b c')
 
 def make_axis_rotation_matrix(direction, angle):
@@ -42,6 +48,7 @@ def make_axis_rotation_matrix(direction, angle):
 
     mtx = ddt + math.cos(angle) * (eye - ddt) + math.sin(angle) * skew
     return mtx
+
 
 class IllumAngles(HasTraits):
     phase = Float
@@ -78,6 +85,8 @@ class Coords(HasTraits):
     radius = Float
     dlon = Property(depends_on='lon')
     dlat = Property(depends_on='lat')
+    deglon = dlon
+    deglat = dlat
     
     @classmethod
     def fromtuple(cls, args, **traits):
@@ -439,7 +448,7 @@ class MarsSpicer(Spicer):
     def __init__(self, time=None, obs=None, inst=None):
         """ Initialising MarsSpicer class.
         
-        >>> from mars_spice import MarsSpicer
+        >>> spice.furnsh(metakernel_paths[2])
         >>> mspicer = MarsSpicer(time='2007-02-16T17:45:48.642')
         >>> mspicer.set_spoint_by('sinc')
         Observer and/or instrument have to be set first.
