@@ -57,15 +57,32 @@ class Point(object):
     >>> print newP.x, newP.y
     3 4
     """
+    
+    @classmethod
+    def from_lonlat(cls, args):
+        if len(args) < 3:
+            args[2] = 0
+        return cls(lon=args[0], lat=args[1], radius=args[2])
+    
+    @classmethod
+    def from_rect(cls, args):
+        return cls(x=args[0], y=args[1])
+        
+    @classmethod
+    def from_pixel(cls, args):
+        return cls(sample=args[0], line=args[1])
+
     def __init__(self, sample=None, line=None,
                        x=None, y=None,
-                       lat=None,lon=None, geotrans=None, proj=None):
+                       lat=None, lon=None, radius=None,
+                       geotrans=None, proj=None):
         self.sample = sample
         self.line = line
         self.x = x
         self.y = y
         self.lat = lat
         self.lon = lon
+        self.radius = radius
         self.centered = False
         self.geotrans = geotrans
         self.proj = proj
@@ -85,10 +102,11 @@ class Point(object):
     def shift_to_center(self, geotransform):
         # if i'd shift, the centerpoint does not show center coordinates
         # so that seems wrong. am i overlooking something?
-        # self.x += geotransform[1] / 2.0
-        # self.y += geotransform[5] / 2.0
-        # self.centered = True
-        pass
+        # This seems to be necessary because GDAL defines center of upper left
+        # pixel as (0.5,0.5) while ISIS defines it as (1,1)
+        self.x += geotransform[1] / 2.0
+        self.y += geotransform[5] / 2.0
+        self.centered = True
         
     def __add__(self, other):
         newPoint = Point(0,0)
@@ -104,9 +122,14 @@ class Point(object):
         return newPoint
 
     def __call__(self):
-        print('Pixel: ({0},{1})'.format(self.sample,self.line))
-        print('Map: ({0},{1})'.format(self.x,self.y))
-        print('Geo: ({0},{1})'.format(self.lon,self.lat))
+        print(self)
+        
+    def __str__(self):
+        s = ''
+        s += 'Pixel: ({0},{1})\n'.format(self.sample,self.line)
+        s += 'Map: ({0},{1})\n'.format(self.x,self.y)
+        s += 'Geo: ({0},{1},{2})'.format(self.lon,self.lat,self.radius)
+        return s
         
     def pixel_to_meter(self, geotransform):
         """provide point in map projection coordinates.
