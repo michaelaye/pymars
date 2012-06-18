@@ -123,11 +123,11 @@ class Spicer(HasTraits):
     
     # Init Parameters and their dependents
     time = Date
-    utc = Property# (depends_on = 'time')
-    et = Property# (depends_on = 'utc')
+    utc = Property(depends_on = 'time')
+    et = Property(depends_on = 'utc')
     l_s = Property# (depends_on = ['et', 'target'])
     # should actually be target_center_to_sun, but i don't do this distinction yet
-    center_to_sun = Property# (depends_on = ['et', 'target'] )
+    center_to_sun = Property(depends_on = 'et' )
     solar_constant = Property# (depends_on ='center_to_sun')
     subsolar = Property
     
@@ -137,7 +137,7 @@ class Spicer(HasTraits):
     coords = Property
     srfvec = Property
     snormal = Property# (depends_on = 'spoint')
-    sun_direction = Property(depends_on = ['spoint','et'])
+    sun_direction = Property(depends_on = ['spoint', 'et', 'center_to_sun'])
     illum_angles = Property# (depends_on = ['et','snormal'])
     local_soltime = Property# (depends_on = ['spoint','et'])
     to_north = Property
