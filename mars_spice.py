@@ -433,8 +433,23 @@ class Spicer(HasTraits):
 class EarthSpicer(Spicer):
     target = 'EARTH'
     ref_frame = 'IAU_EARTH'
+    obs = Enum([None])
+    instrument = Enum([None])
+    def __init__(self, time=None, obs=None, inst=None):
+        super(EarthSpicer, self).__init__(time)
+        self.obs = obs
+        self.instrument = inst
     
-
+class MercSpicer(Spicer):
+    target = 'MERCURY'
+    ref_frame = 'IAU_MERCURY'
+    obs = Enum([None])
+    instrument = Enum([None])
+    def __init__(self, time=None, obs=None, inst=None):
+        super(MercSpicer, self).__init__(time)
+        self.obs = obs
+        self.instrument = inst
+        
 class MarsSpicer(Spicer):
     target = 'MARS'
     ref_frame = 'IAU_MARS'
