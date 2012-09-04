@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # encoding: utf-8
 """
 fan_volumes.py
@@ -7,12 +6,23 @@ Created by K.-Michael Aye on 2011-09-19.
 Copyright (c) 2011 __MyCompanyName__. All rights reserved.
 """
 from __future__ import division
-from matplotlib.pylab import *
+from pylab import *
+from planets import Mars
 
-# surface area in m**2 of STSC from Piqueux's paper
-stsc_area = 3e13
+def get_stsc_area(latitude):
+    """Surface area in m**2 of Southern translucent seasonal cap from Piqueux's paper. 
+    
+    In: Latitude in degrees
+    Out: Area in m**2
+    """
+    return 2*pi*Mars.radius_eq**2*(1-sin(deg2rad(latitude)))
+
+# According to Candy's ICARUS paper, southern ice cap covers until lat of 50degree.
+stsc_area = get_stsc_area(50)
+
 # dust devil mass in kg per martian annum taken from Whelley[2008]
 dust_devil_mass = 2.3e11
+
 # taken from Martin[1995], extrapolation from some areas to +/- 60 deg latitudes 
 global_dust_storm_mass = 4.3e11 
 piqueux_bulk_density = 4.e3/3.
