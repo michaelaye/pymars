@@ -17,10 +17,10 @@ KPL/MK
                         )
  
       KERNELS_TO_LOAD = (
-                         '$BASE_KERNELS/lsk/naif0009.tls'
+                         '$BASE_KERNELS/lsk/naif0010.tls'
                          '$BASE_KERNELS/pck/pck00008.tpc'
                          '$MY_KERNELS/spk/mar063.bsp'
-                         '$MY_KERNELS/spk/de410.bsp'
+                         '$MY_KERNELS/spk/de421.bsp'
                         )
  
    \begintext
