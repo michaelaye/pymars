@@ -1,9 +1,13 @@
 #!/usr/bin/python
 
 import ISIS, sys
-import twitter
 from optparse import OptionParser
-
+try:
+    import twitter
+except ImportError:
+    twitter = None
+    print("No twitter module found.")
+    
 parser = OptionParser()
 usage = "usage: %prog obsID CCDColour mapfile [options]"
 descript = """obsID should be in the official form XSP_oooooo_tttt , with 
@@ -66,5 +70,6 @@ executer = ISIS.ISIS_Executer(idString, colour,
 executer.process()
 
 if lCommands == None: lCommands = ['all']
-api = twitter.Api('hirise_bern', 'hiRISE_BERN')
-api.PostUpdate(' '.join([idString, colour, 'finished']) + ' '.join(lCommands))
+if twitter:
+    api = twitter.Api('hirise_bern', 'hiRISE_BERN')
+    api.PostUpdate(' '.join([idString, colour, 'finished']) + ' '.join(lCommands))
