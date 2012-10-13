@@ -5,14 +5,14 @@ import matplotlib.cm as cm
 from matplotlib import colors
 
 if sys.platform == 'darwin':
-    FROM_BASE = os.environ['HOME']+'/Data/'
-    DEST_BASE = os.environ['HOME']+"/Data/hirise/"
+    FROM_BASE = os.environ['HOME']+'/data/hirise/'
+    DEST_BASE = os.environ['HOME']+'/data/hirise/'
 else:
     FROM_BASE = '/imgdata/'
     DEST_BASE = '/processed_data/'
 
-# mosaic_extensions = '.cal.norm.map.equ.mos.cub'
-mosaic_extensions = '.cal.des.map.cub'
+mosaic_extensions = '.cal.norm.map.equ.mos.cub'
+# mosaic_extensions = '.cal.des.map.cub'
 
 class Coordinates:
     path = ''
@@ -68,14 +68,20 @@ def getEDRFolder(orbitNumber):
 
 def getUsersProcessedPath():
     path = DEST_BASE
-    path += os.environ['LOGNAME'] + '/'
+    if sys.platform == 'darwin':
+        # on the Mac, don't create extra folder for processed files
+        pass
+    else:
+        path += os.environ['LOGNAME'] + '/'
     return path
 
 def getSourcePathFromID(idString):
     sciencePhase, orbitString, targetCode = idString.split("_")
     path = FROM_BASE
-    path += getEDRFolder(int(orbitString)) + '/'
-    path += getUpperOrbitFolder(int(orbitString)) + '/' + idString + '/'
+    if not sys.platform == 'darwin':
+        path += getEDRFolder(int(orbitString)) + '/'
+        path += getUpperOrbitFolder(int(orbitString)) + '/'
+    path += idString + '/'
     return path
 
 def getDestPathFromID(idString):
