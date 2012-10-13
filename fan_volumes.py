@@ -19,6 +19,9 @@ def get_stsc_area(latitude):
 
 # According to Candy's ICARUS paper, southern ice cap covers until lat of 50degree.
 stsc_area = get_stsc_area(50)
+# But according to Piqueux at Ls=210, it's only 3x10**6 km**2
+stsc_area = 3e12 # [m**2]
+print("STSC area [km**2]: {0:g}".format(stsc_area/10**6))
 
 # dust devil mass in kg per martian annum taken from Whelley[2008]
 dust_devil_mass = 2.3e11
@@ -26,7 +29,7 @@ dust_devil_mass = 2.3e11
 # taken from Martin[1995], extrapolation from some areas to +/- 60 deg latitudes 
 global_dust_storm_mass = 4.3e11 
 piqueux_bulk_density = 4.e3/3.
-silt_to_sand_fraction = 0.355
+silt_to_sand_fraction = 0.4
 sand_to_silt_factor = (1-silt_to_sand_fraction)/silt_to_sand_fraction
 
 class Fan(object):
@@ -52,8 +55,8 @@ class Fan(object):
 def main():
     fractions = linspace(0.05,0.9,10)
     fans = []
-    for psize in [10]:
-        fans.append(Fan(psize,fan_fraction = 0.3333333))
+    for psize in [2,10,150]:
+        fans.append(Fan(psize,fan_fraction = 0.1))
     print "Piqueux's density: {0} kg/m**3".format(piqueux_bulk_density)
     print "Dust devil mass: {0:g} kg".format(dust_devil_mass)
     print "Global dust storm mass: {0:g} kg".format(global_dust_storm_mass)
