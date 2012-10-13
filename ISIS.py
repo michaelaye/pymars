@@ -11,7 +11,7 @@ import os
 import sys
 from ISIS_Commands import *
 
-class HiRiseCCD:
+class HiRiseCCD(object):
     ''' 
     each CCD colour has an amount of CCDs, and an identifier that consists
     of the colour string and a running number
@@ -42,7 +42,7 @@ class HiRiseCCD:
             yield channelID
     
 
-class ISIS_Executer:
+class ISIS_Executer(object):
     '''
     This class serves as executing interface to the ISIS programs.
     It creates the calling command and then calls the ISIS programs
@@ -52,7 +52,7 @@ class ISIS_Executer:
     '''
     
     sConverter = 'hi2isis'
-    sCalib     = 'hicalbeta'
+    sCalib     = 'hical'
     sSpice     = 'spiceinit'
     sStitcher  = 'histitch'
     sNormer    = 'cubenorm'
@@ -63,19 +63,20 @@ class ISIS_Executer:
     sCropper   = 'crop'
     sCosi      = 'cosi'
     
-    lListToExecute = [sConverter,  \
-                      sSpice,\
-                      sPhocube,\
-                      sCalib,\
-                      sStitcher, \
-#                      sCosi, \
-                      sNormer, \
-                      sMapper,  \
-                      sEqualizer, \
-                      sMosaicer, \
+    lListToExecute = [sConverter,
+                      sSpice,
+                      # sPhocube,
+                      sCalib,
+                      sStitcher,
+#                      sCosi,
+                      sNormer,
+                      sMapper,
+                      sEqualizer,
+                      sMosaicer,
                       ]
 
-    lExecuteSingle = [sNormer,sSpice]
+    # lExecuteSingle = [sNormer,sSpice]
+    lExecuteSingle = []
     
     lWorkOnChannels = [sConverter, sSpice, sCalib, sPhocube, sStitcher]
     lCommandsWithList = [sEqualizer,sMosaicer]
@@ -95,30 +96,30 @@ class ISIS_Executer:
     sCosiExt= '.cosi'
     sSPIExt=  '.spi'
     
-    dInputExtensions =  {sConverter:    sRawExt, \
-                         sSpice:        sCubExt, \
-                         sCropper:      sCubExt, \
-                         sPhocube:      sCubExt, \
-                         sCalib:        sCubExt,\
-                         sCosi:         sCalExt + sCubExt, \
-                         sStitcher:     sCalExt + sCubExt, \
-                         sNormer:       sCalExt + sCubExt, \
-                         sMapper:       sCalExt + sNormExt + sCubExt, \
+    dInputExtensions =  {sConverter:    sRawExt, 
+                         sSpice:        sCubExt, 
+                         sCropper:      sCubExt, 
+                         sPhocube:      sCubExt, 
+                         sCalib:        sCubExt,
+                         sCosi:         sCalExt + sCubExt, 
+                         sStitcher:     sCalExt + sCubExt, 
+                         sNormer:       sCalExt + sCubExt, 
+                         sMapper:       sCalExt + sNormExt + sCubExt, 
                          sEqualizer:    sCalExt + sNormExt + sMapExt + sCubExt, 
-                         sMosaicer:     sCalExt + sNormExt + sMapExt + sEquExt + sCubExt\
+                         sMosaicer:     sCalExt + sNormExt + sMapExt + sEquExt + sCubExt
                          }
 
-    dOutputExtensions = {sConverter:    sCubExt, \
-                         sSpice:        sCubExt, \
-                         sPhocube:      sPhoExt + sCubExt, \
-                         sCropper:      sCropExt + sCubExt, \
-                         sCalib:        sCalExt + sCubExt, \
-                         sCosi:         sCalExt + sCosiExt + sCubExt, \
-                         sStitcher:     sCalExt + sCubExt, \
-                         sNormer:       sCalExt + sNormExt + sCubExt, \
-                         sMapper:       sCalExt + sNormExt + sMapExt + sCubExt, \
+    dOutputExtensions = {sConverter:    sCubExt,
+                         sSpice:        sCubExt,
+                         sPhocube:      sPhoExt + sCubExt,
+                         sCropper:      sCropExt + sCubExt,
+                         sCalib:        sCalExt + sCubExt,
+                         sCosi:         sCalExt + sCosiExt + sCubExt,
+                         sStitcher:     sCalExt + sCubExt,
+                         sNormer:       sCalExt + sNormExt + sCubExt,
+                         sMapper:       sCalExt + sNormExt + sMapExt + sCubExt,
                          # equalizer's TO target is only the stats file, the equalization is applied directly to all input files
-                         sEqualizer:    sCalExt + sNormExt + sMapExt + sEquStats, \
+                         sEqualizer:    sCalExt + sNormExt + sMapExt + sEquStats,
                          sMosaicer:     sCalExt + sNormExt + sMapExt + sEquExt + sMosExt + sCubExt}
     
     def __init__(self, psObsID, psColour, plProgList = None, pbFake = False, pbDebug = False, pMapfile = None):
