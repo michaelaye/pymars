@@ -2,6 +2,7 @@ KPL/MK
 
    This meta-kernel is a minimum meta kernel to enable geometrical calculations on the
    Martian surface without any S/C involvement
+                         '$MY_KERNELS/spk/mar063.bsp'
 
  
    \begindata
@@ -18,8 +19,7 @@ KPL/MK
  
       KERNELS_TO_LOAD = (
                          '$BASE_KERNELS/lsk/naif0010.tls'
-                         '$BASE_KERNELS/pck/pck00008.tpc'
-                         '$MY_KERNELS/spk/mar063.bsp'
+                         '$BASE_KERNELS/pck/pck00009.tpc'
                          '$MY_KERNELS/spk/de421.bsp'
                         )
  
