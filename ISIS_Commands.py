@@ -49,8 +49,16 @@ class ISIS_hi2isis(ISIS_cmd):
         
 class ISIS_spiceinit(ISIS_cmd):
     sName = 'spiceinit'
+    def __init__(self):
+        ISIS_cmd.__init__(self)
+        self.lParameters.append('web=true')
     def getExeList(self):
-        return [self.sName, ' '.join(self.lInput + self.lParameters)]
+        argList = [self.sName]
+        for parList in [self.lInput, self.lParameters]:
+            for item in parList:
+                argList.append(item)
+        return argList
+        
     def __str__(self):
         return ' '.join([self.sName] + self.lInput + self.lParameters) + '\n'
  
