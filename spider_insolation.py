@@ -6,11 +6,15 @@ from spice import vsep,vminus
 import numpy as np
 from matplotlib.pyplot import quiver, imshow, plot, show, figure
 
-def correct_azimuth(dem, aspects):
-    # determine angle between north and top to correct aspect angles that count like
-    # north is at the top of the image
+def get_north_shifted_point(dem):
     newPoint = Point(lon=dem.center.lon, lat=dem.center.lat+0.001)
     newPoint.lonlat_to_pixel(dem.geotransform, dem.projection)
+    return newPoint
+    
+def correct_azimuth(dem, aspects):
+    # determine angle between north and top to correct aspect angles that have been
+    # determined by gdal tools that put azimuth 0 at the top of the image
+    newPoint = get_north_shifted_point(dem)
     # plot(newPoint.sample, newPoint.line, 'g*', markersize=10)
     v1 = np.array((newPoint.x - dem.center.x, newPoint.y - dem.center.y))
     # delta between north and top of image
@@ -28,7 +32,7 @@ def correct_azimuth(dem, aspects):
     aspects.data[mask] = aspects.data[mask] - 360.0
     
 
-folder = os.environ['HOME']+'/Data/hirise/DEMs/inca'
+folder = os.environ['HOME']+'/data/hirise/inca'
 dem = ImgData(os.path.join(folder, 'big_spider_dem.cub'))
 slopes = ImgData(os.path.join(folder,'big_spider_slopes.tif'))
 aspects = ImgData(os.path.join(folder,'big_spider_aspects.tif'))
