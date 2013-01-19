@@ -215,8 +215,9 @@ class Spicer(HasTraits):
             else:
                 raise Exception("No valid method recognized.")
         elif lon is not None and lat is not None:
-            self.lon = lon
-            self.lat = lat
+            # removing these, because they should depend on spoint, but they don't
+            # self.lon = lon
+            # self.lat = lat
             spoint = self.srfrec(lon, lat)
         self.spoint_set = True    
         self.spoint = spoint
@@ -457,8 +458,8 @@ class MarsSpicer(Spicer):
     instrument = Enum([None,'MRO_HIRISE','MRO_CRISM','MRO_CTX'])
     # Coords dictionary to store often used coords
     location_coords = dict(inca=(220.09830399469547, 
-                                  -440.60853011059214, 
-                                  -3340.5081261541495))
+                                -440.60853011059214, 
+                               -3340.5081261541495))
 
     def __init__(self, time=None, obs=None, inst=None):
         """ Initialising MarsSpicer class.
