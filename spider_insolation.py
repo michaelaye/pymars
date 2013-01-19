@@ -6,8 +6,8 @@ from spice import vsep,vminus
 import numpy as np
 from matplotlib.pyplot import quiver, imshow, plot, show, figure
 
-def get_north_shifted_point(dem):
-    newPoint = Point(lon=dem.center.lon, lat=dem.center.lat+0.001)
+def get_north_shifted_point(dem,offset=0.001):
+    newPoint = Point(lon=dem.center.lon, lat=dem.center.lat+offset)
     newPoint.lonlat_to_pixel(dem.geotransform, dem.projection)
     return newPoint
     
