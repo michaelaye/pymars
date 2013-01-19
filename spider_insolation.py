@@ -53,10 +53,14 @@ mspice.goto_ls_0()
 mspice.advance_time_by(24*3600*356)
 utc = mspice.utc
 
+# seconds per step
 timestep = 600
+# how many steps for the time series
 nsteps = 500
 
 mspice.goto('inca')
+
+# getting l_s times
 times, _ = mspice.time_series('F_aspect',timestep, nsteps, provide_times='l_s')
 
 insol = np.zeros_like(dem.data)
