@@ -22,6 +22,13 @@ def get_north_azimuth(labels=None, fname=None):
     value = labels['VIEWING_PARAMETERS']['NORTH_AZIMUTH']
     return float(value.split()[0])
     
+def get_time(labels=None, fname=None):
+    if fname is not None:
+        labels = get_pds_labels(fname)
+    value = labels['TIME_PARAMETERS']['START_TIME']
+    return value
+    
+    
 if __name__ == '__main__':
     fname = '/Users/maye/data/hirise/inca/ESP_022607_0985_RED.LBL'
     labels = get_pds_labels(fname)
