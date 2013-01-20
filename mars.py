@@ -332,8 +332,9 @@ class ImgData(object):
         
         self.window = Window(ulPoint=Point(0,0),lrPoint=Point(self.X,self.Y))
         # if full res is smaller than maxdim, get everything
-        if (maxdim > self.X) and (maxdim > self.Y): 
-            bm = np.ma.masked_equal( b.ReadAsArray(), ndv)
+        if (maxdim > self.X) and (maxdim > self.Y):
+            data = b.ReadAsArray()
+            mdata = np.ma.masked_equal( data, ndv)
         else:
             #Don't want to load the entire dataset for stats computation
             #This is maximum dimension for reduced resolution array
@@ -348,9 +349,11 @@ class ImgData(object):
                 ns = round(ns/scale_max)
 
             #The buf_size parameters determine the final array dimensions
-            bm = np.ma.masked_equal(np.array(b.ReadAsArray(buf_xsize=ns, buf_ysize=nl)), ndv)
-        self.data = bm
-        return bm
+            data = np.array(b.ReadAsArray(buf_xsize=ns, buf_ysize=nl))
+            mdata = np.ma.masked_equal(data, ndv)
+        self.mdata = mdata
+        self.data = data
+        return mdata
         
     def read_window(self, ul_or_win, lrPoint=None, band='band1'):
         """get data for Window object or 2 Point objects
