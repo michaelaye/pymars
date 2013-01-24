@@ -303,6 +303,9 @@ class ImgData(object):
         self.data = data
         self.mdata = mdata
         
+    def read_cropped_by_n(self,n):
+        self.data = self.ds.ReadAsArray(n,n,self.X-n,self.Y-n)
+        
     def read_center_window(self,width=500, band='band1'):
         """Get some sample data from the center of the dataset
         
