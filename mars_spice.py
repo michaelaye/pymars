@@ -441,6 +441,16 @@ class EarthSpicer(Spicer):
         self.obs = obs
         self.instrument = inst
     
+class MoonSpicer(Spicer):
+    target = 'MOON'
+    ref_frame = 'IAU_MOON'
+    obs = Enum([None])
+    instrument = Enum([None])
+    def __init__(self, time=None, obs=None, inst=None):
+        super(MoonSpicer, self).__init__(time)
+        self.obs = obs
+        self.instrument = inst
+    
 class MercSpicer(Spicer):
     target = 'MERCURY'
     ref_frame = 'IAU_MERCURY'
