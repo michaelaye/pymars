@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 import subprocess
 import os.path
@@ -11,8 +11,8 @@ class HiRsync:
     PARAM_REAL = "-rtvLh"
     PARAM_LIST = "-rtvn"
     PROGRESS = "--progress"
-    DEST_FOLDER_JP2 = "/imgdata/RDRgen/JP2s/"
-    DEST_FOLDER_IMG = "/imgdata"
+    DEST_FOLDER_JP2 = os.path.join(DEST_BASE, "JP2s")
+    DEST_FOLDER_IMG = os.path.join(DEST_BASE)
     EXCLUDES = [ ".*" ]
     RSYNC = "/usr/bin/rsync"
     
