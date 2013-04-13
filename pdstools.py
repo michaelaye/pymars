@@ -32,22 +32,22 @@ def get_north_azimuth(labels=None, fname=None):
     
 def get_incidence(labels=None, fname=None):
     if fname is not None:
-        labels = get_pds_labels(fname)
+        labels = get_labels(fname)
     return get_angle(labels,'VIEWING_PARAMETERS','INCIDENCE_ANGLE')
 
 def get_emission(labels=None, fname=None):
     if fname is not None:
-        labels = get_pds_labels(fname)
+        labels = get_labels(fname)
     return get_angle(labels,'VIEWING_PARAMETERS','EMISSION_ANGLE')
 
 def get_phase(labels=None, fname=None):
     if fname is not None:
-        labels = get_pds_labels(fname)
+        labels = get_labels(fname)
     return get_angle(labels,'VIEWING_PARAMETERS','PHASE_ANGLE')
 
 def get_sub_sol_azi(labels=None, fname=None):
     if fname is not None:
-        labels = get_pds_labels(fname)
+        labels = get_labels(fname)
     return get_angle(labels,'VIEWING_PARAMETERS','SUB_SOLAR_AZIMUTH')
     
 def get_mean_lat(labels):
@@ -70,6 +70,6 @@ def get_sub_sc_azimuth(labels):
     
 if __name__ == '__main__':
     fname = '/Users/maye/data/hirise/inca/ESP_022607_0985_RED.LBL'
-    labels = get_pds_labels(fname)
+    labels = get_labels(fname)
     # print_root_and_groups(labels)
     print get_north_azimuth(labels)
