@@ -7,6 +7,9 @@ from matplotlib import colors
 if sys.platform == 'darwin':
     FROM_BASE = os.environ['HOME']+'/data/hirise/'
     DEST_BASE = os.environ['HOME']+'/data/hirise/'
+elif sys.platform == 'linux2':
+    FROM_BASE = '/raid1/maye/hirise/imgdata'
+    DEST_BASE = '/raid1/maye/hirise/processed_data'
 else:
     FROM_BASE = '/imgdata/'
     DEST_BASE = '/processed_data/'
