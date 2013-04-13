@@ -18,7 +18,7 @@ def print_root_and_groups(labels):
             
 def get_time(labels=None, fname=None):
     if fname is not None:
-        labels = get_pds_labels(fname)
+        labels = get_labels(fname)
     return labels['TIME_PARAMETERS']['START_TIME']
     
 def get_angle(labels, group, key):
@@ -27,7 +27,7 @@ def get_angle(labels, group, key):
     
 def get_north_azimuth(labels=None, fname=None):
     if fname is not None:
-        labels = get_pds_labels(fname)
+        labels = get_labels(fname)
     return get_angle(labels,'VIEWING_PARAMETERS','NORTH_AZIMUTH')
     
 def get_incidence(labels=None, fname=None):
