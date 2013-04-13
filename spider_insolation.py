@@ -12,15 +12,20 @@ def get_north_shifted_point(dem,offset=0.001):
     return newPoint
     
 def correct_azimuth(dem, aspects):
-    # determine angle between north and top to correct aspect angles that have been
-    # determined by gdal tools that put azimuth 0 at the top of the image
+    """determine angle between north and top to correct aspect angles.
+    
+    GDAL tools put azimuth 0 at the top of the image.
+    
+    >>> dem = ImgData('/Users/maye/data/hirise/inca/big_spider_dem.cub')
+    
+    """
     newPoint = get_north_shifted_point(dem)
     # plot(newPoint.sample, newPoint.line, 'g*', markersize=10)
     v1 = np.array((newPoint.x - dem.center.x, newPoint.y - dem.center.y))
     # delta between north and top of image
     delta_angle = np.degrees(np.arctan2(v1[1],v1[0]))-90.0
-    # dsample = newPoint.sample - dem.center.sample
-    # dline = newPoint.line - dem.center.line
+    dsample = newPoint.sample - dem.center.sample
+    dline = newPoint.line - dem.center.line
     # quiver(dem.center.sample,dem.center.line,dsample,dline,angles='xy', scale_units='xy', scale=1)
 
     # correct aspects for delta angle
