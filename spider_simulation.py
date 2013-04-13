@@ -7,7 +7,7 @@ from mars_spice import MarsSpicer
 import os
 from spice import vsep
 import numpy as np
-from matplotlib.pyplot import quiver, imshow, plot, show, figure, hist, colorbar
+from matplotlib.pyplot import quiver, imshow, plot, show, figure, hist, colorbar, axis
 import pdstools
 import math
 
@@ -91,7 +91,7 @@ def main():
     # dem.read_all()
     slopes.read_cropped_by_n(1)
     aspects.read_cropped_by_n(1)
-    # spider1.read_all()
+    spider1.read_all()
 
     # correct_azimuth(dem, aspects)
     
@@ -143,6 +143,7 @@ def main():
     cosa[cosa<0.0] = 0.0
     
     real_inc = np.degrees(np.arccos(cosa))
+    real_emis = np.degrees(np.arccos(cose))
     # if current_inc >= 89.0:
     #     cos_corrected[line,sample] = np.nan
     # else:
@@ -157,19 +158,26 @@ def main():
     print(np.histogram(cos_corrected,range=(0,1)))
     print(np.histogram(real_inc,range=(0,90)))
     fig = figure()
-    ax_inc = fig.add_subplot(221)
+    ax_inc = fig.add_subplot(122)
+    # ax_inc = fig.add_subplot(221)
     img = ax_inc.imshow(cos_corrected,cmap = 'gray')
-    ax_inc.set_title('cosi')
-    colorbar(img)
-    ax_emis = fig.add_subplot(222)
-    img = ax_emis.imshow(cose, cmap='gray')
-    colorbar(img)
-    ax_emis.set_title('cose')
-    ax_hist = fig.add_subplot(223)
-    emis_angles = np.degrees(np.arccos(cose))
-    ax_hist.hist(emis_angles.flatten(),bins=45,range=(0,90))
-    ax_hist.set_title('Emission angles histogram')
+    ax_inc.set_title("'Lambertian' image from Inca DEM",fontsize=14)
+    # colorbar(img)
+    axis('off')
+    ax_real = fig.add_subplot(121)
+    img = ax_real.imshow(spider1.data,cmap='gray')
+    ax_real.set_title('Ortho-image Inca spider',fontsize=14)
+    # ax_emis = fig.add_subplot(222)
+    # img = ax_emis.imshow(cose, cmap='gray')
+    # colorbar(img)
+    # ax_emis.set_title('cose')
+    # ax_hist = fig.add_subplot(223)
+    # emis_angles = np.degrees(np.arccos(cose))
+    # ax_hist.hist(emis_angles.flatten(),bins=45,range=(0,90))
+    # ax_hist.set_title('Emission angles histogram')
+    axis('off')
     show()
+    return [real_inc,real_emis]
 
 if __name__ == '__main__':
     main()
