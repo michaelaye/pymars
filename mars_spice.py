@@ -97,7 +97,7 @@ class Coords(HasTraits):
         dlon = np.rad2deg(self.lon)
         # force 360 eastern longitude:
         if dlon < 0:
-            dlon = 360 - abs(dlon)
+            dlon += 360.0
         return dlon 
         
     @cached_property       
