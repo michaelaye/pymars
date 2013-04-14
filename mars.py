@@ -20,7 +20,7 @@ import os
 import matplotlib.cm as cm
 from mpl_toolkits.axes_grid.anchored_artists import AnchoredSizeBar
 import numpy as np
-
+from math import atan2,degrees
 
 gdal.UseExceptions()
 
@@ -39,6 +39,25 @@ class MapNotSetError(Error):
         self.expr = expr
         self.msg = msg
 
+def calculate_image_azimuth(origPoint, newPoint, zero='right'):
+    """Calculate azimuth angle between 2 image points.
+    
+    zero: 'right' or 'up'
+    p1 and p2 are mars.Point objects
+    """
+    deltaSample = newPoint.sample - origPoint.sample
+    deltaLine = newPoint.line - origPoint.line
+    
+    azimuth = atan2(deltaLine, deltaSample)
+    
+    azimuth = degrees(azimuth)
+    
+    if azimuth < 0.0:
+        azimuth += 360.0
+    if azimuth > 360.0:
+        azimuth -= 360.0
+    return azimuth
+    
 class Point(object):
     """Point class to manage pixel and map points and their transformations.
     
@@ -174,6 +193,8 @@ class Point(object):
         self.x, self.y, height = ct.TransformPoint(self.lon,self.lat)
         return (self.x,self.y)
         
+    def calculate_azimuth(self, p2, zero='right'):
+        return calculate_image_azimuth(self, p2, zero=zero)
 
 class Window(object):
     """class to manage a window made of corner Points (objects of Point())
