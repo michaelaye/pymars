@@ -259,7 +259,7 @@ class Spicer(HasTraits):
         output = spice.subpnt(self.method, self.target, self.et, self.ref_frame, 
                               self.corr, self.obs)
         return output
-
+                            
     def _coords_default(self):
         return Coords.fromtuple((0,0,0))
         
@@ -317,8 +317,14 @@ class Spicer(HasTraits):
         return np.rad2deg(spice.lspcn(self.target, self.et, self.corr))
     
     def _get_subsolar(self):
-        subsolar, _ = spice.nearpt(self.center_to_sun, *self.radii)
-        return subsolar
+        #normalize surface point vector:
+        uuB, dist = spice.unorm(self.center_to_sun)
+        
+        # receive subsolar point in IAU_MARS rectangular coords
+        # the *self.radii unpacks the Radii object into 3 arguments.
+        v_subsolar = spice.surfpt((0,0,0), uuB, *self.radii )
+
+        return v_subsolar
         
     def target_to_object(self, object):
         """Object should be string of body, e.g. 'SUN'.
