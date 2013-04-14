@@ -153,23 +153,23 @@ class Point(object):
         self.meter_to_pixel(geotransform)
         return (self.sample,self.line)
         
-    def meter_to_lonlat(self, projection):
+    def get_srs(self,projection):
         srs = osr.SpatialReference(projection)
         if int(srs.GetProjParm('scale_factor')) == 0:
             srs.SetProjParm('scale_factor',1)
-        srsLatLon = srs.CloneGeogCS()
-        ct = osr.CoordinateTransformation(srs, srsLatLon)
+        return srs
+                
+    def meter_to_lonlat(self, projection):
+        srs = self.get_srs(projection)
+        ct = osr.CoordinateTransformation(srs, srs.CloneGeogCS())
         self.lon, self.lat, height = ct.TransformPoint(self.x,self.y)
         if self.lon < 0:
             self.lon = 360.0 - abs(self.lon)
         return (self.lon,self.lat)
         
     def lonlat_to_meter(self, projection):
-        srs = osr.SpatialReference(projection)
-        if int(srs.GetProjParm('scale_factor')) == 0:
-            srs.SetProjParm('scale_factor',1)
-        srsLatLon = srs.CloneGeogCS()
-        ct = osr.CoordinateTransformation(srsLatLon,srs)
+        srs = self.get_srs(projection)
+        ct = osr.CoordinateTransformation(srs.CloneGeogCS(),srs)
         # height not used so far!
         self.x, self.y, height = ct.TransformPoint(self.lon,self.lat)
         return (self.x,self.y)
