@@ -56,8 +56,13 @@ def calculate_image_azimuth(origPoint, newPoint, zero='right'):
         azimuth += 360.0
     if azimuth > 360.0:
         azimuth -= 360.0
+    if zero=='top':
+        azimuth += 90.0
+        if azimuth > 360.0:
+            azimuth -= 360.0
+
     return azimuth
-    
+            
 class Point(object):
     """Point class to manage pixel and map points and their transformations.
     
