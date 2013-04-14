@@ -318,7 +318,7 @@ class Spicer(HasTraits):
     
     def _get_subsolar(self):
         #normalize surface point vector:
-        uuB, dist = spice.unorm(self.center_to_sun)
+        uuB = spice.vhat(self.center_to_sun)
         
         # receive subsolar point in IAU_MARS rectangular coords
         # the *self.radii unpacks the Radii object into 3 arguments.
@@ -420,21 +420,39 @@ class Spicer(HasTraits):
         self.time = saved_time
         if provide_times: return (np.array(times), np.array(energies))
         else: return np.array(energies)
-                    
-    def compute_azimuth(self, oP, pixel_res = 0.5):
+          
+        
+    def compute_solar_azimuth(self, pixel_res = 0.5):
         """
-        Compute the azimuth in degrees of another Point instance <oP>.
+        Compute the solar azimuth.
         
         Not finished yet!!
+        Pixel resolution is required to stay within one pixel of the origin point
         """
+        # Get the difference vector poB=subsolar-origin with its tail at origin 
+        # and its head at the subsolar point
         poB = spice.vsub(self.subsolar, self.spoint)
-        upoB = spice.vhat(poB)
-        scale = pixel_res/0.5/2.0
-        supoB = spice.vscl(scale, upoB)
-        nB = spice.vadd(self.spoint, supoB)
-        nB = spice.vhat(nB)
-        nB = spice.vscl(self.coords.radius, nB)
-        nrad, nlon, nlat = spice.reclat(nB)
+        
+        # get pixel scale in km/pixel and then divide by 2 to insure to stay
+        # within a pixel of the origin point
+        scale = (pixel_res/1000.0)/2.0
+        
+        # the difference vector cuts through the body, we need the tangent vector
+        # to the surface at the origin point. vperp receives the perpendicular
+        # component of the poB towards the spoint vector
+        hpoB = spice.vperp(poB, self.spoint)
+        # unitize the tangent vector and then scale it to within a pixel of the
+        # origin point
+        upoB = spice.vhat(hpoB)
+        spoB = spice.vscl(scale, upoB)
+        
+        # Compute the new point in body fixed. This point will be within a pixel
+        # of the origin but in the same direction as the requested la/lon of the 
+        # point of interest, i.e. the subsolar point
+        nB = spice.vadd(self.spoint, spoB)
+
+        coords = Coords.fromtuple(spice.reclat(nB))
+        return coords.dlon,coords.dlat
         
             
 class EarthSpicer(Spicer):
