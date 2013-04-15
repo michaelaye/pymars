@@ -3,13 +3,10 @@ from __future__ import division, print_function
 import matplotlib
 matplotlib.use('TkAgg')
 from mars import ImgData, Point
-from mars_spice import MarsSpicer
 import os
-from spice import vsep
 import numpy as np
-from matplotlib.pyplot import quiver, imshow, plot, show, figure, hist, colorbar, axis
+import matplotlib.pyplot as plt
 import pdstools
-import math
 
 def get_xyz(theta,phi):
     t = np.radians(theta)
