@@ -115,9 +115,15 @@ class Point(object):
         self.geotrans = geotrans
         self.proj = proj
         if geotrans is not None:
-            self.pixel_to_meter(geotrans)
+            if sample is not None:
+                self.pixel_to_meter()
+            elif x is not None:
+                self.meter_to_pixel()
             if proj is not None:
-                self.pixel_to_lonlat(geotrans, proj)
+                if sample is not None:
+                    self.pixel_to_lonlat()
+                elif x is not None:
+                    self.lonlat_to_meter()
 
     @property
     def pixels(self):
@@ -153,7 +159,7 @@ class Point(object):
         print('Map: ({0},{1})'.format(self.x,self.y))
         print('Geo: ({0},{1})'.format(self.lon,self.lat))
         
-    def pixel_to_meter(self, geotransform):
+    def pixel_to_meter(self, geotransform=None):
         """provide point in map projection coordinates.
         
         Input: gdal Dataset
@@ -163,13 +169,24 @@ class Point(object):
         >>> '%6.2f, '*2 % p.pixel_to_meter(mola.dataset.GetGeoTransform())
         '-707109.70, 707109.70, '
         """
-        self.geotransform = geotransform
+        # if not given as parameter, take it from self
+        if geotransform is None:
+            geotransform = self.geotrans
+        else:
+            # otherwise copy call parameter to self
+            self.geotrans = geotransform
+        # if it's still None
+        if geotransform is None:
+            # raise Error, abort method
+            raise ProjectionNotSetError('pixel_to_meter')
+        if self.sample is None:
+            raise SomethingNotSetError('pixel_to_meter',"'sample'")
         self.x, self.y = gdal.ApplyGeoTransform(geotransform,
                                                 self.sample, self.line)
         self.shift_to_center(geotransform)
         return (self.x,self.y)
     
-    def meter_to_pixel(self, geotransform):
+    def meter_to_pixel(self, geotransform=None):
         """provide pixel coords from x,y coords.
         
         Input: gdal Dataset
@@ -179,8 +196,8 @@ class Point(object):
         >>> '%6.2f ,'*2 % p.meter_to_pixel(mola.dataset.GetGeoTransform())
         '10488.45 ,930.66 ,'
         """
-        if (self.x == None) or (self.y == None):
-            raise MapNotSetError((self.x,self.y),
+        if (self.x is None) or (self.y is None):
+            raise SomethingNotSetError((self.x,self.y),
                 'Map coordinates not set for transformation.')
         success, tInverse = gdal.InvGeoTransform(geotransform)
         self.sample, self.line = gdal.ApplyGeoTransform(tInverse,
@@ -188,32 +205,34 @@ class Point(object):
                                                         self.y)
         return (self.sample, self.line)
     
-    def pixel_to_lonlat(self, geotransform, projection):
+    def pixel_to_lonlat(self, geotransform=None, projection=None):
         self.pixel_to_meter(geotransform)
         self.meter_to_lonlat(projection)
         return (self.lon, self.lat)
         
-    def lonlat_to_pixel(self, geotransform, projection):
+    def lonlat_to_pixel(self, geotransform=None, projection=None):
         self.lonlat_to_meter(projection)
         self.meter_to_pixel(geotransform)
         return (self.sample,self.line)
-        
-    def get_srs(self,projection):
-        srs = osr.SpatialReference(projection)
-        if int(srs.GetProjParm('scale_factor')) == 0:
-            srs.SetProjParm('scale_factor',1)
-        return srs
                 
-    def meter_to_lonlat(self, projection):
-        srs = self.get_srs(projection)
+    def meter_to_lonlat(self, projection=None):
+        if projection is None:
+            projection = self.proj
+        if projection is None:
+            raise ProjectionNotSetError('lonlat_to_meter')
+        srs = debug_srs(projection)
         ct = osr.CoordinateTransformation(srs, srs.CloneGeogCS())
         self.lon, self.lat, height = ct.TransformPoint(self.x,self.y)
         if self.lon < 0:
             self.lon = 360.0 - abs(self.lon)
         return (self.lon,self.lat)
         
-    def lonlat_to_meter(self, projection):
-        srs = self.get_srs(projection)
+    def lonlat_to_meter(self, projection=None):
+        if projection is None:
+            projection = self.proj
+        if projection is None:
+            raise ProjectionNotSetError('lonlat_to_meter')
+        srs = debug_srs(projection)
         ct = osr.CoordinateTransformation(srs.CloneGeogCS(),srs)
         # height not used so far!
         self.x, self.y, height = ct.TransformPoint(self.lon,self.lat)
@@ -265,11 +284,11 @@ class Window(object):
         return self.lr
     
     def usage(self):
-        print """Usage: win = Window(pointObject1, pointObject2)
+        print("""Usage: win = Window(pointObject1, pointObject2)
         or
         win = Window(pointObject1, width_in_Pixel)
         or
-        win = Window(centerPoint, width_in_Pixel)"""
+        win = Window(centerPoint, width_in_Pixel)""")
         return
     
     def get_corners_from_center(self):
@@ -336,10 +355,10 @@ class ImgData(object):
         for i in range(self.ds.RasterCount):
             setattr(self,'band'+str(i+1), self.ds.GetRasterBand(i+1))
         self.band = self.band1 # keep with older interface of just 1 band
-        self.geotransform = self.dataset.GetGeoTransform()
+        self.geotrans = self.dataset.GetGeoTransform()
         self.projection = self.dataset.GetProjection()
         self.center = Point(self.X//2, self.Y//2,
-                            geotrans=self.geotransform,
+                            geotrans=self.geotrans,
                             proj=self.projection)
         
     def _read_data(self, band):
@@ -374,7 +393,6 @@ class ImgData(object):
         """
         This reads all data into a max_dim sized buffer. GDAL is doing the downsampling."""
             
-        src_ds = self.ds
         b = getattr(self,band)
         ndv = b.GetNoDataValue()
         ns = self.X
@@ -489,13 +507,13 @@ class ImgData(object):
 class MOLA(ImgData):
     """docstring for MOLA"""
     def __init__(self,
-                 fname=os.path.join(os.getenv('HOME'),'Data/mola/megr_s_512_1.cub')):
+                 fname=os.path.join(os.getenv('HOME'),'data/mola/megr_s_512_1.cub')):
         ImgData.__init__(self,fname)
 
 class CTX(ImgData):
     """docstring for CTX"""
     def __init__(self,
-                 fname=os.getenv('HOME')+'/Data/ctx/inca_city/PSP_004226_0984/'
+                 fname=os.getenv('HOME')+'/data/ctx/inca_city/PSP_004226_0984/'
                                          'P08_004226_0984_XI_81S063W.cal.des.map.cub'):
         ImgData.__init__(self,fname)
 
@@ -523,7 +541,7 @@ class CTX(ImgData):
 class HiRISE(ImgData):
     """docstring for HiRISE"""
     def __init__(self,
-                 fname=os.getenv('HOME')+'/Data/hirise/inca_city/'
+                 fname=os.getenv('HOME')+'/data/hirise/inca_city/'
                                          'PSP_002380_0985_RED.cal.norm.map.equ.mos.cub'):
         ImgData.__init__(self,fname)
 
