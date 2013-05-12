@@ -76,7 +76,13 @@ def calculate_image_azimuth(origPoint, newPoint, zero='right'):
             azimuth -= 360.0
 
     return azimuth
-            
+
+def debug_srs(projection):            
+    srs = osr.SpatialReference(projection)
+    if int(srs.GetProjParm('scale_factor')) == 0:
+        srs.SetProjParm('scale_factor',1)
+    return srs
+
 class Point(object):
     """Point class to manage pixel and map points and their transformations.
     
@@ -92,12 +98,13 @@ class Point(object):
     '6144.00, 6143.99'
     >>> p2 = Point(x=3,y=3)
     >>> newP = p + p2
-    >>> print newP.x, newP.y
+    >>> print(newP.x, newP.y)
     3 4
     """
     def __init__(self, sample=None, line=None,
                        x=None, y=None,
-                       lat=None,lon=None, geotrans=None, proj=None):
+                       lat=None,lon=None, 
+                       geotrans=None, proj=None):
         self.sample = sample
         self.line = line
         self.x = x
@@ -425,16 +432,16 @@ class ImgData(object):
         return self.data
         
     def window_coords_to_meter(self):
-        self.window.ul.pixel_to_meter(self.geotransform)
-        self.window.lr.pixel_to_meter(self.geotransform)
+        self.window.ul.pixel_to_meter(self.geotrans)
+        self.window.lr.pixel_to_meter(self.geotrans)
         
     def window_coords_to_lonlat(self):
-        self.window.ul.pixel_to_lonlat(self.geotransform,self.projection)
-        self.window.lr.pixel_to_lonlat(self.geotransform,self.projection)
+        self.window.ul.pixel_to_lonlat(self.geotrans,self.projection)
+        self.window.lr.pixel_to_lonlat(self.geotrans,self.projection)
     
     def window_coords_to_pixel(self):
-        self.window.ul.lonlat_to_pixel(self.geotransform,self.projection)
-        self.window.lr.lonlat_to_pixel(self.geotransform,self.projection) 
+        self.window.ul.lonlat_to_pixel(self.geotrans,self.projection)
+        self.window.lr.lonlat_to_pixel(self.geotrans,self.projection) 
         
     def normalize(self):
         new_data = self.data - self.data.min()
@@ -538,9 +545,9 @@ def combine_ctx_and_mola(ctxFilename, ctxSample, ctxLine, ctxWidth):
     
     molaULsample,molaULline = get_pixels_from_coords(molaDS,ulX,ulY)
     molaLRsample,molaLRline = get_pixels_from_coords(molaDS,lrX,lrY)
-    print ctxULsample, ctxULline, ctxLRsample, ctxLRline
-    print molaULsample, molaULline,molaLRsample, molaLRline
-    print ulX,ulY,lrX,lrY
+    print(ctxULsample, ctxULline, ctxLRsample, ctxLRline)
+    print(molaULsample, molaULline,molaLRsample, molaLRline)
+    print(ulX,ulY,lrX,lrY)
     ctxData = ctxDS.ReadAsArray(ctxULsample,ctxULline,ctxWidth,ctxWidth)
     molaData = molaDS.ReadAsArray(int(molaULsample)+1,int(molaULline),
                                   int(molaLRsample - molaULsample),
@@ -578,9 +585,9 @@ def main(argv=None):
         fname = argv[1]
         x1,x2,y1,y2 = [int(i) for i in argv[2:]]
     except:
-        print 'Usage: {0} fname x1 x2 y1 y2'.format(argv[0])
+        print('Usage: {0} fname x1 x2 y1 y2'.format(argv[0]))
     
-    print x1,x2,y1,y2
+    print(x1,x2,y1,y2)
     ds = gdal.Open(fname)
     band = ds.GetRasterBand(1)
     STORED_VALUE = band.ReadAsArray(x1,y1,x2-x1,y2-y1)
