@@ -8,6 +8,7 @@ import dateutil.parser as tparser
 import matplotlib.pyplot as plt
 from matplotlib.dates import HourLocator, drange
 import math
+import os
 
 L_sol = 3.839e26 # [Watt]
 
@@ -19,7 +20,7 @@ metakernel_paths = [
     ]
 
 # pure planetary bodies meta-kernel without spacecraft data
-spice.furnsh('/Users/maye/Dropbox/src/pymars/mars.tm')
+spice.furnsh('data/mars.tm')
 
 # simple named Radii structure, offering Radii.a Radii.b and Radii.c
 
@@ -422,11 +423,10 @@ class Spicer(HasTraits):
         else: return np.array(energies)
           
         
-    def compute_solar_azimuth(self, pixel_res = 0.5):
+    def point_towards_sun(self, pixel_res = 0.5):
         """
         Compute the solar azimuth.
-        
-        Not finished yet!!
+
         Pixel resolution is required to stay within one pixel of the origin point
         """
         # Get the difference vector poB=subsolar-origin with its tail at origin 
