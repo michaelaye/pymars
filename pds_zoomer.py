@@ -68,7 +68,7 @@ class Zoom:
         print newX, newY
         self.binned = rebin(self.data[newY[0]:newY[1], newX[0]:newX[1]],
                             self.dSize) * self.scaling_factor + self.offset
-        with open('binned.pkl', 'w') as f:
+        with open('data/binned.pkl', 'w') as f:
             pickle.dump(self.binned, f)
         fig = figure()
         ax = fig.add_subplot(111)

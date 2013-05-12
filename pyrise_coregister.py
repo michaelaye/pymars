@@ -188,7 +188,7 @@ if __name__ == '__main__':
     #basefolder = '/Users/aye/Data/hirise'
     fname1 = os.path.join(basefolder, 'PSP_003092_0985/PSP_003092_0985_RED.cal.norm.map.equ.mos.cub')
     fname2 = os.path.join(basefolder, 'PSP_003158_0985/PSP_003158_0985_RED.cal.norm.map.equ.mos.cub')
-    pfile = open('subframes.pkl', 'r+')
+    pfile = open('data/subframes.pkl', 'r+')
     
     fixed_obsID = 'PSP_003092_0985'
     
