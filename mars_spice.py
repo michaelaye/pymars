@@ -26,6 +26,11 @@ spice.furnsh('data/mars.tm')
 
 Radii = namedtuple('Radii', 'a b c')
 
+def calc_fractional_day(time_tuple):
+    hour, minute, second = time_tuple[:3]
+    fraction = float(minute)/60 + float(second)/60
+    return hour + fraction
+    
 def make_axis_rotation_matrix(direction, angle):
     """
     Create a rotation matrix corresponding to the rotation around a general
@@ -141,6 +146,7 @@ class Spicer(HasTraits):
     sun_direction = Property(depends_on = ['spoint', 'et', 'center_to_sun'])
     illum_angles = Property# (depends_on = ['et','snormal'])
     local_soltime = Property# (depends_on = ['spoint','et'])
+    fractional_local_time = Property
     to_north = Property
     to_south = Property
     F_flat = Property# (depends_on = ['solar_constant','illum_angles'])
@@ -314,6 +320,9 @@ class Spicer(HasTraits):
     def _get_local_soltime(self):
         return spice.et2lst(self.et, self.target_id, self.coords.lon, "PLANETOCENTRIC")
     
+    def _get_fractional_local_time(self):
+        return calc_fractional_day(self.local_soltime)
+        
     def _get_l_s(self):
         return np.rad2deg(spice.lspcn(self.target, self.et, self.corr))
     
