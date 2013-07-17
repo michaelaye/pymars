@@ -50,6 +50,11 @@ def get_sub_sol_azi(labels=None, fname=None):
         labels = get_labels(fname)
     return get_angle(labels,'VIEWING_PARAMETERS','SUB_SOLAR_AZIMUTH')
     
+def get_local_solar_time(labels=None, fname=None):
+    if fname is not None:
+        labels = get_labels(fname)
+    return get_angle(labels, 'VIEWING_PARAMETERS', 'LOCAL_TIME')
+    
 def get_mean_lat(labels):
     maxlat = get_angle(labels,'IMAGE_MAP_PROJECTION','MAXIMUM_LATITUDE')
     minlat = get_angle(labels,'IMAGE_MAP_PROJECTION','MINIMUM_LATITUDE')
