@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # encoding: utf-8
 """
-mars.py $Id: mars.py,v 750818c897ed 2011/03/10 18:08:51 aye $
-
 Some tools to work with Mars data.
 Abbreviations:
 ul = Upper Left
