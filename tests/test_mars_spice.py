@@ -30,4 +30,14 @@ def test_incidence_angle():
     calculated_inc = mspicer.illum_angles.dsolar
     # rounding off all fractions here for this test! improve?
     assert_equals(round(calculated_inc), round(inc))
-                  
+
+
+def test_local_solar_time():
+    label_time = pdstools.get_local_solar_time(labels)
+    mspicer = ms.MarsSpicer()
+    mspicer.utc = pdstools.get_time(labels)
+    lat = pdstools.get_mean_lat(labels)
+    lon = pdstools.get_mean_lon(labels)
+    mspicer.set_spoint_by(lat=lat, lon=lon)
+    calculated_soltime = mspicer.fractional_local_time
+    assert_equals(round(label_time, 1), round(calculated_soltime, 1))       
