@@ -2,8 +2,9 @@ import mars_spice as ms
 import mars
 import pdstools
 
-dem = mars.ImgData('/Users/maye/data/hirise/inca_city_dem/latest_download/ESP_022607_0985_RED_A_01_ORTHO.JP2')
-labels = pdstools.get_labels('/Users/maye/data/hirise/inca/ESP_022607_0985_RED.LBL')
+dem = mars.ImgData('/Users/Anya/Data/HiRISE_dems/ESP_022607_0985_RED_A_01_ORTHO.JP2')
+#/Users/maye/data/hirise/inca_city_dem/latest_download/ESP_022607_0985_RED_A_01_ORTHO.JP2')
+labels = pdstools.get_labels('/Users/Anya/Data/HiRISE_dems/ESP_022607_0985_RED.LBL')
 mspice = ms.MarsSpicer(pdstools.get_time(labels))
 mspice.set_spoint_by(lat=dem.center.lat, lon=dem.center.lon)
 p2lon, p2lat = mspice.compute_solar_azimuth(pixel_res=1)

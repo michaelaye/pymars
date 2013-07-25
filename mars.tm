@@ -8,18 +8,16 @@ KPL/MK
    \begindata
  
       PATH_VALUES     = (
-                         '/Users/maye/isis3/data/base/kernels'
-						 '/Users/maye/data/spice/mars'
-                        )
+                         '/Users/Anya/Dropbox/SternchenAndMe/SPICE_kernels'
+						  )
  
       PATH_SYMBOLS    = (
-                         'BASE_KERNELS'
-						 'MY_KERNELS'
+                         'MY_KERNELS'
                         )
  
       KERNELS_TO_LOAD = (
-                         '$BASE_KERNELS/lsk/naif0010.tls'
-                         '$BASE_KERNELS/pck/pck00009.tpc'
+                         '$MY_KERNELS/lsk/naif0010.tls'
+                         '$MY_KERNELS/pck/pck00009.tpc'
                          '$MY_KERNELS/spk/de421.bsp'
                         )
  

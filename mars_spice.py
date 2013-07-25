@@ -19,7 +19,7 @@ metakernel_paths = [
     ]
 
 # pure planetary bodies meta-kernel without spacecraft data
-spice.furnsh('/Users/maye/Dropbox/src/pymars/mars.tm')
+spice.furnsh('/Users/Anya/pymars/mars.tm')
 
 # simple named Radii structure, offering Radii.a Radii.b and Radii.c
 
