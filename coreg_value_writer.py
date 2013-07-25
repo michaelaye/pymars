@@ -24,7 +24,7 @@ def main():
     writer = csv.writer(open('coreg_values.csv','wb'))
     writer.writerow(header)
 
-    with open('subframes.pkl') as f:
+    with open('data/subframes.pkl') as f:
         data, counter = pickle.load(f)
 
     for item in data:

@@ -1,3 +1,4 @@
+from __future__ import division, print_function
 import spice
 from collections import namedtuple
 import numpy as np
@@ -8,6 +9,9 @@ import dateutil.parser as tparser
 import matplotlib.pyplot as plt
 from matplotlib.dates import HourLocator, drange
 import math
+import os
+
+module_directory = os.path.dirname(os.path.abspath(__file__))
 
 L_sol = 3.839e26 # [Watt]
 
@@ -19,12 +23,17 @@ metakernel_paths = [
     ]
 
 # pure planetary bodies meta-kernel without spacecraft data
-spice.furnsh('/Users/Anya/pymars/mars.tm')
+spice.furnsh(os.path.join(module_directory,'data/mars.tm'))
 
 # simple named Radii structure, offering Radii.a Radii.b and Radii.c
 
 Radii = namedtuple('Radii', 'a b c')
 
+def calc_fractional_day(time_tuple):
+    hour, minute, second = time_tuple[:3]
+    fraction = float(minute)/60 + float(second)/60
+    return hour + fraction
+    
 def make_axis_rotation_matrix(direction, angle):
     """
     Create a rotation matrix corresponding to the rotation around a general
@@ -140,11 +149,13 @@ class Spicer(HasTraits):
     sun_direction = Property(depends_on = ['spoint', 'et', 'center_to_sun'])
     illum_angles = Property# (depends_on = ['et','snormal'])
     local_soltime = Property# (depends_on = ['spoint','et'])
+    fractional_local_time = Property
     to_north = Property
     to_south = Property
     F_flat = Property# (depends_on = ['solar_constant','illum_angles'])
     tilt = Range(low=0.0, high = 90.0)
     aspect = Range(low=0.0, high=360.0)
+    tau = Float(0.0)
     tilted_normal = Property# (depends_on = ['snormal','tilt'])
     tilted_rotated_normal = Property# (depends_on = ['spoint','tilted_normal','aspect'])
     F_tilt = Property# (depends_on = ['solar_constant','illum_angles',
@@ -304,15 +315,12 @@ class Spicer(HasTraits):
             # leaving at 0 what I don't have
             return IllumAngles.fromtuple((0, solar, 0))
             
-    def _get_F_flat(self):
-        if self.illum_angles.dsolar > 90:
-            return 0
-        else:
-            return self.solar_constant * math.cos(self.illum_angles.solar)
-            
     def _get_local_soltime(self):
         return spice.et2lst(self.et, self.target_id, self.coords.lon, "PLANETOCENTRIC")
     
+    def _get_fractional_local_time(self):
+        return calc_fractional_day(self.local_soltime)
+        
     def _get_l_s(self):
         return np.rad2deg(spice.lspcn(self.target, self.et, self.corr))
     
@@ -351,12 +359,20 @@ class Spicer(HasTraits):
         rotmat = make_axis_rotation_matrix(axis, np.radians(self.tilt))
         return np.matrix.dot(rotmat, self.snormal)
         
+    def _get_F_flat(self):
+        # if self.illum_angles.dsolar > 90:
+        #     return 0
+        # else:
+        #     return self.solar_constant * math.cos(self.illum_angles.solar)
+        return self._get_flux(self.snormal)
+        
     def _get_flux(self, vector):
         diff_angle = spice.vsep(vector, self.sun_direction)
         if (self.illum_angles.dsolar > 90) or (np.degrees(diff_angle) > 90):
             return 0
         else:
-            return self.solar_constant * math.cos(diff_angle)        
+            return self.solar_constant * math.cos(diff_angle) * \
+                    math.exp(-self.tau/math.cos(self.illum_angles.solar))
                     
     def _get_F_tilt(self):
         return self._get_flux(self.tilted_normal)        
@@ -422,11 +438,10 @@ class Spicer(HasTraits):
         else: return np.array(energies)
           
         
-    def compute_solar_azimuth(self, pixel_res = 0.5):
+    def point_towards_sun(self, pixel_res = 0.5):
         """
         Compute the solar azimuth.
-        
-        Not finished yet!!
+
         Pixel resolution is required to stay within one pixel of the origin point
         """
         # Get the difference vector poB=subsolar-origin with its tail at origin 

@@ -9,7 +9,7 @@ import os.path
 
 
 def main():
-    coordFile = open('subframes.pkl', 'r')
+    coordFile = open('data/subframes.pkl', 'r')
     bigList, index = pickle.load(coordFile)
     coordFile.close()
 #    xOff = 6849

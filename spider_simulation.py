@@ -154,13 +154,13 @@ def main():
 
     print(np.histogram(cos_corrected,range=(0,1)))
     print(np.histogram(real_inc,range=(0,90)))
-    fig = figure()
+    fig = plt.figure()
     ax_inc = fig.add_subplot(122)
     # ax_inc = fig.add_subplot(221)
     img = ax_inc.imshow(cos_corrected,cmap = 'gray')
     ax_inc.set_title("'Lambertian' image from Inca DEM",fontsize=14)
     # colorbar(img)
-    axis('off')
+    plt.axis('off')
     ax_real = fig.add_subplot(121)
     img = ax_real.imshow(spider1.data,cmap='gray')
     ax_real.set_title('Ortho-image Inca spider',fontsize=14)
@@ -172,8 +172,8 @@ def main():
     # emis_angles = np.degrees(np.arccos(cose))
     # ax_hist.hist(emis_angles.flatten(),bins=45,range=(0,90))
     # ax_hist.set_title('Emission angles histogram')
-    axis('off')
-    show()
+    plt.axis('off')
+    plt.show()
     return [real_inc,real_emis]
 
 if __name__ == '__main__':
