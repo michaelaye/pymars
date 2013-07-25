@@ -1,3 +1,4 @@
+from __future__ import division, print_function
 import spice
 from collections import namedtuple
 import numpy as np
@@ -10,6 +11,8 @@ from matplotlib.dates import HourLocator, drange
 import math
 import os
 
+module_directory = os.path.dirname(os.path.abspath(__file__))
+
 L_sol = 3.839e26 # [Watt]
 
 metakernel_paths = [
@@ -20,7 +23,7 @@ metakernel_paths = [
     ]
 
 # pure planetary bodies meta-kernel without spacecraft data
-spice.furnsh('/Users/maye/Dropbox/src/pymars/data/mars.tm')
+spice.furnsh(os.path.join(module_directory,'data/mars.tm'))
 
 # simple named Radii structure, offering Radii.a Radii.b and Radii.c
 
