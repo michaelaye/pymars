@@ -20,7 +20,7 @@ metakernel_paths = [
     ]
 
 # pure planetary bodies meta-kernel without spacecraft data
-spice.furnsh('data/mars.tm')
+spice.furnsh('/Users/maye/Dropbox/src/pymars/data/mars.tm')
 
 # simple named Radii structure, offering Radii.a Radii.b and Radii.c
 
@@ -152,6 +152,7 @@ class Spicer(HasTraits):
     F_flat = Property# (depends_on = ['solar_constant','illum_angles'])
     tilt = Range(low=0.0, high = 90.0)
     aspect = Range(low=0.0, high=360.0)
+    tau = Float(0.0)
     tilted_normal = Property# (depends_on = ['snormal','tilt'])
     tilted_rotated_normal = Property# (depends_on = ['spoint','tilted_normal','aspect'])
     F_tilt = Property# (depends_on = ['solar_constant','illum_angles',
@@ -311,12 +312,6 @@ class Spicer(HasTraits):
             # leaving at 0 what I don't have
             return IllumAngles.fromtuple((0, solar, 0))
             
-    def _get_F_flat(self):
-        if self.illum_angles.dsolar > 90:
-            return 0
-        else:
-            return self.solar_constant * math.cos(self.illum_angles.solar)
-            
     def _get_local_soltime(self):
         return spice.et2lst(self.et, self.target_id, self.coords.lon, "PLANETOCENTRIC")
     
@@ -361,12 +356,20 @@ class Spicer(HasTraits):
         rotmat = make_axis_rotation_matrix(axis, np.radians(self.tilt))
         return np.matrix.dot(rotmat, self.snormal)
         
+    def _get_F_flat(self):
+        # if self.illum_angles.dsolar > 90:
+        #     return 0
+        # else:
+        #     return self.solar_constant * math.cos(self.illum_angles.solar)
+        return self._get_flux(self.snormal)
+        
     def _get_flux(self, vector):
         diff_angle = spice.vsep(vector, self.sun_direction)
         if (self.illum_angles.dsolar > 90) or (np.degrees(diff_angle) > 90):
             return 0
         else:
-            return self.solar_constant * math.cos(diff_angle)        
+            return self.solar_constant * math.cos(diff_angle) * \
+                    math.exp(-self.tau/math.cos(self.illum_angles.solar))
                     
     def _get_F_tilt(self):
         return self._get_flux(self.tilted_normal)        
