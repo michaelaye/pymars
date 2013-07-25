@@ -88,7 +88,55 @@ def get_sub_sc_azimuth(labels):
     return degrees(acos(cosa))
 
 
+class PDSLabel(object):
+    """Deal with PDS labels via properties."""
 
+    def __init__(self, fname):
+        super(PDSLabel, self).__init__()
+        self.fname = fname
+        self.labels = get_labels(fname)
+        self.map_projection = self.labels['IMAGE_MAP_PROJECTION']
+        
+    def get_float_val(self, val):
+        return float(val.split()[0])
+        
+    @property
+    def westmost(self):
+        return self.get_float_val(self.map_projection['WESTERNMOST_LONGITUDE'])
+    
+    @property
+    def eastmost(self):
+        return self.get_float_val(self.map_projection['EASTERNMOST_LONGITUDE'])
+        
+    @property
+    def maxlat(self):
+        return self.get_float_val(self.map_projection['MAXIMUM_LATITUDE'])
+        
+    @property
+    def minlat(self):
+        return self.get_float_val(self.map_projection['MINIMUM_LATITUDE'])
+        
+    @property
+    def local_soltime(self):
+        return get_local_solar_time(labels=self.labels)
+        
+    @property
+    def phase(self):
+        return get_phase(labels=self.labels)
+        
+    @property
+    def time(self):
+        return get_time(labels=self.labels)
+        
+    @property
+    def meanlon(self):
+        return get_mean_lon(labels=self.labels)
+        
+    @property
+    def meanlat(self):
+        return get_mean_lat(labels=self.labels)
+        
+        
 if __name__ == '__main__':
     fname = '/Users/maye/data/hirise/inca/ESP_022607_0985_RED.LBL'
     labels = get_labels(fname)
