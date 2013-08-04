@@ -56,14 +56,12 @@ def calculate_image_azimuth(origPoint, newPoint, zero='right'):
     """Calculate azimuth angle between 2 image points.
 
     zero: 'right' or 'up'
-    p1 and p2 are mars.Point objects
+    origPoint and newPoint are mars.Point objects
     """
     deltaSample = newPoint.sample - origPoint.sample
     deltaLine = newPoint.line - origPoint.line
 
-    azimuth = atan2(deltaLine, deltaSample)
-
-    azimuth = degrees(azimuth)
+    azimuth = degrees(atan2(deltaLine, deltaSample))
 
     if azimuth < 0.0:
         azimuth += 360.0
