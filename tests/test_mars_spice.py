@@ -11,13 +11,14 @@ def test_azimuth():
     dem = mars.ImgData('/Users/maye/data/hirise/inca_city_dem/latest_download/ESP_022699_0985_RED_A_01_ORTHO.JP2')
     #mspice = ms.MarsSpicer(pdstools.get_time(labels))
     mspicer = ms.MarsSpicer()
-    mspicer.goto_ls_0()
+    # mspicer.goto_ls_0()
+    mspicer.utc = pdstools.get_time(labels)
     mspicer.set_spoint_by(lat=dem.center.lat, lon=dem.center.lon)
     p2lon, p2lat = mspicer.point_towards_sun(pixel_res=1)
     p2 = mars.Point(lat=p2lat, lon=p2lon)
     p2.lonlat_to_pixel(dem.center.geotrans, dem.center.proj)
-    assert_equals(dem.center.calculate_azimuth(p2),
-                  pdstools.get_sub_sol_azi(labels))
+    assert_equals(round(dem.center.calculate_azimuth(p2),2),
+                  round(pdstools.get_sub_sol_azi(labels),2))
 
 
 def test_incidence_angle():
