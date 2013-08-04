@@ -1,4 +1,4 @@
-#!/Library/Frameworks/Python.Framework/Versions/2.7/bin/python
+#!/Library/Frameworks/Python.Framework/Versions/7.3/bin/python
 from __future__ import division
 from visual import *
 
