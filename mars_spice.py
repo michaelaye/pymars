@@ -2,12 +2,12 @@ from __future__ import division, print_function
 import spice
 from collections import namedtuple
 import numpy as np
-from traits.api import HasTraits, Str, Int, Float, ListStr, Enum, Date, Property, \
-    Tuple, Range, cached_property, Instance, DelegatesTo, Bool, List
+from traits.api import HasTraits, Str, Float, Enum, Date, Property, \
+    Tuple, Range, cached_property, Bool
 import datetime as dt
 import dateutil.parser as tparser
 import matplotlib.pyplot as plt
-from matplotlib.dates import HourLocator, drange
+from matplotlib.dates import drange
 import math
 import os
 
@@ -23,16 +23,18 @@ metakernel_paths = [
     ]
 
 # pure planetary bodies meta-kernel without spacecraft data
-spice.furnsh(os.path.join(module_directory,'data/mars.tm'))
+spice.furnsh(os.path.join(module_directory, 'data/mars.tm'))
 
 # simple named Radii structure, offering Radii.a Radii.b and Radii.c
 
 Radii = namedtuple('Radii', 'a b c')
 
+
 def calc_fractional_day(time_tuple):
     hour, minute, second = time_tuple[:3]
     fraction = float(minute)/60 + float(second)/60
     return hour + fraction
+
     
 def make_axis_rotation_matrix(direction, angle):
     """
@@ -392,7 +394,7 @@ class Spicer(HasTraits):
     def advance_time_by(self, secs):
         self.time += dt.timedelta(seconds=secs)
     
-    def time_series(self, flux_name, dt, no_of_steps=None, delta_l_s=None, provide_times=None):
+    def time_series(self, flux_name, dt, no_of_steps=None, provide_times=None):
         """
         Provide time series of fluxes with a <dt> in seconds as sampling intervals.
         
@@ -402,8 +404,6 @@ class Spicer(HasTraits):
             Should be one of ['F_flat','F_tilt','F_aspect']   
         dt : delta time for the time series, in seconds
         no_of_steps : number of steps to add to time series
-        delta_l_s : Either this or <no_of_steps> needs to be provided. Decides about the 
-            end of the loop.
         provide_times : Should be set to one of ['time','utc','et','l_s'] if wanted.
         
         Returns
@@ -412,30 +412,27 @@ class Spicer(HasTraits):
             out : ndarray
             Array of evenly spaced flux values, given as E/(dt*m**2). 
             I.e. the internal fluxes are multiplied by dt.
+        else:
+            out : (ndarray, ndarray) 
+            Tuple of 2 arrays, out[0] being the times, out[1] the fluxes
         """
         saved_time = self.time
         times = []
         energies = []
         i = 0
-        start_l_s = self.l_s
-        accumulated_delta_l_s = 0
-        if no_of_steps:
-            criteria = (i < no_of_steps)
-        else:
-            criteria = (self.l_s < end_l_s)
+        criteria = (i < no_of_steps)
         while criteria:
             i += 1
             if provide_times: times.append(getattr(self, provide_times))
             energies.append(getattr(self, flux_name) * dt)
             self.advance_time_by(dt)
-            if no_of_steps:
-                criteria = (i < no_of_steps)
-            else:
-                criteria = (self.l_s < end_l_s)
+            criteria = (i < no_of_steps)
                 
         self.time = saved_time
-        if provide_times: return (np.array(times), np.array(energies))
-        else: return np.array(energies)
+        if provide_times: 
+            return (np.array(times), np.array(energies))
+        else: 
+            return np.array(energies)
           
         
     def point_towards_sun(self, pixel_res = 0.5):
@@ -540,6 +537,10 @@ class MarsSpicer(Spicer):
         self.spoint_set = True
         self.spoint = self.location_coords[loc_string.lower()]
 
+
+####
+## some example codes i used for development, not necessarily fully functional
+####
 def plot_times():
     time1 = tparser.parse(mspicer.local_soltime[4])
     time2 = time1 + dt.timedelta(1) # adding 1 day
