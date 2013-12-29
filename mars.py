@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 import sys
 import os
 import matplotlib.cm as cm
-from mpl_toolkits.axes_grid.anchored_artists import AnchoredSizeBar
+from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
 import numpy as np
 from math import atan2, degrees
 
@@ -55,7 +55,7 @@ class GeoTransformNotSetError(SomethingNotSetError):
 def calculate_image_azimuth(origPoint, newPoint, zero='right'):
     """Calculate azimuth angle between 2 image points.
 
-    zero: 'right' or 'up'
+    zero: 'right' or 'top'
     origPoint and newPoint are mars.Point objects
     """
     deltaSample = newPoint.sample - origPoint.sample
