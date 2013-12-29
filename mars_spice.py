@@ -32,7 +32,7 @@ Radii = namedtuple('Radii', 'a b c')
 
 def calc_fractional_day(time_tuple):
     hour, minute, second = time_tuple[:3]
-    fraction = float(minute)/60 + float(second)/60
+    fraction = float(minute)/60 + float(second)/3600
     return hour + fraction
 
     
