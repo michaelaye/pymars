@@ -3,7 +3,7 @@ Created on Aug 16, 2009
 
 @author: aye
 '''
-from gdal_imports import *
+from pymars.gdal_imports import *
 
 fName = '/Users/aye/Desktop/cut_jpeg2000/test.jp2'
 cube = gdal.Open(str(fName), GA_ReadOnly )
