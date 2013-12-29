@@ -25,7 +25,7 @@ class Regolith(HasTraits):
 
 class CO2(HasTraits):
     spec_heat = Float(0.15*4.184)   # J/g/K specific heat of CO2 gas
-    rho = Float(156000)         # 156000, # g/m3 - density of ice
+    rho = Float(1.56e6)         # 1.56e6, # g/m3 - density of ice
     s = Float(0.205*4.184)          # J/g/K - specific heat of dry ice
     L = 635.0                       # J/g - latent heat of vaporization CO2
 
