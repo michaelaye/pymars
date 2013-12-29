@@ -97,7 +97,7 @@ def getStoredPathFromID(idString, in_work=False):
     folder = ''
     if in_work == True:
         folder = 'maye'
-    path = pjoin(DEST_BASE, folder, idString
+    path = pjoin(DEST_BASE, folder, idString)
     return path
 
 def getMosPathFromIDandCCD(obsID, ccd, in_work=False):
