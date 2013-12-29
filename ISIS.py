@@ -256,7 +256,7 @@ class ISIS_Executer(object):
             if not os.path.exists(sDestPath): 
                 print "Destination folder does not exist."
                 print "Creating " + sDestPath + " for you."
-                if not self.bFake: os.mkdir(sDestPath)
+                if not self.bFake: os.makedirs(sDestPath)
             os.chdir(sDestPath)
             # determine if to work with CCD IDs or with channel IDs:
             if prog in self.lWorkOnChannels:
