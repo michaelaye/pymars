@@ -1,9 +1,7 @@
-import matplotlib
-matplotlib.use('Agg')
-from matplotlib.pyplot import imshow,savefig,colorbar,figure
+from matplotlib.pyplot import subplots, imshow,savefig,colorbar,figure
 import numpy
 from scipy import ndimage
-from fan_finder import get_data
+from pymars.fan_finder import get_data
 import mahotas
 
 _N  = numpy.array([[0, 1, 0],
@@ -31,7 +29,7 @@ _W_d = 1
 _NW_d = 2
 _N_d = 3
 
-data = get_data(2)
+data = get_data('PSP_004081_0985')
 for i in numpy.arange(20)+1:
 	print i
 	image = ndimage.median_filter(data,size=i)
@@ -61,13 +59,12 @@ for i in numpy.arange(20)+1:
 	high = thinned_grad > high_threshold
 	low = thinned_grad > low_threshold
 	canny_edges = ndimage.binary_dilation(high, structure=numpy.ones((3,3)), iterations=-1, mask=low)
-	fig = figure()
-	ax = fig.add_subplot(111)
+	fig, ax = subplots()
 	im = ax.imshow(canny_edges)
 #	colorbar(im)
 #	ax2 = fig.add_subplot(212)
 #	ax2.hist(thinned_grad.flatten(), bins=100,log=True)
-	savefig('testcanny/thinned_grad_sobel'+str(i)+'_.png')
+	savefig('thinned_grad_sobel'+str(i)+'_.png')
 	
 	
 	
