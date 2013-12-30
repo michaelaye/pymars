@@ -1,4 +1,4 @@
-from pymars import mars_spice as ms
+from pymars import kmaspice as ms
 from pymars import mars
 from pymars import pdstools
 from nose.tools import assert_equals

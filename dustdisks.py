@@ -1,7 +1,7 @@
 from __future__ import division
 from numpy import pi, deg2rad, array,sin,cos,tan, zeros
 from traits.api import HasTraits, Float, Property, Tuple
-from mars_spice import MarsSpicer
+from kmaspice import MarsSpicer
 from spice import furnsh, vsep, vrotv
 import cStringIO
 import datetime as dt

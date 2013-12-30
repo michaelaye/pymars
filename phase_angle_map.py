@@ -1,6 +1,6 @@
 #!/Library/Frameworks/Python.framework/Versions/Current/bin/python
 from mars import ImgData, Point
-from mars_spice import MarsSpicer
+from kmaspice import MarsSpicer
 import os
 from spice import vsep,vminus
 import spice

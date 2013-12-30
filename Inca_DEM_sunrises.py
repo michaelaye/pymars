@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from __future__ import division, print_function
-from pymars import mars_spice
+from pymars import kmaspice
 import pandas as pd
 from pymars import mars
 from pymars import pdstools
@@ -23,7 +23,7 @@ labels = pdstools.PDSLabel('/Users/maye/data/hirise/inca/ESP_022607_0985_RED.LBL
 dem = mars.ImgData('/Users/maye/data/hirise/inca_city_dem/'
                    'latest_download/ESP_022699_0985_RED_A_01_ORTHO.JP2')
 
-surf = mars_spice.MarsSpicer(labels.time)
+surf = kmaspice.MarsSpicer(labels.time)
 surf.set_spoint_by(lat=dem.center.lat, lon=dem.center.lon)
 
 surf.advance_time_by(-3600*24*250)

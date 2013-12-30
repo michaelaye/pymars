@@ -1,5 +1,5 @@
 from __future__ import division
-from mars_spice import MarsSpicer
+from kmaspice import MarsSpicer
 from spice import vsep
 import numpy as np
 from matplotlib.pyplot import figure, show, grid

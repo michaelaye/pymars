@@ -3,7 +3,7 @@ import numpy as np
 from matplotlib.pyplot import figure, show, cm, grid, subplots
 from matplotlib.ticker import MultipleLocator
 from use_mspicer import outer_loop
-from mars_spice import MarsSpicer
+from kmaspice import MarsSpicer
     
  # default time is now:
 mspice = MarsSpicer()
