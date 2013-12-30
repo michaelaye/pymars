@@ -10,24 +10,37 @@ import matplotlib.pyplot as plt
 from matplotlib.dates import drange
 import math
 import os
+import sys
 
-module_directory = os.path.dirname(os.path.abspath(__file__))
-
+###
+### SETUP
+###
 L_sol = 3.839e26 # [Watt]
 
-metakernel_paths = [
-    '/Users/maye/Data/spice/mars/mro_2009_v06_090107_090110.tm',
-    '/Users/maye/Data/spice/mars/mro_2007_v07_070127_070128.tm',
-    '/Users/maye/Data/spice/mars/mro_2007_v07_070216_070217.tm',
-    '/Users/maye/Data/spice/mars/mro_2011_v04_110524_110524.tm',
-    ]
+
+KERNEL_DIR = os.path.join(os.environ['HOME'],
+                          'Dropbox',
+                          'SternchenAndMe',
+                          'SPICE_kernels')
 
 # pure planetary bodies meta-kernel without spacecraft data
-spice.furnsh(os.path.join(module_directory, 'data/mars.tm'))
+minimum_kernel_list=['lsk/naif0010.tls',
+                     'pck/pck00009.tpc',
+                     'spk/de421.bsp',
+                    ]
+for kernel in minimum_kernel_list:
+    spice.furnsh(os.path.join(KERNEL_DIR, kernel))
+
 
 # simple named Radii structure, offering Radii.a Radii.b and Radii.c
-
 Radii = namedtuple('Radii', 'a b c')
+
+###
+### helper functions
+###
+def load_planet_masses_kernel():
+    spice.furnsh(os.path.join(KERNEL_DIR,
+                              'pck/de403-masses.tpc'))
 
 
 def calc_fractional_day(time_tuple):
@@ -61,9 +74,13 @@ def make_axis_rotation_matrix(direction, angle):
     return mtx
 
 
+###
+### Error classes for better error messaging
+###
 class KMASpiceError(Exception):
     """Base class for exceptions in this module."""
     pass
+
 
 class SPointNotSetError(KMASpiceError):
     def __str__(self):
@@ -78,6 +95,9 @@ class ObserverNotSetError(KMASpiceError):
                   This operation had no effect."""
 
 
+###
+### Helper Classes
+###
 class IllumAngles(HasTraits):
     phase = Float
     solar = Float
@@ -107,6 +127,7 @@ class IllumAngles(HasTraits):
                                                                   self.dsolar,
                                                                   self.demission))
 
+
 class Coords(HasTraits):
     lon = Float
     lat = Float
@@ -133,7 +154,14 @@ class Coords(HasTraits):
         return np.rad2deg(self.lat)
 
 
+###
+### Main class
+###
 class Spicer(HasTraits):
+    """Main class for KMAspice.py
+
+    All other planetary body classes inherit from this class.
+    """
     # Constants
     method = Str('Near point:ellipsoid')
     corr = Str('LT+S')
@@ -459,7 +487,6 @@ class Spicer(HasTraits):
         else:
             return np.array(energies)
 
-
     def point_towards_sun(self, pixel_res = 0.5):
         """
         Compute the solar azimuth.
@@ -505,6 +532,7 @@ class EarthSpicer(Spicer):
         self.obs = obs
         self.instrument = inst
 
+
 class MoonSpicer(Spicer):
     target = 'MOON'
     ref_frame = 'IAU_MOON'
@@ -515,6 +543,7 @@ class MoonSpicer(Spicer):
         self.obs = obs
         self.instrument = inst
 
+
 class MercSpicer(Spicer):
     target = 'MERCURY'
     ref_frame = 'IAU_MERCURY'
@@ -524,6 +553,7 @@ class MercSpicer(Spicer):
         super(MercSpicer, self).__init__(time)
         self.obs = obs
         self.instrument = inst
+
 
 class MarsSpicer(Spicer):
     target = 'MARS'
@@ -538,19 +568,11 @@ class MarsSpicer(Spicer):
     def __init__(self, time=None, obs=None, inst=None):
         """ Initialising MarsSpicer class.
 
-        >>> spice.furnsh(metakernel_paths[2])
+        Demo:
         >>> mspicer = MarsSpicer(time='2007-02-16T17:45:48.642')
-        >>> mspicer.set_spoint_by('sinc')
-        Observer and/or instrument have to be set first.
-        >>> dummy = mspicer.set(obs='MRO', instrument='MRO_HIRISE')
-        >>> mspicer.set_spoint_by('sinc')
-        >>> print('Incidence angle: {0:g}'.format(mspicer.illum_angles.dsolar))
-        Incidence angle: 87.6614
-
-        >>> mspicer = MarsSpicer(time='2007-01-27T12:00:00')
         >>> mspicer.goto('inca')
         >>> print('Incidence angle: {0:g}'.format(mspicer.illum_angles.dsolar))
-        Incidence angle: 87.3537
+        Incidence angle: 95.5388
 
         >>> mspicer = MarsSpicer(time='2007-01-27T12:00:00')
         >>> mspicer.set_spoint_by(lon=300, lat = -80)
@@ -571,57 +593,6 @@ class MarsSpicer(Spicer):
         self.spoint = self.location_coords[loc_string.lower()]
 
 
-####
-## some example codes i used for development, not necessarily fully functional
-####
-def plot_times():
-    time1 = tparser.parse(mspicer.local_soltime[4])
-    time2 = time1 + dt.timedelta(1) # adding 1 day
-    delta = dt.timedelta(minutes = 30)
-    times = drange(time1, time2, delta)
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-    for time in times:
-        mspicer.time += delta
-    ax.plot_date(times, angles)
-    fig.autofmt_xdate()
-    plt.show()
-
-def test_time_series():
-    mspice = MarsSpicer()
-    mspice.goto_ls_0()
-    mspice.set_spoint_by(lat=-84, lon=0)
-    mspice.tilt = 15
-    mspice.aspect = 90
-    mspice.advance_time_by(24*3600*356)
-    utc = mspice.utc
-    timestep = 600
-    no_of_steps = 2000
-    times, to_east = mspice.time_series('F_aspect', timestep, no_of_steps, provide_times='l_s')
-    mspice.utc = utc
-    flat = mspice.time_series('F_flat', timestep, no_of_steps)
-    mspice.utc = utc
-    tilted = mspice.time_series('F_tilt', timestep, no_of_steps)
-    mspice.utc = utc
-    mspice.aspect = 270
-    to_west = mspice.time_series('F_aspect', timestep, no_of_steps)
-    plt.plot(times, flat, '*-', label='flat')
-    plt.plot(times, tilted, '*-', label='tilted')
-    plt.plot(times, to_east, '*-', label='to_east')
-    plt.plot(times, to_west, '*-', label = 'to_west')
-    plt.legend()
-    plt.show()
-
-def test_phase():
-    mspice = MarsSpicer()
-    mspice.utc = '2011-05-24T00:58:08.402'
-    mspice.obs = 'MRO'
-    mspice.instrument = 'MRO_HIRISE'
-    mspice.set_spoint_by('sincpt')
-    print("Phase: %f" % np.degrees(spice.vsep(spice.vminus(mspice.srfvec), mspice.sun_direction)))
-    print("Inc: %f" % np.degrees(spice.vsep(mspice.spoint, mspice.sun_direction)))
-    print("Emis: %f" % np.degrees(spice.vsep(mspice.spoint, spice.vminus(mspice.srfvec))))
-
 def main():
     mspicer = MarsSpicer()
     mspicer.set_spoint_by(lat=85, lon=0)
@@ -633,25 +604,22 @@ def main():
     mspicer.tilt = 30
     mspicer.aspect = 180
     print("F_tilt: {0:g}".format(mspicer.F_tilt))
-    print("Angle between trnormal and sun: {0}".format(np.degrees(spice.vsep(mspicer.tilted_rotated_normal,
-                                                                  mspicer.sun_direction))))
+    delta_in_rad = spice.vsep(mspicer.tilted_rotated_normal, mspicer.sun_direction)
+    print("Angle between trnormal and sun: {0}".format(np.degrees(delta_in_rad)))
     print("F_aspect: {0:g}".format(mspicer.F_aspect))
     l_s, energies = mspicer.time_series('F_flat', 3600, no_of_steps=100, provide_times='l_s')
     energies_aspect = mspicer.time_series('F_aspect', 3600, no_of_steps=100)
-    l_s10, energies_10ls = mspicer.time_series('F_aspect', 3600, delta_l_s=10, provide_times='l_s')
-    plt.plot(l_s, energies, label='flat',linewidth=2)
-    plt.plot(l_s, energies_aspect, label='aspect: 180',linewidth=2)
-    plt.figure()
-    plt.plot(l_s10, energies_10ls, label='until delta_l_s=2')
-    print('sum over energies_10ls: {0}'.format((energies_10ls[:-1].sum()+energies_10ls[1:].sum())/2.0))
+    plt.plot(l_s, energies, label='flat', linewidth=2)
+    plt.plot(l_s, energies_aspect, label='aspect: 180', linewidth=2)
     plt.legend()
     plt.show()
 
+
 if __name__ == '__main__':
-    # import doctest
-    # doctest.testmod()
-    # test_time_series()
-    test_phase()
-    # mspice = MarsSpicer()
-    # mspice.goto('inca')
-    # mspice.configure_traits()
+    if len(sys.argv) == 1:
+        print("Launch me like this to see a test-run: python {0} test-run".format(sys.argv[0]))
+        sys.exit()
+    if sys.argv[1] == 'test-run':
+        main()
+    else:
+        print("Cannot deal with option {0}".format(sys.argv[1]))
