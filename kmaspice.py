@@ -17,7 +17,6 @@ import sys
 ###
 L_sol = 3.839e26 # [Watt]
 
-
 KERNEL_DIR = os.path.join(os.environ['HOME'],
                           'Dropbox',
                           'SternchenAndMe',
