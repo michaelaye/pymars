@@ -229,6 +229,9 @@ class Spicer(HasTraits):
     def _get_et(self):
         return spice.utc2et(self.utc)
 
+    def get_utc_from_et(self, et):
+        return spice.et2utc(et, "ISOC", 14)
+
     def _get_target_id(self):
         return spice.bodn2c(self.target)
 
@@ -613,6 +616,11 @@ class MarsSpicer(Spicer):
         """
         self.spoint_set = True
         self.spoint = self.location_coords[loc_string.lower()]
+
+
+def get_current_l_s():
+    ms = MarsSpicer()
+    return round(ms.l_s, 1)
 
 
 def main():
