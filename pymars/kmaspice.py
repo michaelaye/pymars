@@ -1,5 +1,8 @@
 from __future__ import division, print_function
-import spice
+try:
+    import SpiceyPy as spice
+except ImportError:
+    import spice
 from collections import namedtuple
 import numpy as np
 from traits.api import HasTraits, Str, Float, Enum, Date, Property, \
