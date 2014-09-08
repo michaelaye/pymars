@@ -30,6 +30,7 @@ setup(
 
     entry_points={
         "console_scripts": [
+            'get_Ls = pymars.kmaspice:get_current_l_s'
             ]
     },
 
