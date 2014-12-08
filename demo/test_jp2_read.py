@@ -3,9 +3,10 @@ Created on Aug 16, 2009
 
 @author: aye
 '''
-from gdal_imports import *
+from pymars.gdal_imports import *
+from matplotlib import pyplot as plt
 
-fName = '/Users/aye/Desktop/cut_jpeg2000/test.jp2'
+fName = '/Users/maye/Dropbox/DDocuments/hirise/idl/cut_jpeg2000/test.jp2'
 cube = gdal.Open(str(fName), GA_ReadOnly )
 print "have gdal.Open done"
 
@@ -22,13 +23,11 @@ ySize = yTotal / 10
 #xOff = xSize/2 - size/2 -1
 #yOff = ySize/2 - size/2 -1
 #ax = fig.add_subplot(111)
-index = 0
 arr = cube.ReadAsArray(1,1,xSize, ySize)
 print 'read array'
 print arr.max()
 print arr.min()
-fig = plt.figure()
-ax = fig.add_subplot(111)
+fig, ax = plt.subplots()
 im = ax.imshow(arr)
 print 'imshowed arr'
 plt.show()

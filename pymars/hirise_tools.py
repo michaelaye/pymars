@@ -3,16 +3,17 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 from matplotlib import colors
+from os.path import join as pjoin
 
 if sys.platform == 'darwin':
-    FROM_BASE = os.environ['HOME']+'/data/hirise/'
-    DEST_BASE = os.environ['HOME']+'/data/hirise/'
+    FROM_BASE = os.environ['HOME']+'/data/hirise'
+    DEST_BASE = os.environ['HOME']+'/data/hirise'
 elif sys.platform == 'linux2':
     FROM_BASE = '/raid1/maye/hirise/imgdata'
     DEST_BASE = '/raid1/maye/hirise/processed_data'
 else:
-    FROM_BASE = '/imgdata/'
-    DEST_BASE = '/processed_data/'
+    FROM_BASE = '/imgdata'
+    DEST_BASE = '/processed_data'
 
 mosaic_extensions = '.cal.norm.map.equ.mos.cub'
 # mosaic_extensions = '.cal.des.map.cub'
@@ -75,28 +76,28 @@ def getUsersProcessedPath():
         # on the Mac, don't create extra folder for processed files
         pass
     else:
-        path += os.environ['LOGNAME'] + '/'
+        path = pjoin(path, os.environ['LOGNAME'])
     return path
 
 def getSourcePathFromID(idString):
     sciencePhase, orbitString, targetCode = idString.split("_")
     path = FROM_BASE
     if not sys.platform == 'darwin':
-        path += getEDRFolder(int(orbitString)) + '/'
-        path += getUpperOrbitFolder(int(orbitString)) + '/'
-    path += idString + '/'
+        path = pjoin(path, getEDRFolder(int(orbitString)))
+        path = pjoin(path, getUpperOrbitFolder(int(orbitString)))
+    path = pjoin(path, idString)
     return path
 
 def getDestPathFromID(idString):
     path = getUsersProcessedPath()
-    path += idString + '/'
+    path = pjoin(path, idString)
     return path
 
 def getStoredPathFromID(idString, in_work=False):
     folder = ''
     if in_work == True:
-        folder = 'maye/'
-    path = DEST_BASE + folder + idString + '/'
+        folder = 'maye'
+    path = pjoin(DEST_BASE, folder, idString)
     return path
 
 def getMosPathFromIDandCCD(obsID, ccd, in_work=False):

@@ -10,6 +10,8 @@ import glob
 import os
 import sys
 from ISIS_Commands import *
+from os.path import join as pjoin
+
 
 class HiRiseCCD(object):
     ''' 
@@ -139,7 +141,8 @@ class ISIS_Executer(object):
         self.sObsID = psObsID
         self.sColour = psColour.upper()
         self.ccd = HiRiseCCD(self.sColour)
-        if plProgList: self.lListToExecute = plProgList
+        if plProgList: 
+            self.lListToExecute = plProgList
         
         self.bDebug  = pbDebug
         self.bFake   = pbFake
@@ -173,7 +176,8 @@ class ISIS_Executer(object):
             for fileName in fileNames:
                 outfile.write(fileName + '\n')
             outfile.close()
-        if self.bDebug: print "Created ",inputListFileName
+        if self.bDebug: 
+            print "Created ",inputListFileName
         return inputListFileName
     
     def generateSpiceInfo(self):
@@ -183,20 +187,24 @@ class ISIS_Executer(object):
         while not os.path.exists(inputPath):
             detec = myIter.next()
             inputFileBaseName = self.generateInputBasename(self.sPhocube, detec)
-            inputPath = self.sSourcePath + inputFileBaseName
+            inputPath = pjoin(self.sSourcePath, inputFileBaseName)
         cmdKey.setInputPath(inputPath)
         L_s = cmdKey.getKeyValue()
-        sStatsInputFile = glob.glob(os.path.join(self.sDestPath, '*'+self.sColour+'*'+self.dOutputExtensions[self.sPhocube]))
+        glob_pattern = '*'+self.sColour+'*'+self.dOutputExtensions[self.sPhocube]
+        sStatsInputFile = glob.glob(pjoin(self.sDestPath, glob_pattern)
         if not os.path.exists(sStatsInputFile[0]):
             print 'stats input file does not exist: ',statsInputFile[0]
             sys.exit()
         statsCmd = ISIS_stats()
         statsCmd.setInputPath(sStatsInputFile[0])
-        outfileStats = os.path.join(self.sDestPath, "_".join([self.sObsID, self.sColour, 'phocube.stats.pvl']))
+        outfname = "_".join([self.sObsID, self.sColour, 'phocube.stats.pvl'])
+        outfileStats = pjoin(self.sDestPath, outfname)
         statsCmd.setOutputPath(outfileStats)
-        if self.bDebug: print statsCmd
+        if self.bDebug: 
+            print statsCmd
         output = executeIsisCmd(statsCmd.getExeList())
-        outfileSpiceInfo = os.path.join(self.sDestPath, "_".join([self.sObsID, self.sColour, 'spiceinfo.txt']))
+        outfname = "_".join([self.sObsID, self.sColour, 'spiceinfo.txt'])
+        outfileSpiceInfo = pjoin(self.sDestPath, outfname)
         cmdKey = ISIS_getkey('Average')
         cmdKey.setInputPath(outfileStats)
         avgIncAngle = cmdKey.getKeyValue()
@@ -236,34 +244,42 @@ class ISIS_Executer(object):
         sampPar = "samp={0}".format(samples/2)
         linePar = "line={0}".format(lines/2)
         cropCmd.addParameters([sampPar,linePar])
-        if self.bDebug: print "Calling crop with \n",cropCmd.getExeList()
+        if self.bDebug: 
+            print "Calling crop with \n",cropCmd.getExeList()
         cropCmd.execute()
         phocmd = self.dIsisProgs[self.sPhocube](['incidence'])
         phocmd.setInputPath(croppedName)
         phocmd.setOutputPath(self.sDestPath + self.generateOutputBasename(self.sPhocube, detec))
-        if self.bDebug: print "calling phocube with \n",phocmd
+        if self.bDebug: 
+            print "calling phocube with \n",phocmd
         subprocess.call(phocmd.getExeList())
         self.generateSpiceInfo()
         
     def process(self):
         print "Programs that will be executed: ", self.lListToExecute
         for prog in self.lListToExecute:
-            print "Processing obsID {1}, colour {2} with {0}".format(prog, self.sObsID, self.sColour)
+            print "Processing obsID {1}, colour {2} with {0}".format(prog, 
+                                                                     self.sObsID, 
+                                                                     self.sColour)
             sSourcePath = self.sSourcePath
             sDestPath = self.sDestPath
             # hi2isis is the only one reading from original files (currently in /imgdata)
-            if prog == self.sConverter: sSourcePath = getSourcePathFromID(self.sObsID)
+            if prog == self.sConverter: 
+                sSourcePath = getSourcePathFromID(self.sObsID)
             if not os.path.exists(sDestPath): 
                 print "Destination folder does not exist."
                 print "Creating " + sDestPath + " for you."
-                if not self.bFake: os.mkdir(sDestPath)
+                if not self.bFake: 
+                    os.makedirs(sDestPath)
             os.chdir(sDestPath)
             # determine if to work with CCD IDs or with channel IDs:
             if prog in self.lWorkOnChannels:
-                if self.bDebug: print "generating channel id iterator"
+                if self.bDebug: 
+                    print "generating channel id iterator"
                 myIter = self.ccd.generateChannelID()
             else:
-                if self.bDebug: print "generating ccd id iterator" 
+                if self.bDebug: 
+                    print "generating ccd id iterator" 
                 myIter = self.ccd.generateCCDID()
             # if we need to process phocube, call it and jump to next program afterwards
             if prog == self.sPhocube:
@@ -272,36 +288,44 @@ class ISIS_Executer(object):
             procs = []
             toDelete = []
             if not prog in self.lCommandsWithList:
-                if self.bDebug: print "In loop for multiple inputs"
+                if self.bDebug: 
+                    print "In loop for multiple inputs"
                 bFoundAny = False
                 for i,detector in enumerate(myIter):
                     # get the ISIS command object
                     cmd = self.dIsisProgs[prog]()
                     # now check for any special settings
                     inputFileBaseName = self.generateInputBasename(prog, detector)
-                    if self.bDebug: print "inputFileBaseName: ",inputFileBaseName
+                    if self.bDebug: 
+                        print "inputFileBaseName: ",inputFileBaseName
                     if prog == self.sStitcher:
                         inputFileBaseName2 = self.generateInputBasename(prog, myIter.next())
                         outputFileBaseName = self.generateOutputBasename(prog, detector[:4])
                     else: 
                         outputFileBaseName= self.generateOutputBasename(prog, detector)
-                        if self.bDebug: print "outputFileBaseName: ",outputFileBaseName
-                    inputFullPath = sSourcePath + inputFileBaseName
+                        if self.bDebug: 
+                            print "outputFileBaseName: ",outputFileBaseName
+                    inputFullPath = pjoin(sSourcePath, inputFileBaseName)
                     if os.path.exists(inputFullPath): 
                         cmd.setInputPath(inputFullPath)
                         bFoundAny = True
                     else:
-                        if self.bDebug: print "did not find {0}, continuing with next detector. \
-                        \n(Maybe input files were already deleted at previous processing step?)".format(inputFullPath) 
+                        if self.bDebug: 
+                            print """did not find {0}, continuing with next detector.
+                                  \n(Maybe input files were already deleted at previous 
+                                  processing step?)""".format(inputFullPath) 
                         continue
                     if cmd.bInputToDelete: 
-                        if self.bDebug: print "Adding {0} to toDelete-List.".format(inputFullPath)
-                        toDelete.append(sSourcePath + inputFileBaseName)
+                        if self.bDebug: 
+                            print "Adding {0} to toDelete-List.".format(inputFullPath)
+                        toDelete.append(pjoin(sSourcePath, inputFileBaseName))
                     if prog == self.sStitcher:
-                        cmd.setInputPath2(sSourcePath + inputFileBaseName2)
-                        if cmd.bInputToDelete: toDelete.append(sSourcePath + inputFileBaseName2)
-                    cmd.setOutputPath(sDestPath + outputFileBaseName)
-                    if (prog == self.sMapper) and self.mapfile: cmd.setMap(self.mapfile)
+                        cmd.setInputPath2(pjoin(sSourcePath, inputFileBaseName2))
+                        if cmd.bInputToDelete: 
+                            toDelete.append(pjoin(sSourcePath, inputFileBaseName2))
+                    cmd.setOutputPath(pjoin(sDestPath, outputFileBaseName))
+                    if (prog == self.sMapper) and self.mapfile: 
+                        cmd.setMap(self.mapfile)
                     # time to execute
                     if self.bFake: 
                         print cmd
@@ -314,10 +338,12 @@ class ISIS_Executer(object):
                         p.start()
                     else:
                         # some ISIS progs like cubenorm do not like to be run in parallel
-                        if self.bDebug: print "before single process loop"
+                        if self.bDebug: 
+                            print "before single process loop"
                         print "Working on", i
                         output = executeIsisCmd(cmd.getExeList())
-                        if self.bDebug: print output
+                        if self.bDebug: 
+                            print output
                 # end of detector iterator
                 if not bFoundAny:
                     print "Could not find any input path for {0}, exiting.".format(prog)
@@ -336,30 +362,40 @@ class ISIS_Executer(object):
                 for fName in toDelete:
                     print "Deleting ",fName
                     try:
-                        if not self.bFake: os.remove(fName)
+                        if not self.bFake: 
+                            os.remove(fName)
                     except OSError:
-                        if self.bDebug: print "Tried to delete non-existing file"
+                        if self.bDebug: 
+                            print "Tried to delete non-existing file"
             # if program works with inputLists
             else:
-                if self.bDebug: print "in part for list input"
+                if self.bDebug: 
+                    print "in part for list input"
                 cmd = self.dIsisProgs[prog]()
                 inputListFileName = self.generateInputList(prog) 
                 cmd.setInputPath(inputListFileName)
-                cmd.setOutputPath(self.sDestPath + self.generateOutputBasename(prog, self.ccd.sColour))
-                if prog == self.sEqualizer: cmd.setHoldList()
-                if self.bFake: print cmd
+                cmd.setOutputPath(pjoin(self.sDestPath, 
+                                        self.generateOutputBasename(prog, self.ccd.sColour)))
+                if prog == self.sEqualizer: 
+                    cmd.setHoldList()
+                if self.bFake: 
+                    print cmd
                 else: 
-                    if self.bDebug: print cmd
+                    if self.bDebug: 
+                        print cmd
                     output = executeIsisCmd(cmd.getExeList())
-                    if self.bDebug: print output
+                    if self.bDebug: 
+                        print output
                 if cmd.bInputToDelete:
                     fListOfFiles = open(inputListFileName)
                     for fName in fListOfFiles:
                         print "Deleting ",fName
                         try:
-                            if not self.bFake: os.remove(fName.splitlines()[0])
+                            if not self.bFake: 
+                                os.remove(fName.splitlines()[0])
                         except OSError:
-                            if self.bDebug: print "Tried to delete non-existing file"
+                            if self.bDebug: 
+                                print "Tried to delete non-existing file"
 
             # if phocube just finished, let's create the spiceinfo file for later analysis
             if prog == self.sPhocube:

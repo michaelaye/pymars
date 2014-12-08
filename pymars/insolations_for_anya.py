@@ -1,5 +1,5 @@
 from __future__ import division
-from mars_spice import MarsSpicer
+from kmaspice import MarsSpicer
 import datetime as dt
 import numpy as np
 import pprint

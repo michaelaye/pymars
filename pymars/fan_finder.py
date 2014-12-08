@@ -14,7 +14,8 @@ from canny import *
 import roi
 from hirise_tools import save_plot
 import sys
-        
+from os.path import join as pjoin
+  
 def get_data(index):
     try:
         obsID = obsIDs[index]
@@ -22,9 +23,8 @@ def get_data(index):
         obsID = index
     except NameError:
         obsID = index
-    fname = ''.join(['/Users/aye/Documents/hirise/fans/',
-                     obsID,
-                     '_RED.cal.norm.map.equ.mos.cub.pickled_array'])
+    fname = pjoin('/Users/maye/Dropbox/DDocuments/hirise/fans',
+                  str(obsID) + '_RED.cal.norm.map.equ.mos.cub.pickled_array')
     with open(fname) as f:
         data = pickle.load(f)
     return data
