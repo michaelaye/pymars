@@ -5,23 +5,19 @@ from mars_spice import MarsSpicer
 from spice import furnsh, vsep, vrotv
 import cStringIO
 import datetime as dt
+from read_ClimateDatabase import read_daily_average_CO2_depth
 
 tau = 2*pi
-spice_dir = '/Users/maye/Data/spice/mars/'
-furnsh('/Users/maye/Dropbox/src/pymars/data/mars.tm') # minimal kernel only for observer/instrument independent calculations
-
 
 class Mars(HasTraits):
     g = Float(3.758)            # m/sec2 - g at north pole of Mars
     # only for SPICE stuff
     obliquity = Float(deg2rad(25.19))   # degrees - angle of inclination of the axis of rotation to the orbital plane
 
-
 class Regolith(HasTraits):
     rho = Float(1300000)        #230000,  # g/m3 - regolith density
     sreg = 0.40*4.184,          # specific heat of regolith
     A = Float(0.25)             # albedo of regolith
-
 
 class CO2(HasTraits):
     spec_heat = Float(0.15*4.184)   # J/g/K specific heat of CO2 gas
@@ -29,15 +25,29 @@ class CO2(HasTraits):
     s = Float(0.205*4.184)          # J/g/K - specific heat of dry ice
     L = 635.0                       # J/g - latent heat of vaporization CO2
 
-
+class CO2_block(CO2, MarsSpicer):
+    from define_my_consts import ro_CO2
+    from CO2_phase_diagram import CO2_sublime_mass
+     
+    def __init__(self, time = None, dt = None):
+        MarsSpicer.__init__(self, time)
+        #self._h = 1 # default thickness of the ice layer
+        
+    @property
+    def _h(self):
+        h = read_daily_average_CO2_depth(self.coords.dlat, self.coords.dlon, self.l_s)
+        return h   
+    
 class DustParticle(Regolith, MarsSpicer):
-    r = Float(2.5e-6)               # radius of the dust
+    r = Float               # radius of the dust
     S = Property(depends_on = 'r')    # surface of dust disk
     #normal = Tuple
     gamma = Float
     
-    def __init__(self, normal, degree=None, axis=None, time=None):
+    def __init__(self, normal, degree=None, axis=None, time=None, rad = None, height = None):
         MarsSpicer.__init__(self, time)
+        self.r = rad
+        self._h = height
         if degree and axis:
             rot_axis = zeros(3)
             rot_axis[axis] = 1
@@ -48,8 +58,16 @@ class DustParticle(Regolith, MarsSpicer):
 
     def _get_S(self):
         # surface of dust disk
-        return 0.5*tau*r*r
+        return 0.5 * tau * self.r * self.r
         
+    @property
+    def h(self):
+        h_CO2 = read_daily_average_CO2_depth(self.coords.dlat, self.coords.dlon, self.l_s)
+        print h_CO2
+        if self._h > h_CO2:
+            return h_CO2  
+        else:
+            return self._h     
 
 def write_output(output, arg):
     output.write("%7.5f  %7.5f %7.5f  %7.5f %7.5f %7.5f %7.5f %7.5f %7.5f\n" % arg)
@@ -60,8 +78,8 @@ def main():
     utc = '2007-Jan-28-28T21:12:55' # time of PSP_002380_0985 = 174.477
 
     # angles between normal to the disk surface and Z-axis
-    disk1 = DustParticle(normal = array((0,0,1)),
-                         time = utc)
+    disk1 = DustParticle(normal = array((0,0,1)), time = utc)
+    
     # rotating a z-normal by 10 degree around (0,1,0)
     # axis count starts at 0 !
     # disk2 = DustParticle(normal = array((0,0,1)), degree=10, axis = 1)
