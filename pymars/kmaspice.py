@@ -283,7 +283,7 @@ class Spicer(HasTraits):
             # but they don't
             # self.lon = lon
             # self.lat = lat
-            spoint = self.srfrec(lon, lat)
+            spoint = self.srfrec(lon, lat).tolist()
         self.spoint_set = True
         self.spoint = spoint
 
@@ -579,6 +579,17 @@ class MercSpicer(Spicer):
 
     def __init__(self, time=None, obs=None, inst=None):
         super(MercSpicer, self).__init__(time)
+        self.obs = obs
+        self.instrument = inst
+
+class CeresSpicer(Spicer):
+    target = 'CERES'
+    ref_frame = 'IAU_CERES'
+    obs = Enum([None])
+    instrument = Enum([None])
+
+    def __init__(self, time=None, obs=None, inst=None):
+        super(CeresSpicer, self).__init__(time)
         self.obs = obs
         self.instrument = inst
 
