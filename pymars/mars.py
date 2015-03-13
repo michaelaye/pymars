@@ -102,9 +102,9 @@ class Point(object):
     """
 
     def __init__(self, sample=None, line=None,
-                       x=None, y=None,
-                       lat=None, lon=None,
-                       geotrans=None, proj=None):
+                 x=None, y=None,
+                 lat=None, lon=None,
+                 geotrans=None, proj=None):
         self.sample = sample
         self.line = line
         self.x = x
@@ -143,13 +143,13 @@ class Point(object):
 
     def __add__(self, other):
         newPoint = Point(0, 0)
-        if all([coord != None for coord in [self.sample, other.sample]]):
+        if all([coord is not None for coord in [self.sample, other.sample]]):
             newPoint.sample = self.sample + other.sample
             newPoint.line = self.line + other.line
-        if all([coord != None for coord in [self.x, other.x]]):
+        if all([coord is not None for coord in [self.x, other.x]]):
             newPoint.x = self.x + other.x
             newPoint.y = self.y + other.y
-        if all([coord != None for coord in [self.lat, other.lat]]):
+        if all([coord is not None for coord in [self.lat, other.lat]]):
             newPoint.lat = self.lat + other.lat
             newPoint.lon = self.lon + other.lon
         return newPoint
@@ -198,7 +198,8 @@ class Point(object):
         """
         if (self.x is None) or (self.y is None):
             raise SomethingNotSetError((self.x, self.y),
-                'Map coordinates not set for transformation.')
+                                       'Map coordinates not '
+                                       'set for transformation.')
         success, tInverse = gdal.InvGeoTransform(geotransform)
         self.sample, self.line = gdal.ApplyGeoTransform(tInverse,
                                                         self.x,
@@ -251,8 +252,8 @@ class Window(object):
     """
 
     def __init__(self, ulPoint=None, lrPoint=None,
-                       centerPoint=None, width=None):
-        if  not any([lrPoint, centerPoint, width]):
+                 centerPoint=None, width=None):
+        if not any([lrPoint, centerPoint, width]):
             self.usage()
         else:
             self.ul = ulPoint
@@ -266,7 +267,7 @@ class Window(object):
                 self.get_lr_from_width()
             else:
                 print("Either upper left and lower right or upper left/"
-                     " centerPoint with width needs to be provided.")
+                      " centerPoint with width needs to be provided.")
                 return
 
     def copy(self):
@@ -336,11 +337,11 @@ class Window(object):
         >>> '%6.2f, '*4 % tuple(win.get_extent(mola.dataset))
         '-705958.80, -695600.75, 684091.80, 689846.28, '
         """
-        if lonlat == False:
+        if lonlat is False:
             self.ul.pixel_to_meter(dataset.GetGeoTransform())
             self.lr.pixel_to_meter(dataset.GetGeoTransform())
             return [self.ul.x, self.lr.x, self.lr.y, self.ul.y]
-        elif lonlat == True:
+        elif lonlat is True:
             self.ul.pixel_to_lonlat(dataset.GetGeoTransform(),
                                     dataset.GetProjection())
             self.lr.pixel_to_lonlat(dataset.GetGeoTransform(),
@@ -359,7 +360,7 @@ class ImgData(object):
         self.Y = self.ds.RasterYSize
         for i in range(self.ds.RasterCount):
             setattr(self, 'band' + str(i + 1), self.ds.GetRasterBand(i + 1))
-        self.band = self.band1 # keep with older interface of just 1 band
+        self.band = self.band1  # keep with older interface of just 1 band
         self.geotrans = self.dataset.GetGeoTransform()
         self.projection = self.dataset.GetProjection()
         self.center = Point(self.X // 2, self.Y // 2,
@@ -412,8 +413,8 @@ class ImgData(object):
             data = b.ReadAsArray()
             mdata = np.ma.masked_equal(data, ndv)
         else:
-            #Don't want to load the entire dataset for stats computation
-            #This is maximum dimension for reduced resolution array
+            # Don't want to load the entire dataset for stats computation
+            # This is maximum dimension for reduced resolution array
             max_dim = maxdim
 
             scale_ns = ns / max_dim
@@ -424,7 +425,7 @@ class ImgData(object):
                 nl = round(nl / scale_max)
                 ns = round(ns / scale_max)
 
-            #The buf_size parameters determine the final array dimensions
+            # The buf_size parameters determine the final array dimensions
             data = np.array(b.ReadAsArray(buf_xsize=ns, buf_ysize=nl))
             mdata = np.ma.masked_equal(data, ndv)
         self.mdata = mdata
@@ -483,7 +484,7 @@ class ImgData(object):
         fig = figure()
         ax = fig.add_subplot(111)
         extent = self.window.get_extent(self.dataset, lonlat)
-        im = ax.imshow(self.data, extent=extent)#,origin='image')
+        im = ax.imshow(self.data, extent=extent)  # ,origin='image')
         if lonlat:
             ax.set_xlabel('Longitude [deg]')
             ax.set_ylabel('Latitude [deg]')
@@ -526,7 +527,7 @@ class CTX(ImgData):
     """docstring for CTX"""
 
     def __init__(self,
-                 fname=os.getenv('HOME') + \
+                 fname=os.getenv('HOME') +
                  '/data/ctx/inca_city/PSP_004226_0984/'
                  'P08_004226_0984_XI_81S063W.cal.des.map.cub'):
         ImgData.__init__(self, fname)
@@ -543,8 +544,8 @@ class CTX(ImgData):
         plt.gray()
         ax.imshow(self.data, extent=self.window.get_extent(self.dataset))
         CS = ax.contour(mola.data, 8, cmap=cm.jet,
-                         extent=self.window.get_extent(self.dataset),
-                         origin='image')
+                        extent=self.window.get_extent(self.dataset),
+                        origin='image')
         plt.clabel(CS, fontsize=13, inline=1)
         ax.set_xlabel('Polar stereographic X [km]')
         ax.set_ylabel('Polar stereographic Y [km]')
@@ -558,7 +559,7 @@ class HiRISE(ImgData):
 
     def __init__(self,
                  fname=os.getenv('HOME') + '/data/hirise/inca_city/'
-                       'PSP_002380_0985_RED.cal.norm.map.equ.mos.cub'):
+                 'PSP_002380_0985_RED.cal.norm.map.equ.mos.cub'):
         ImgData.__init__(self, fname)
 
 
@@ -611,7 +612,7 @@ class HiRISE(ImgData):
 def main(argv=None):
     """docstring for main"""
     from enthought.mayavi import mlab
-    if argv == None:
+    if argv is None:
         argv = sys.argv
 
     x1 = x2 = y1 = y2 = 0
