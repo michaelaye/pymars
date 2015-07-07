@@ -55,8 +55,15 @@ class GeoTransformNotSetError(SomethingNotSetError):
 def calculate_image_azimuth(origPoint, newPoint, zero='right'):
     """Calculate azimuth angle between 2 image points.
 
-    zero: 'right' or 'top'
-    origPoint and newPoint are mars.Point objects
+    Parameters
+    ==========
+    origPoint, newPoint: <mars.Point> objects
+    zero: <string>
+        right' or 'top' to indicate where zero is.
+
+    Returns
+    =======
+    azimuth: <float> azimuth angle
     """
     deltaSample = newPoint.sample - origPoint.sample
     deltaLine = newPoint.line - origPoint.line
@@ -76,6 +83,12 @@ def calculate_image_azimuth(origPoint, newPoint, zero='right'):
 
 
 def debug_srs(projection):
+    """Correct wrong scale_factor in PolarStereographic data.
+
+    Some PolarStereographic data have a 0 as a scale_factor in the
+    projection (mostly MOLA), which is being corrected here.
+    TODO: Check for being PolarStereographic before doing this!
+    """
     srs = osr.SpatialReference(projection)
     if int(srs.GetProjParm('scale_factor')) == 0:
         srs.SetProjParm('scale_factor', 1)
@@ -85,7 +98,19 @@ def debug_srs(projection):
 class Point(object):
     """Point class to manage pixel and map points and their transformations.
 
-    Requires: gdal to enable sample/line<-> map coords tra'fo's
+    Parameters
+    ==========
+    Either:
+    sample, line: pixel coordinates
+    or
+    x, y: projection coordinates (km or m)
+    or
+    lon, lat: geographical coordinates in degrees
+
+    Requires
+    ========
+    gdal to enable sample/line<-> map coords tra'fo's
+
     >>> p = Point(0,1)
 
     Need a dataset to try, so I get a MOLA dataset:
@@ -162,8 +187,18 @@ class Point(object):
     def pixel_to_meter(self, geotransform=None):
         """provide point in map projection coordinates.
 
-        Input: gdal Dataset
-        Return: tuple (x,y) coordinates in the projection of the dataset
+        Parameters
+        ==========
+        Geotransform in format as given by GDAL datasets.GetGeoTransform()
+        If none is provided, the method uses the one given at object creation
+        and throws an error if none was given at that time either.
+        If a geotransform has been provided, it is copied into the
+        object.
+
+        Returns
+        =======
+        tuple (x,y) coordinates in the projection of the dataset
+
         >>> p = Point(0,0)
         >>> mola = MOLA()
         >>> '%6.2f, '*2 % p.pixel_to_meter(mola.dataset.GetGeoTransform())
@@ -376,6 +411,7 @@ class ImgData(object):
         self.mdata = mdata
 
     def read_cropped_by_n(self, n):
+        "return a window of n x n "
         self.data = self.ds.ReadAsArray(n, n, self.X - n, self.Y - n)
 
     def read_center_window(self, width=500, band='band1'):
