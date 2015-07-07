@@ -1,3 +1,6 @@
 .DS_Store
 output
 *.pyc
+build/*
+pymars.egg-info/*
+dist/*
