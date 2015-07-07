@@ -11,10 +11,10 @@ Copyright (c) 2011 Klaus-Michael Aye. All rights reserved.
 
 from __future__ import division, print_function
 from osgeo import gdal, osr
-from matplotlib.pyplot import figure, show
-import matplotlib.pyplot as plt
 import sys
 import os
+from matplotlib.pyplot import figure, show
+import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
 import numpy as np
@@ -250,9 +250,8 @@ class Point(object):
             raise ProjectionNotSetError('pixel_to_meter')
         if self.sample is None:
             raise SomethingNotSetError('pixel_to_meter', "'sample'")
-        self.x, self.y = gdal.ApplyGeoTransform(geotransform,
-                                                self.sample, self.line)
-        self.shift_to_center(geotransform)
+        self.x, self.y = pixel_to_meter(self.sample, self.line,
+                                        geotransform)
         return (self.x, self.y)
 
     def meter_to_pixel(self, geotransform=None):
