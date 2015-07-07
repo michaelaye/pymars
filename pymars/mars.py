@@ -95,6 +95,35 @@ def debug_srs(projection):
     return srs
 
 
+def shift_to_center(x, y, geotransform):
+    # if i'd shift, the centerpoint does not show center coordinates
+    # so that seems wrong. am i overlooking something?
+    x += geotransform[1] / 2.0
+    y += geotransform[5] / 2.0
+    return x, y
+
+
+def pixel_to_meter(sample, line, geotransform, shift=False):
+    """provide point in map projection coordinates.
+
+    Parameters
+    ==========
+    sample, line: <integer> Sample and line of an image in pixel coords
+    Geotransform in format as given by GDAL datasets.GetGeoTransform()
+
+    Returns
+    =======
+    tuple (x,y) coordinates in the projection of the dataset
+
+    TODO: Shift had a problem. Write test to confirm what and fix.
+    FIXME above
+    """
+    x, y = gdal.ApplyGeoTransform(geotransform, sample, line)
+    if shift:
+        x, y = shift_to_center(x, y, geotransform)
+    return (x, y)
+
+
 class Point(object):
     """Point class to manage pixel and map points and their transformations.
 
