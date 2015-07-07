@@ -155,9 +155,10 @@ class Point(object):
     3 4
     """
 
-    def __init__(self, sample=None, line=None,
+    def __init__(self,
+                 sample=None, line=None,
                  x=None, y=None,
-                 lat=None, lon=None,
+                 lon=None, lat=None,
                  geotrans=None, proj=None):
         self.sample = sample
         self.line = line
