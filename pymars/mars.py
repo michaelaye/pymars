@@ -218,7 +218,7 @@ class Point(object):
         print('Map: ({0},{1})'.format(self.x, self.y))
         print('Geo: ({0},{1})'.format(self.lon, self.lat))
 
-    def pixel_to_meter(self, geotransform=None):
+    def pixel_to_meter(self, geotransform=None, shift_to_center=False):
         """provide point in map projection coordinates.
 
         Parameters
