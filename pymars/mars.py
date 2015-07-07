@@ -188,6 +188,10 @@ class Point(object):
     def coords(self):
         return np.array([self.x, self.y])
 
+    @property
+    def lonlats(self):
+        return np.array([self.lon, self.lat])
+
     def shift_to_center(self, geotransform):
         # if i'd shift, the centerpoint does not show center coordinates
         # so that seems wrong. am i overlooking something?
