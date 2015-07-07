@@ -1,3 +1,8 @@
+# coding=utf-8
+"""
+This is a little module calculating the maximum deviation of solar
+incidence angles between the 4 corners of as given by a PDS label.
+"""
 from __future__ import print_function
 from kmaspice import MarsSpicer
 from numpy import array
