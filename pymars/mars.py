@@ -9,7 +9,7 @@ lr = LowerRight
 Copyright (c) 2011 Klaus-Michael Aye. All rights reserved.
 """
 
-from __future__ import division, print_function
+from __future__ import division, print_function, absolute_import
 from osgeo import gdal, osr
 import sys
 import os
@@ -19,6 +19,7 @@ import matplotlib.cm as cm
 from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
 import numpy as np
 from math import atan2, degrees
+from .exceptions import *
 
 gdal.UseExceptions()
 
