@@ -25,9 +25,9 @@ KERNEL_DIR = os.path.join(os.environ['HOME'],
                           'SPICE_kernels')
 
 # pure planetary bodies meta-kernel without spacecraft data
-minimum_kernel_list = ['lsk/naif0010.tls',
-                       'pck/pck00009.tpc',
-                       'spk/de421.bsp',
+minimum_kernel_list = ['lsk/naif0011.tls',
+                       'pck/pck00010.tpc',
+                       'spk/de430.bsp',
                        ]
 for kernel in minimum_kernel_list:
     spice.furnsh(os.path.join(KERNEL_DIR, kernel))
@@ -76,28 +76,7 @@ def make_axis_rotation_matrix(direction, angle):
     return mtx
 
 
-###
-### Error classes for better error messaging
-###
-class KMASpiceError(Exception):
-    """Base class for exceptions in this module."""
-    pass
-
-
-class SPointNotSetError(KMASpiceError):
-    def __str__(self):
-        return """You are trying to use a method that requires that the surface
-point is defined. The class member is <spoint>. It can be set using the method
-'set_spoint_by'. This operation had no effect."""
-
-
-class ObserverNotSetError(KMASpiceError):
-    def __str__(self):
-        return """The method you called requires an observer to be set.
-                  This operation had no effect."""
-
-
-###
+##
 ### Helper Classes
 ###
 class IllumAngles(HasTraits):
@@ -219,6 +198,7 @@ class Spicer(HasTraits):
             self.time = dt.datetime.now()
         else:
             self.time = tparser.parse(time)
+        spice.furnsh("/Users/klay6683/Dropbox/NotPublic/spice/cosp_1000_040701_040701/cas_2004_v21_040701_040701.tm")
 
     def goto_ls_0(self):
         self.utc = '2011-09-13T14:24:33.733548'
@@ -567,6 +547,18 @@ class MoonSpicer(Spicer):
 
     def __init__(self, time=None, obs=None, inst=None):
         super(MoonSpicer, self).__init__(time)
+        self.obs = obs
+        self.instrument = inst
+
+
+class SaturnSpicer(Spicer):
+    target = 'SATURN'
+    ref_frame = 'IAU_SATURN'
+    obs = Enum([None])
+    instrument = Enum([None])
+
+    def __init__(self, time=None, obs=None, inst=None):
+        super(SaturnSpicer, self).__init__(time)
         self.obs = obs
         self.instrument = inst
 

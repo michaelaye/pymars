@@ -25,3 +25,24 @@ class ProjectionNotSetError(SomethingNotSetError):
 
 class GeoTransformNotSetError(SomethingNotSetError):
     what = 'GeoTransform'
+
+
+class KMASpiceError(Exception):
+    """Base class for exceptions in this module."""
+    pass
+
+
+class SPointNotSetError(KMASpiceError):
+    def __str__(self):
+        return """You are trying to use a method that requires that the surface
+point is defined. The class member is <spoint>. It can be set using the method
+'set_spoint_by'. This operation had no effect."""
+
+
+class ObserverNotSetError(KMASpiceError):
+    def __str__(self):
+        return """The method you called requires an observer to be set.
+                  This operation had no effect."""
+
+
+#
