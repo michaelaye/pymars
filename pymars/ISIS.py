@@ -191,7 +191,7 @@ class ISIS_Executer(object):
         cmdKey.setInputPath(inputPath)
         L_s = cmdKey.getKeyValue()
         glob_pattern = '*'+self.sColour+'*'+self.dOutputExtensions[self.sPhocube]
-        sStatsInputFile = glob.glob(pjoin(self.sDestPath, glob_pattern)
+        sStatsInputFile = glob.glob(pjoin(self.sDestPath, glob_pattern))
         if not os.path.exists(sStatsInputFile[0]):
             print 'stats input file does not exist: ',statsInputFile[0]
             sys.exit()

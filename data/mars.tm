@@ -6,21 +6,18 @@ KPL/MK
    \begindata
  
       PATH_VALUES     = (
-                         '/Users/maye/data/spice/mars'
-                         '/Users/maye/data/spice/gen'
-                        )
+                         '/Users/Anya/Dropbox/SternchenAndMe/SPICE_kernels'
+						  )
  
       PATH_SYMBOLS    = (
-						 'MY_KERNELS'
-                         'GEN_KERNELS'
+                         'MY_KERNELS'
                         )
  
       KERNELS_TO_LOAD = (
                          '$MY_KERNELS/lsk/naif0010.tls'
-                         '$GEN_KERNELS/pck/pck00008.tpc'
+                         '$MY_KERNELS/pck/pck00009.tpc'
                          '$MY_KERNELS/spk/de421.bsp'
                         )
  
    \begintext
- 
 
