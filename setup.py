@@ -3,13 +3,8 @@ from setuptools import setup, find_packages
 
 setup(
     name = "pymars",
-    version = "2.7.0beta1",
+    version = "2.7.0b1",
     packages = find_packages(),
-
-    install_requires = ['cliutils'],
-    tests_require = ['pytest'],
-
-    cmdclass = {'test': PyTest},
 
     entry_points={
         "console_scripts": [
