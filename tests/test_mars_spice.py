@@ -2,9 +2,13 @@ from pymars import kmaspice as ms
 from pymars import mars
 from pymars import pdstools
 from nose.tools import assert_equals
+import os
+import os.path as osp
 
 labels = pdstools.get_labels('data/ESP_022699_0985_RED.LBL')
 
+
+HOME = os.environ['HOME']
 
 def test_azimuth():
     img = mars.ImgData('/Users/maye/data/hirise/inca_city_dem/latest_download/ESP_022699_0985_RED_A_01_ORTHO.JP2')
@@ -40,7 +44,7 @@ def test_local_solar_time():
     lon = pdstools.get_mean_lon(labels)
     mspicer.set_spoint_by(lat=lat, lon=lon)
     calculated_soltime = mspicer.fractional_local_time
-    assert_equals(round(label_time, 1), round(calculated_soltime, 1))       
+    assert_equals(round(label_time, 1), round(calculated_soltime, 1))
 
 
 ####
