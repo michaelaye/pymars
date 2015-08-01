@@ -1,7 +1,7 @@
 # pymars
 Utilities for Mars data analysis
 
-## Status
+## Status [![Code Health](https://landscape.io/github/michaelaye/pymars/master/landscape.svg?style=flat)](https://landscape.io/github/michaelaye/pymars/master)
 
 a wild mix of my stuff from over the years, not meant for general consumption. Will soon be split up in proper libraries.
 
