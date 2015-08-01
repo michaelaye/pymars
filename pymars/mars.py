@@ -157,7 +157,7 @@ class Point(object):
         return np.array([self.sample, self.line])
 
     @property
-    def sample():
+    def sample(self):
         "I am the 'sample' property."
         return self._sample
 
