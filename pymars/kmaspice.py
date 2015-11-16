@@ -1,6 +1,6 @@
 from __future__ import division, print_function
 try:
-    import SpiceyPy as spice
+    import spiceypy as spice
 except ImportError:
     import spice
 from collections import namedtuple
